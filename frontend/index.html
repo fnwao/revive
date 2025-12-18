@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Revive AI - Revenue Recovery</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <h1>🚀 Revive AI</h1>
+            <p class="subtitle">AI-Powered Revenue Recovery for GoHighLevel</p>
+        </header>
+
+        <!-- API Key Setup -->
+        <section id="setup-section" class="card">
+            <h2>🔑 Setup</h2>
+            <div class="form-group">
+                <label for="api-key">API Key</label>
+                <input type="password" id="api-key" placeholder="Enter your API key">
+                <small>Get your API key by running: <code>python scripts/create_user.py create --email your@email.com</code></small>
+            </div>
+            <div class="form-group">
+                <label for="api-url">API URL</label>
+                <input type="text" id="api-url" value="http://localhost:8000" placeholder="http://localhost:8000">
+            </div>
+            <button onclick="saveApiKey()" class="btn btn-primary">Save & Connect</button>
+        </section>
+
+        <!-- Main Dashboard -->
+        <div id="dashboard" style="display: none;">
+            <!-- Step 1: Detect Stalled Deals -->
+            <section id="detect-section" class="card">
+                <h2>📊 Step 1: Detect Stalled Deals</h2>
+                <div class="form-group">
+                    <label for="pipeline-id">Pipeline ID</label>
+                    <input type="text" id="pipeline-id" value="pipeline-001" placeholder="pipeline-001">
+                    <small>Use "pipeline-001" for mock data</small>
+                </div>
+                <div class="form-group">
+                    <label for="threshold-days">Stalled Threshold (days)</label>
+                    <input type="number" id="threshold-days" value="7" min="1" max="90">
+                </div>
+                <button onclick="detectStalledDeals()" class="btn btn-primary">Detect Stalled Deals</button>
+                <div id="stalled-results" class="results"></div>
+            </section>
+
+            <!-- Step 2: Generate Messages -->
+            <section id="generate-section" class="card">
+                <h2>🤖 Step 2: Generate Messages</h2>
+                <div id="selected-deals" class="selected-deals"></div>
+                <button onclick="generateMessages()" class="btn btn-primary" id="generate-btn" disabled>Generate Messages for Selected Deals</button>
+                <div id="generate-results" class="results"></div>
+            </section>
+
+            <!-- Step 3: Review & Approve -->
+            <section id="approve-section" class="card">
+                <h2>✅ Step 3: Review & Approve</h2>
+                <button onclick="loadApprovals()" class="btn btn-secondary">Refresh Approvals</button>
+                <div id="approvals-list" class="approvals-list"></div>
+            </section>
+        </div>
+
+        <!-- Loading Overlay -->
+        <div id="loading" class="loading-overlay" style="display: none;">
+            <div class="spinner"></div>
+            <p>Processing...</p>
+        </div>
+
+        <!-- Toast Notifications -->
+        <div id="toast" class="toast"></div>
+    </div>
+
+    <script src="/app.js"></script>
+</body>
+</html>
+

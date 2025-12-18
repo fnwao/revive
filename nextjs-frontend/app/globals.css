@@ -1,0 +1,134 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Background Colors - Near-neutral dark */
+    --background: 15 17 21; /* #0F1115 */
+    --background-secondary: 21 24 34; /* #151822 */
+    --surface: 27 31 42; /* #1B1F2A */
+    --border: 42 47 58; /* #2A2F3A */
+
+    /* Text Colors - Never pure white */
+    --foreground: 245 247 250; /* #F5F7FA */
+    --foreground-secondary: 184 189 201; /* #B8BDC9 */
+    --muted-foreground: 138 144 162; /* #8A90A2 */
+    --placeholder: 94 100 117; /* #5E6475 */
+
+    /* Accent Color - Soft confident blue */
+    --primary: 79 140 255; /* #4F8CFF */
+    --primary-hover: 110 160 255; /* #6EA0FF */
+    --primary-subtle: 79 140 255 / 0.12; /* rgba(79, 140, 255, 0.12) */
+
+    /* Status Colors */
+    --success: 60 203 127; /* #3CCB7F */
+    --warning: 246 193 119; /* #F6C177 */
+    --error: 224 108 117; /* #E06C75 */
+
+    /* Radius */
+    --radius: 0.5rem; /* 8px */
+    --radius-card: 0.75rem; /* 12px */
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-[#0F1115] text-[#F5F7FA] font-sans antialiased;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+
+  /* Save animation keyframes */
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  
+  @keyframes saveSuccess {
+    0% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.05);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+
+  /* Typography Scale */
+  h1 {
+    @apply text-[36px] leading-[44px] font-semibold;
+  }
+
+  h2 {
+    @apply text-[28px] leading-[36px] font-semibold;
+  }
+
+  h3 {
+    @apply text-[22px] leading-[30px] font-semibold;
+  }
+
+  /* Body text */
+  .text-body-large {
+    @apply text-base leading-6 font-normal;
+  }
+
+  .text-body {
+    @apply text-sm leading-[22px] font-normal;
+  }
+
+  .text-body-small {
+    @apply text-[13px] leading-5 font-normal;
+  }
+
+  .text-label {
+    @apply text-xs leading-4 font-medium;
+  }
+}
+
+@layer components {
+  /* Card Styles - Quiet, not elevated */
+  .card-base {
+    @apply bg-[#1B1F2A] border border-[#2A2F3A] rounded-xl p-5;
+  }
+
+  /* Button Styles */
+  .btn-primary {
+    @apply h-10 rounded-lg bg-[#4F8CFF] text-white font-medium px-4;
+    @apply hover:bg-[#6EA0FF] transition-colors duration-150;
+    @apply focus:outline-none focus:ring-2 focus:ring-[#4F8CFF] focus:ring-offset-2 focus:ring-offset-[#0F1115];
+  }
+
+  .btn-secondary {
+    @apply h-10 rounded-lg bg-transparent border border-[#2A2F3A] text-[#F5F7FA] font-medium px-4;
+    @apply hover:bg-[#1B1F2A] transition-colors duration-150;
+    @apply focus:outline-none focus:ring-2 focus:ring-[#4F8CFF] focus:ring-offset-2 focus:ring-offset-[#0F1115];
+  }
+
+  /* Input Styles - Invisible until needed */
+  .input-base {
+    @apply h-10 bg-[#0F1115] border border-[#2A2F3A] rounded-lg px-3 text-[#F5F7FA];
+    @apply focus:outline-none focus:border-[#4F8CFF] focus:ring-1 focus:ring-[#4F8CFF]/20;
+    @apply placeholder:text-[#5E6475];
+  }
+
+  /* Soft row separators for tables/lists */
+  .row-divider {
+    @apply border-b border-[#2A2F3A];
+  }
+
+  .row-hover {
+    @apply hover:bg-[#1B1F2A]/50 transition-colors duration-150;
+  }
+}
