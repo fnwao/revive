@@ -12,30 +12,29 @@ interface TooltipProps {
 
 export function Tooltip({ children, content, side = "top", delayDuration = 300 }: TooltipProps) {
   const [isVisible, setIsVisible] = React.useState(false)
-  const [timeoutId, setTimeoutId] = React.useState<NodeJS.Timeout | null>(null)
+  const timeoutRef = React.useRef<number | null>(null)
 
   const handleMouseEnter = () => {
-    const id = setTimeout(() => {
+    timeoutRef.current = window.setTimeout(() => {
       setIsVisible(true)
     }, delayDuration)
-    setTimeoutId(id)
   }
 
   const handleMouseLeave = () => {
-    if (timeoutId) {
-      clearTimeout(timeoutId)
-      setTimeoutId(null)
+    if (timeoutRef.current !== null) {
+      window.clearTimeout(timeoutRef.current)
+      timeoutRef.current = null
     }
     setIsVisible(false)
   }
 
   React.useEffect(() => {
     return () => {
-      if (timeoutId) {
-        clearTimeout(timeoutId)
+      if (timeoutRef.current !== null) {
+        window.clearTimeout(timeoutRef.current)
       }
     }
-  }, [timeoutId])
+  }, [])
 
   const sideClasses = {
     top: "bottom-full left-1/2 -translate-x-1/2 mb-2",
