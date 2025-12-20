@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -42,7 +42,7 @@ export default function RevivalsPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [autoRefresh, setAutoRefresh] = useState(true)
-  const [refreshInterval, setRefreshInterval] = useState<NodeJS.Timeout | null>(null)
+  const refreshIntervalRef = useRef<number | null>(null)
   const [viewMode, setViewMode] = useState<"list" | "pipeline">("list")
 
   const loadStalledDeals = async (showError = true) => {
@@ -141,9 +141,9 @@ export default function RevivalsPage() {
         if (interval) clearInterval(interval)
       }
     } else {
-      if (refreshInterval) {
-        clearInterval(refreshInterval)
-        setRefreshInterval(null)
+      if (refreshIntervalRef.current !== null) {
+        clearInterval(refreshIntervalRef.current)
+        refreshIntervalRef.current = null
       }
     }
   }, [autoRefresh]) // eslint-disable-line react-hooks/exhaustive-deps

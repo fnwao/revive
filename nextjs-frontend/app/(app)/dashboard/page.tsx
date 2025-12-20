@@ -21,13 +21,13 @@ import {
   Radio
 } from "lucide-react"
 import { getDashboardStats, getApprovals, approveMessage, rejectMessage, sendMessage, type Approval, hasApiKey, type DashboardStats, getNotifications, markNotificationAsRead, type Notification } from "@/lib/api"
-import { getUser, getGreeting, getFirstName } from "@/lib/user"
+import { getUser, getGreeting, getFirstName, type User } from "@/lib/user"
 import { cn } from "@/lib/utils"
 import { showToast } from "@/lib/toast"
 import Link from "next/link"
 
 export default function DashboardPage() {
-  const [user, setUser] = useState(getUser())
+  const [user, setUser] = useState<User | null>(null)
   const [stats, setStats] = useState({
     active_revivals: 0,
     revenue_recovered: 0,
