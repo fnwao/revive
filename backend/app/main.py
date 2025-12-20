@@ -4,10 +4,17 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from app.config import settings
-from app.api.webhooks import router as webhooks_router
+# Note: webhooks_router is for GHL webhook receiver (if exists)
+# webhooks_config_router is for configuring outgoing webhooks
 from app.api.deals import router as deals_router
 from app.api.approvals import router as approvals_router
 from app.api.dashboard import router as dashboard_router
+from app.api.settings import router as settings_router
+from app.api.knowledge_base import router as knowledge_base_router
+from app.api.notifications import router as notifications_router
+from app.api.templates import router as templates_router
+from app.api.teams import router as teams_router
+from app.api.webhooks import router as webhooks_config_router
 import logging
 import os
 
@@ -36,10 +43,16 @@ app.add_middleware(
 )
 
 # Include routers
-app.include_router(webhooks_router, prefix="/api/v1")
+# app.include_router(webhooks_router, prefix="/api/v1")  # GHL webhook receiver (if exists)
 app.include_router(deals_router, prefix="/api/v1")
 app.include_router(approvals_router, prefix="/api/v1")
 app.include_router(dashboard_router, prefix="/api/v1")
+app.include_router(settings_router, prefix="/api/v1")
+app.include_router(knowledge_base_router, prefix="/api/v1")
+app.include_router(notifications_router, prefix="/api/v1")
+app.include_router(templates_router, prefix="/api/v1")
+app.include_router(teams_router, prefix="/api/v1")
+app.include_router(webhooks_config_router, prefix="/api/v1")
 
 # Serve frontend static files
 frontend_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend")

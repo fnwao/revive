@@ -9,6 +9,8 @@ class DetectStalledRequest(BaseModel):
     pipeline_id: Optional[str] = Field(None, description="Pipeline ID to check all deals in pipeline")
     deal_ids: Optional[List[str]] = Field(None, description="Specific deal IDs to check")
     stalled_threshold_days: int = Field(7, ge=1, le=90, description="Days of inactivity to consider stalled")
+    status_filter: Optional[List[str]] = Field(None, description="Filter by opportunity status (e.g., ['active', 'won'])")
+    tags_filter: Optional[List[str]] = Field(None, description="Filter by GHL tags (deals must have at least one of these tags)")
     
     class Config:
         json_schema_extra = {
@@ -30,6 +32,15 @@ class StalledDeal(BaseModel):
     days_since_activity: int
     contact_id: Optional[str]
     pipeline_id: Optional[str]
+    tags: Optional[List[str]] = None
+    # Intelligence fields
+    intelligence_score: Optional[float] = None
+    priority: Optional[str] = None
+    insights: Optional[List[str]] = None
+    recommended_action: Optional[str] = None
+    response_probability: Optional[float] = None
+    response_confidence: Optional[float] = None
+    sentiment: Optional[str] = None
     
     class Config:
         json_schema_extra = {

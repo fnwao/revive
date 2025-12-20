@@ -2,7 +2,10 @@
 from app.workers.celery_app import celery_app
 from app.db.session import SessionLocal
 from app.models.user import User
+from app.models.approval_queue import ApprovalQueue, ApprovalStatus
 from app.services.ghl import get_ghl_service
+from app.services.approval import send_approved_message
+from datetime import datetime, timezone
 import logging
 
 logger = logging.getLogger(__name__)
@@ -109,6 +112,94 @@ def sync_conversations(deal_id: str, user_id: str):
         
     except Exception as e:
         logger.error(f"Error syncing conversations: {str(e)}", exc_info=True)
+    finally:
+        db.close()
+
+
+@celery_app.task(name="send_scheduled_message")
+def send_scheduled_message(approval_id: str):
+    """
+    Send a scheduled message.
+    
+    This task is called when a scheduled message's time arrives.
+    It sends the message via GHL and updates the approval status.
+    """
+    db = SessionLocal()
+    try:
+        logger.info(f"Sending scheduled message: {approval_id}")
+        
+        # Get approval
+        approval = db.query(ApprovalQueue).filter(ApprovalQueue.id == approval_id).first()
+        if not approval:
+            logger.error(f"Approval not found: {approval_id}")
+            return
+        
+        # Check if already sent
+        if approval.status == ApprovalStatus.SENT:
+            logger.warning(f"Approval {approval_id} already sent")
+            return
+        
+        # Check if scheduled time has passed
+        if approval.scheduled_at:
+            now = datetime.now(timezone.utc)
+            if approval.scheduled_at > now:
+                logger.info(f"Approval {approval_id} scheduled for {approval.scheduled_at}, not yet time")
+                return
+        
+        # Get user
+        user = db.query(User).filter(User.id == approval.user_id).first()
+        if not user:
+            logger.error(f"User not found for approval {approval_id}")
+            return
+        
+        # Send the message
+        import asyncio
+        success = asyncio.run(send_approved_message(
+            db=db,
+            approval=approval,
+            user=user,
+            edited_message=approval.edited_message
+        ))
+        
+        if success:
+            logger.info(f"Scheduled message sent successfully: {approval_id}")
+        else:
+            logger.error(f"Failed to send scheduled message: {approval_id}")
+        
+    except Exception as e:
+        logger.error(f"Error sending scheduled message: {str(e)}", exc_info=True)
+    finally:
+        db.close()
+
+
+@celery_app.task(name="process_scheduled_messages")
+def process_scheduled_messages():
+    """
+    Periodic task to check for scheduled messages that need to be sent.
+    
+    This should be run every minute via Celery Beat.
+    It finds all approved messages with scheduled_at in the past
+    and sends them.
+    """
+    db = SessionLocal()
+    try:
+        now = datetime.now(timezone.utc)
+        
+        # Find scheduled messages that are ready to send
+        scheduled_approvals = db.query(ApprovalQueue).filter(
+            ApprovalQueue.status == ApprovalStatus.APPROVED,
+            ApprovalQueue.scheduled_at.isnot(None),
+            ApprovalQueue.scheduled_at <= now
+        ).all()
+        
+        logger.info(f"Found {len(scheduled_approvals)} scheduled messages ready to send")
+        
+        for approval in scheduled_approvals:
+            # Send each scheduled message
+            send_scheduled_message.delay(str(approval.id))
+        
+    except Exception as e:
+        logger.error(f"Error processing scheduled messages: {str(e)}", exc_info=True)
     finally:
         db.close()
 

@@ -4,17 +4,17 @@
 
 @layer base {
   :root {
-    /* Background Colors - Near-neutral dark */
-    --background: 15 17 21; /* #0F1115 */
-    --background-secondary: 21 24 34; /* #151822 */
-    --surface: 27 31 42; /* #1B1F2A */
-    --border: 42 47 58; /* #2A2F3A */
+    /* Background Colors - White */
+    --background: 255 255 255; /* #FFFFFF */
+    --background-secondary: 249 250 251; /* #F9FAFB */
+    --surface: 255 255 255; /* #FFFFFF */
+    --border: 229 231 235; /* #E5E7EB */
 
-    /* Text Colors - Never pure white */
-    --foreground: 245 247 250; /* #F5F7FA */
-    --foreground-secondary: 184 189 201; /* #B8BDC9 */
-    --muted-foreground: 138 144 162; /* #8A90A2 */
-    --placeholder: 94 100 117; /* #5E6475 */
+    /* Text Colors - Dark for white background */
+    --foreground: 17 24 39; /* #111827 */
+    --foreground-secondary: 75 85 99; /* #4B5563 */
+    --muted-foreground: 107 114 128; /* #6B7280 */
+    --placeholder: 156 163 175; /* #9CA3AF */
 
     /* Accent Color - Soft confident blue */
     --primary: 79 140 255; /* #4F8CFF */
@@ -38,7 +38,7 @@
   }
   
   body {
-    @apply bg-[#0F1115] text-[#F5F7FA] font-sans antialiased;
+    @apply bg-white text-[#111827] font-sans antialiased;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
   }
 
@@ -79,6 +79,19 @@
     @apply text-[22px] leading-[30px] font-semibold;
   }
 
+  /* Typography Utility Classes */
+  .text-h1 {
+    @apply text-[36px] leading-[44px] font-semibold;
+  }
+
+  .text-h2 {
+    @apply text-[28px] leading-[36px] font-semibold;
+  }
+
+  .text-h3 {
+    @apply text-[22px] leading-[30px] font-semibold;
+  }
+
   /* Body text */
   .text-body-large {
     @apply text-base leading-6 font-normal;
@@ -100,35 +113,35 @@
 @layer components {
   /* Card Styles - Quiet, not elevated */
   .card-base {
-    @apply bg-[#1B1F2A] border border-[#2A2F3A] rounded-xl p-5;
+    @apply bg-white border border-[#E5E7EB] rounded-xl p-5;
   }
 
   /* Button Styles */
   .btn-primary {
     @apply h-10 rounded-lg bg-[#4F8CFF] text-white font-medium px-4;
     @apply hover:bg-[#6EA0FF] transition-colors duration-150;
-    @apply focus:outline-none focus:ring-2 focus:ring-[#4F8CFF] focus:ring-offset-2 focus:ring-offset-[#0F1115];
+    @apply focus:outline-none focus:ring-2 focus:ring-[#4F8CFF] focus:ring-offset-2 focus:ring-offset-white;
   }
 
   .btn-secondary {
-    @apply h-10 rounded-lg bg-transparent border border-[#2A2F3A] text-[#F5F7FA] font-medium px-4;
-    @apply hover:bg-[#1B1F2A] transition-colors duration-150;
-    @apply focus:outline-none focus:ring-2 focus:ring-[#4F8CFF] focus:ring-offset-2 focus:ring-offset-[#0F1115];
+    @apply h-10 rounded-lg bg-transparent border border-[#E5E7EB] text-[#111827] font-medium px-4;
+    @apply hover:bg-[#F9FAFB] transition-colors duration-150;
+    @apply focus:outline-none focus:ring-2 focus:ring-[#4F8CFF] focus:ring-offset-2 focus:ring-offset-white;
   }
 
   /* Input Styles - Invisible until needed */
   .input-base {
-    @apply h-10 bg-[#0F1115] border border-[#2A2F3A] rounded-lg px-3 text-[#F5F7FA];
+    @apply h-10 bg-white border border-[#E5E7EB] rounded-lg px-3 text-[#111827];
     @apply focus:outline-none focus:border-[#4F8CFF] focus:ring-1 focus:ring-[#4F8CFF]/20;
-    @apply placeholder:text-[#5E6475];
+    @apply placeholder:text-[#9CA3AF];
   }
 
   /* Soft row separators for tables/lists */
   .row-divider {
-    @apply border-b border-[#2A2F3A];
+    @apply border-b border-[#E5E7EB];
   }
 
   .row-hover {
-    @apply hover:bg-[#1B1F2A]/50 transition-colors duration-150;
+    @apply hover:bg-[#F9FAFB] transition-colors duration-150;
   }
 }

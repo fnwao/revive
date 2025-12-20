@@ -9,9 +9,15 @@ import {
   CheckCircle2, 
   Loader2,
   ArrowRight,
-  Activity
+  Activity,
+  TrendingUp,
+  Clock,
+  AlertCircle,
+  RefreshCw,
+  MessageSquare,
+  Bell
 } from "lucide-react"
-import { getDashboardStats, getApprovals, approveMessage, rejectMessage, sendMessage, type Approval, hasApiKey, type DashboardStats } from "@/lib/api"
+import { getDashboardStats, getApprovals, approveMessage, rejectMessage, sendMessage, type Approval, hasApiKey, type DashboardStats, getNotifications, markNotificationAsRead, type Notification } from "@/lib/api"
 import { getUser, getGreeting, getFirstName } from "@/lib/user"
 import { cn } from "@/lib/utils"
 import { showToast } from "@/lib/toast"
@@ -31,6 +37,10 @@ export default function DashboardPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const [autoRefresh, setAutoRefresh] = useState(true)
+  const [lastRefresh, setLastRefresh] = useState<Date>(new Date())
+  const [notifications, setNotifications] = useState<Notification[]>([])
+  const [unreadCount, setUnreadCount] = useState(0)
 
   // Reload user data when component mounts or user updates
   useEffect(() => {
@@ -108,6 +118,15 @@ export default function DashboardPage() {
       if (approvalsData.pending !== undefined) {
         setStats(prev => ({ ...prev, pending_approvals: approvalsData.pending }))
       }
+
+      // Load notifications
+      try {
+        const notificationsData = await getNotifications({ limit: 5 })
+        setNotifications(notificationsData.notifications || [])
+        setUnreadCount(notificationsData.unread_count || 0)
+      } catch (error) {
+        console.error("Error loading notifications:", error)
+      }
     } catch (error) {
       console.error("Failed to load dashboard data:", error)
       // Don't show error - just use fallback data
@@ -133,6 +152,17 @@ export default function DashboardPage() {
   useEffect(() => {
     loadData()
   }, [])
+
+  // Auto-refresh when enabled
+  useEffect(() => {
+    if (autoRefresh) {
+      const interval = setInterval(() => {
+        loadData()
+        setLastRefresh(new Date())
+      }, 30000) // Refresh every 30 seconds
+      return () => clearInterval(interval)
+    }
+  }, [autoRefresh]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const showSuccess = (message: string) => {
     showToast.success(message)
@@ -224,7 +254,7 @@ export default function DashboardPage() {
   }
 
   const pendingApprovals = approvals.filter(a => a.status === "pending").slice(0, 3)
-  const isActive = stats.active_revivals > 0
+  const isActive = stats.active_revivals > 0 || stats.pending_approvals > 0
 
   return (
     <div className="flex flex-col h-full min-h-0">
@@ -232,63 +262,138 @@ export default function DashboardPage() {
       <div className="flex-1 overflow-y-auto min-h-0">
         <div className="max-w-5xl mx-auto px-6 py-12">
           {/* Clear Title */}
-          <div className="mb-12">
-            <h1 className="text-h1 text-[#F5F7FA] mb-2">
-              {greeting}, {firstName}
-            </h1>
-            <p className="text-body text-[#B8BDC9]">
-              Revenue recovery is {isActive ? "active" : "inactive"}. Here's what's happening this month.
-            </p>
+          <div className="mb-8 flex items-center justify-between">
+            <div>
+              <h1 className="text-h1 text-[#111827] mb-2">
+                {greeting}, {firstName}
+              </h1>
+              <p className="text-body text-[#6B7280]">
+                Revenue recovery is {isActive ? "active" : "inactive"}. Here's what's happening this month.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  loadData()
+                  setLastRefresh(new Date())
+                }}
+                disabled={loading}
+                title="Refresh data"
+              >
+                <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
+              </Button>
+              <Button
+                variant={autoRefresh ? "default" : "outline"}
+                size="sm"
+                onClick={() => setAutoRefresh(!autoRefresh)}
+                title={autoRefresh ? "Auto-refresh enabled (every 30s)" : "Enable auto-refresh"}
+              >
+                <Clock className={cn("h-4 w-4", autoRefresh && "animate-pulse")} />
+              </Button>
+            </div>
           </div>
 
           {/* Success/Error Messages */}
           {success && (
-            <div className="mb-6 p-4 rounded-lg bg-[#1B1F2A] border border-[#3CCB7F]/20">
+            <div className="mb-6 p-4 rounded-lg bg-white border border-[#3CCB7F]/20">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4 text-[#3CCB7F]" />
-                <p className="text-sm text-[#F5F7FA]">{success}</p>
+                <p className="text-sm text-[#111827]">{success}</p>
               </div>
             </div>
           )}
           {error && (
-            <div className="mb-6 p-4 rounded-lg bg-[#1B1F2A] border border-[#E06C75]/20">
+            <div className="mb-6 p-4 rounded-lg bg-white border border-[#E06C75]/20">
               <div className="flex items-center gap-2">
                 <Activity className="h-4 w-4 text-[#E06C75]" />
-                <p className="text-sm text-[#F5F7FA]">{error}</p>
+                <p className="text-sm text-[#111827]">{error}</p>
               </div>
             </div>
           )}
 
-          {/* Key Metrics - Primary Action */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-            <Card className="p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="h-10 w-10 rounded-lg bg-[#4F8CFF]/12 flex items-center justify-center">
-                  <DollarSign className="h-5 w-5 text-[#4F8CFF]" />
+          {/* Primary Metric - Revenue Recovered (Emphasized) */}
+          <Card className="p-8 mb-8 bg-gradient-to-br from-[#4F8CFF]/10 via-[#4F8CFF]/5 to-transparent border-2 border-[#4F8CFF]/20">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-4">
+                <div className="h-16 w-16 rounded-xl bg-[#4F8CFF]/20 flex items-center justify-center">
+                  <DollarSign className="h-8 w-8 text-[#4F8CFF]" />
                 </div>
                 <div>
-                  <p className="text-label text-[#8A90A2] uppercase tracking-wide">Revenue Recovered</p>
-                  <p className="text-h3 text-[#F5F7FA] mt-1">${stats.revenue_recovered.toLocaleString()}</p>
+                  <p className="text-sm font-medium text-[#6B7280] uppercase tracking-wide mb-1">Revenue Recovered</p>
+                  <p className="text-4xl font-bold text-[#111827]">${stats.revenue_recovered.toLocaleString()}</p>
                 </div>
               </div>
-              <p className="text-body-small text-[#8A90A2]">This month</p>
+              <div className="text-right">
+                <div className="flex items-center gap-1 text-[#3CCB7F] mb-1">
+                  <TrendingUp className="h-4 w-4" />
+                  <span className="text-sm font-medium">{stats.success_rate}% success rate</span>
+                </div>
+                <p className="text-xs text-[#6B7280]">This month</p>
+              </div>
+            </div>
+            <div className="pt-4 border-t border-[#E5E7EB]">
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <p className="text-xs text-[#6B7280] mb-1">Avg Response Time</p>
+                  <p className="text-lg font-semibold text-[#111827]">{stats.avg_response_time}h</p>
+                </div>
+                <div>
+                  <p className="text-xs text-[#6B7280] mb-1">Active Revivals</p>
+                  <p className="text-lg font-semibold text-[#111827]">{stats.active_revivals}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-[#6B7280] mb-1">Pending Approvals</p>
+                  <p className="text-lg font-semibold text-[#111827]">{stats.pending_approvals}</p>
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          {/* Secondary Metrics */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <Card className="p-5">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="h-10 w-10 rounded-lg bg-[#3CCB7F]/12 flex items-center justify-center">
+                  <TrendingUp className="h-5 w-5 text-[#3CCB7F]" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-xs text-[#6B7280] uppercase tracking-wide">Success Rate</p>
+                  <p className="text-2xl font-bold text-[#111827] mt-1">{stats.success_rate}%</p>
+                </div>
+              </div>
+              <p className="text-xs text-[#6B7280]">Messages getting responses</p>
             </Card>
 
-            <Card className="p-6">
-              <div className="flex items-center gap-3 mb-4">
+            <Card className="p-5">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="h-10 w-10 rounded-lg bg-[#4F8CFF]/12 flex items-center justify-center">
+                  <Clock className="h-5 w-5 text-[#4F8CFF]" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-xs text-[#6B7280] uppercase tracking-wide">Response Time</p>
+                  <p className="text-2xl font-bold text-[#111827] mt-1">{stats.avg_response_time}h</p>
+                </div>
+              </div>
+              <p className="text-xs text-[#6B7280]">Average time to respond</p>
+            </Card>
+
+            <Card className="p-5">
+              <div className="flex items-center gap-3 mb-3">
                 <div className="h-10 w-10 rounded-lg bg-[#4F8CFF]/12 flex items-center justify-center">
                   <Zap className="h-5 w-5 text-[#4F8CFF]" />
                 </div>
-                <div>
-                  <p className="text-label text-[#8A90A2] uppercase tracking-wide">Deals Revived</p>
-                  <p className="text-h3 text-[#F5F7FA] mt-1">{stats.active_revivals}</p>
+                <div className="flex-1">
+                  <p className="text-xs text-[#6B7280] uppercase tracking-wide">Active Revivals</p>
+                  <p className="text-2xl font-bold text-[#111827] mt-1">{stats.active_revivals}</p>
                 </div>
               </div>
-              <p className="text-body-small text-[#8A90A2]">Currently active</p>
+              <p className="text-xs text-[#6B7280]">Deals being revived</p>
             </Card>
 
-            <Card className="p-6">
-              <div className="flex items-center gap-3 mb-4">
+            <Card className="p-5">
+              <div className="flex items-center gap-3 mb-3">
                 <div className={cn(
                   "h-10 w-10 rounded-lg flex items-center justify-center",
                   isActive ? "bg-[#3CCB7F]/12" : "bg-[#8A90A2]/12"
@@ -298,44 +403,58 @@ export default function DashboardPage() {
                     isActive ? "text-[#3CCB7F]" : "text-[#8A90A2]"
                   )} />
                 </div>
-                <div>
-                  <p className="text-label text-[#8A90A2] uppercase tracking-wide">Status</p>
+                <div className="flex-1">
+                  <p className="text-xs text-[#6B7280] uppercase tracking-wide">Status</p>
                   <p className={cn(
-                    "text-h3 mt-1",
+                    "text-2xl font-bold mt-1",
                     isActive ? "text-[#3CCB7F]" : "text-[#8A90A2]"
                   )}>
                     {isActive ? "Active" : "Inactive"}
                   </p>
                 </div>
               </div>
-              <p className="text-body-small text-[#8A90A2]">Revive is {isActive ? "working" : "paused"}</p>
+              <p className="text-xs text-[#6B7280]">System {isActive ? "running" : "paused"}</p>
             </Card>
           </div>
 
-          {/* Pending Approvals - Supporting Context */}
-          {pendingApprovals.length > 0 && (
+          {/* Pending Approvals - High Priority Action */}
+          {stats.pending_approvals > 0 && (
             <div className="mb-12">
               <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h2 className="text-h2 text-[#F5F7FA] mb-1">Pending Approvals</h2>
-                  <p className="text-body text-[#B8BDC9]">
-                    Review AI-generated messages before sending
-                  </p>
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-[#F6C177]/12 flex items-center justify-center">
+                    <AlertCircle className="h-5 w-5 text-[#F6C177]" />
+                  </div>
+                  <div>
+                    <h2 className="text-h2 text-[#111827] mb-1">
+                      Pending Approvals
+                      {stats.pending_approvals > 0 && (
+                        <span className="ml-2 px-2 py-0.5 rounded-full bg-[#F6C177]/20 text-[#F6C177] text-sm font-medium">
+                          {stats.pending_approvals}
+                        </span>
+                      )}
+                    </h2>
+                    <p className="text-body text-[#6B7280]">
+                      {stats.pending_approvals === 1 
+                        ? "1 message needs your review before sending"
+                        : `${stats.pending_approvals} messages need your review before sending`}
+                    </p>
+                  </div>
                 </div>
                 <Link href="/revivals">
-                  <Button variant="ghost" size="sm">
-                    View All
+                  <Button variant="default" size="sm">
+                    Review All
                     <ArrowRight className="h-4 w-4 ml-2" />
                   </Button>
                 </Link>
               </div>
 
               <div className="space-y-3">
-                {pendingApprovals.map((approval) => (
+                {pendingApprovals.length > 0 ? pendingApprovals.map((approval) => (
                   <Card key={approval.id} className="p-5">
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex-1">
-                        <h3 className="text-base font-semibold text-[#F5F7FA] mb-1">{approval.deal_title}</h3>
+                        <h3 className="text-base font-semibold text-[#111827] mb-1">{approval.deal_title}</h3>
                         <p className="text-body-small text-[#8A90A2]">
                           {new Date(approval.created_at).toLocaleDateString()} at{" "}
                           {new Date(approval.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -343,8 +462,8 @@ export default function DashboardPage() {
                       </div>
                     </div>
 
-                    <div className="bg-[#0F1115] rounded-lg p-4 mb-4 border border-[#2A2F3A]">
-                      <p className="text-body text-[#B8BDC9] leading-relaxed">{approval.generated_message}</p>
+                    <div className="bg-white rounded-lg p-4 mb-4 border border-[#E5E7EB]">
+                      <p className="text-body text-[#6B7280] leading-relaxed">{approval.generated_message}</p>
                     </div>
 
                     <div className="flex items-center gap-2">
@@ -381,15 +500,164 @@ export default function DashboardPage() {
                       </Link>
                     </div>
                   </Card>
-                ))}
+                )) : (
+                  <Card className="p-5">
+                    <div className="text-center py-4">
+                      <CheckCircle2 className="h-8 w-8 text-[#3CCB7F] mx-auto mb-2" />
+                      <p className="text-sm text-[#6B7280]">All caught up! No pending approvals.</p>
+                    </div>
+                  </Card>
+                )}
               </div>
             </div>
           )}
 
-          {/* Secondary Actions */}
-          <div className="flex items-center gap-3">
+          {/* Notifications Widget */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-lg bg-[#4F8CFF]/12 flex items-center justify-center">
+                  <Bell className="h-5 w-5 text-[#4F8CFF]" />
+                </div>
+                <div>
+                  <h2 className="text-h2 text-[#111827] mb-1">
+                    Recent Notifications
+                    {unreadCount > 0 && (
+                      <span className="ml-2 px-2 py-0.5 rounded-full bg-[#4F8CFF]/20 text-[#4F8CFF] text-sm font-medium">
+                        {unreadCount} new
+                      </span>
+                    )}
+                  </h2>
+                  <p className="text-body text-[#6B7280]">
+                    Stay updated with important events and activities
+                  </p>
+                </div>
+              </div>
+              <Link href="/notifications">
+                <Button variant="outline" size="sm">
+                  View All
+                  <ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
+              </Link>
+            </div>
+
+            <Card className="p-5">
+              {notifications.length === 0 ? (
+                <div className="text-center py-8">
+                  <Bell className="h-8 w-8 text-[#6B7280] mx-auto mb-2 opacity-50" />
+                  <p className="text-sm text-[#6B7280]">No notifications yet</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {notifications.slice(0, 5).map((notification) => (
+                    <div
+                      key={notification.id}
+                      className={cn(
+                        "p-3 rounded-lg border transition-colors cursor-pointer hover:bg-[#F9FAFB]",
+                        !notification.read_at ? "bg-[#4F8CFF]/5 border-[#4F8CFF]/20" : "bg-white border-[#E5E7EB]"
+                      )}
+                      onClick={async () => {
+                        if (!notification.read_at) {
+                          try {
+                            await markNotificationAsRead(notification.id)
+                            setNotifications(prev => prev.map(n => 
+                              n.id === notification.id ? { ...n, read_at: new Date().toISOString() } : n
+                            ))
+                            setUnreadCount(prev => Math.max(0, prev - 1))
+                          } catch (error) {
+                            console.error("Error marking notification as read:", error)
+                          }
+                        }
+                      }}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className={cn(
+                          "h-2 w-2 rounded-full mt-2 flex-shrink-0",
+                          !notification.read_at ? "bg-[#4F8CFF]" : "bg-transparent"
+                        )} />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-1">
+                            <p className="text-sm font-medium text-[#111827]">{notification.title}</p>
+                            <span className="text-xs text-[#6B7280] flex-shrink-0 ml-2">
+                              {new Date(notification.created_at).toLocaleDateString()}
+                            </span>
+                          </div>
+                          <p className="text-sm text-[#6B7280] line-clamp-2">{notification.message}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+          </div>
+
+          {/* Actionable Insights */}
+          <div className="mb-8 space-y-3">
+            {stats.pending_approvals === 0 && stats.active_revivals === 0 && (
+              <Card className="p-5 bg-gradient-to-r from-[#4F8CFF]/5 to-transparent border-[#4F8CFF]/20">
+                <div className="flex items-start gap-3">
+                  <MessageSquare className="h-5 w-5 text-[#4F8CFF] mt-0.5" />
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-[#111827] mb-1">No active revivals</h3>
+                    <p className="text-sm text-[#6B7280] mb-3">
+                      Start recovering revenue by detecting stalled deals and generating revival messages.
+                    </p>
+                    <Link href="/revivals">
+                      <Button size="sm">
+                        Detect Stalled Deals
+                        <ArrowRight className="h-4 w-4 ml-2" />
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              </Card>
+            )}
+            {stats.success_rate < 50 && stats.active_revivals > 0 && (
+              <Card className="p-5 bg-gradient-to-r from-[#F6C177]/5 to-transparent border-[#F6C177]/20">
+                <div className="flex items-start gap-3">
+                  <TrendingUp className="h-5 w-5 text-[#F6C177] mt-0.5" />
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-[#111827] mb-1">Improve Success Rate</h3>
+                    <p className="text-sm text-[#6B7280] mb-3">
+                      Your success rate is {stats.success_rate}%. Consider refining your knowledge base or message tone to improve responses.
+                    </p>
+                    <Link href="/knowledge-base">
+                      <Button size="sm" variant="outline">
+                        Update Knowledge Base
+                        <ArrowRight className="h-4 w-4 ml-2" />
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              </Card>
+            )}
+            {stats.avg_response_time > 24 && stats.active_revivals > 0 && (
+              <Card className="p-5 bg-gradient-to-r from-[#4F8CFF]/5 to-transparent border-[#4F8CFF]/20">
+                <div className="flex items-start gap-3">
+                  <Clock className="h-5 w-5 text-[#4F8CFF] mt-0.5" />
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-[#111827] mb-1">Response Time</h3>
+                    <p className="text-sm text-[#6B7280] mb-3">
+                      Average response time is {stats.avg_response_time} hours. Consider following up on older messages.
+                    </p>
+                    <Link href="/revivals">
+                      <Button size="sm" variant="outline">
+                        Review Messages
+                        <ArrowRight className="h-4 w-4 ml-2" />
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              </Card>
+            )}
+          </div>
+
+          {/* Quick Actions */}
+          <div className="flex items-center gap-3 flex-wrap">
             <Link href="/revivals">
               <Button variant="default">
+                <Zap className="h-4 w-4 mr-2" />
                 View All Revivals
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
@@ -399,14 +667,19 @@ export default function DashboardPage() {
                 Configure Settings
               </Button>
             </Link>
+            {lastRefresh && (
+              <p className="text-xs text-[#6B7280] ml-auto">
+                Last updated: {lastRefresh.toLocaleTimeString()}
+              </p>
+            )}
           </div>
 
           {/* API Key Warning */}
           {!hasApiKey() && (
-            <div className="mt-12 p-4 rounded-lg bg-[#1B1F2A] border border-[#2A2F3A]">
+            <div className="mt-12 p-4 rounded-lg bg-white border border-[#E5E7EB]">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-[#F5F7FA]">API Key Not Configured</p>
+                  <p className="text-sm font-medium text-[#111827]">API Key Not Configured</p>
                   <p className="text-body-small text-[#8A90A2] mt-1">
                     Configure your API key in Settings to connect to the backend. Currently showing demo data.
                   </p>

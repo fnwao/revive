@@ -8,6 +8,9 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title: 'Revive.ai - Revenue Recovery for GoHighLevel',
   description: 'Revive.ai - AI-powered revenue recovery system that automatically detects and reactivates stalled deals',
+  icons: {
+    icon: '/favicon.ico',
+  },
 }
 
 export default function RootLayout({
@@ -16,8 +19,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
-      <body className={inter.className}>
+    <html lang="en" className="bg-white">
+      <body className={`${inter.className} bg-white`}>
         {children}
         <Toaster />
       </body>

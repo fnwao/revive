@@ -11,7 +11,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from app.db.base import Base
 from app.config import settings
-from app.models import User, Deal, Conversation, ApprovalQueue  # noqa
+from app.models import User, Deal, Conversation, ApprovalQueue, UserSettings, KnowledgeBaseDocument  # noqa
 
 # this is the Alembic Config object
 config = context.config

@@ -209,6 +209,33 @@ class GHLMockService:
         logger.info(f"[MOCK] ✅ SMS would be sent: {message[:50]}...")
         return True
     
+    async def send_email(
+        self,
+        contact_id: str,
+        subject: str,
+        body: str,
+        deal_id: Optional[str] = None
+    ) -> bool:
+        """Mock email sending - just logs the email."""
+        logger.info(f"[MOCK] Sending email to contact {contact_id}")
+        logger.info(f"[MOCK] Subject: {subject}")
+        logger.info(f"[MOCK] Body: {body[:100]}...")
+        
+        import asyncio
+        await asyncio.sleep(0.1)
+        
+        logger.info(f"[MOCK] ✅ Email would be sent")
+        return True
+    
+    async def get_deal_emails(
+        self,
+        deal_id: str,
+        limit: int = 20
+    ) -> List[Dict[str, Any]]:
+        """Mock email fetching - returns empty list."""
+        logger.info(f"[MOCK] Fetching emails for deal {deal_id}")
+        return []
+    
     def sync_deal_to_db(self, db: Session, ghl_deal_data: Dict[str, Any]) -> Deal:
         """Sync deal data from mock GHL to local database."""
         from app.models.deal import Deal

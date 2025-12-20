@@ -205,15 +205,15 @@ export default function SignUpPage() {
   const isStep2Valid = formData.apiKey && formData.locationId
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0F1115] p-4">
+    <div className="min-h-screen flex items-center justify-center bg-white p-4">
       <div className="w-full max-w-3xl">
         {/* Header */}
         <div className="text-center mb-8 space-y-3">
           <div className="flex items-center justify-center gap-3 mb-2">
             <AcquiriLogo className="h-12 w-12" />
-            <h1 className="text-4xl font-bold tracking-tight text-[#F5F7FA]">Welcome to Revive.ai</h1>
+            <h1 className="text-4xl font-bold tracking-tight text-[#111827]">Welcome to Revive.ai</h1>
           </div>
-          <p className="text-[#B8BDC9] text-lg max-w-md mx-auto">
+          <p className="text-[#6B7280] text-lg max-w-md mx-auto">
             Set up your revenue recovery system in minutes. Start recovering lost deals today.
           </p>
         </div>
@@ -236,7 +236,7 @@ export default function SignUpPage() {
                           ? "bg-[#4F8CFF] text-white scale-110"
                           : isActive
                           ? "bg-[#4F8CFF]/10 text-[#4F8CFF] border-2 border-[#4F8CFF] scale-110"
-                          : "bg-[#1B1F2A] text-[#8A90A2]"
+                          : "bg-white text-[#6B7280]"
                       )}
                     >
                       {isCompleted ? (
@@ -251,11 +251,11 @@ export default function SignUpPage() {
                     <div className="mt-3 text-center">
                       <p className={cn(
                         "text-xs font-medium transition-colors",
-                        isActive || isCompleted ? "text-[#F5F7FA]" : "text-[#8A90A2]"
+                        isActive || isCompleted ? "text-[#111827]" : "text-[#6B7280]"
                       )}>
                         {s.title}
                       </p>
-                      <p className="text-xs text-[#8A90A2] mt-0.5 hidden sm:block">
+                      <p className="text-xs text-[#6B7280] mt-0.5 hidden sm:block">
                         {s.description}
                       </p>
                     </div>
@@ -275,14 +275,14 @@ export default function SignUpPage() {
         </div>
 
         {/* Form Card */}
-        <Card className="bg-[#1B1F2A] border-[#2A2F3A]">
+        <Card className="bg-white border-[#E5E7EB]">
           <div className="p-8">
             {/* Step 1: Create Account */}
             {step === 1 && (
               <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
                 <div>
-                  <h2 className="text-2xl font-semibold mb-2 text-[#F5F7FA]">Create Your Account</h2>
-                  <p className="text-[#B8BDC9]">
+                  <h2 className="text-2xl font-semibold mb-2 text-[#111827]">Create Your Account</h2>
+                  <p className="text-[#6B7280]">
                     Start by creating your Revive.ai account. We'll never share your information.
                   </p>
                 </div>
@@ -377,7 +377,7 @@ export default function SignUpPage() {
                             {getPasswordStrengthLabel()}
                           </span>
                         </div>
-                        <div className="h-1.5 bg-[#1B1F2A] rounded-full overflow-hidden">
+                        <div className="h-1.5 bg-white rounded-full overflow-hidden">
                           <div
                             className={cn(
                               "h-full transition-all duration-300",
@@ -466,8 +466,8 @@ export default function SignUpPage() {
             {step === 2 && (
               <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
                 <div>
-                  <h2 className="text-2xl font-semibold mb-2 text-[#F5F7FA]">Connect GoHighLevel</h2>
-                  <p className="text-[#B8BDC9]">
+                  <h2 className="text-2xl font-semibold mb-2 text-[#111827]">Connect GoHighLevel</h2>
+                  <p className="text-[#6B7280]">
                     Link your GoHighLevel account to start recovering revenue from stalled deals.
                   </p>
                 </div>
@@ -509,7 +509,7 @@ export default function SignUpPage() {
                         {errors.apiKey}
                       </p>
                     )}
-                    <p className="text-xs text-[#B8BDC9]">
+                    <p className="text-xs text-[#6B7280]">
                       Don't have an API key?{" "}
                       <a href="#" className="text-[#4F8CFF] hover:underline font-medium">
                         Get one here
@@ -537,7 +537,7 @@ export default function SignUpPage() {
                         {errors.locationId}
                       </p>
                     )}
-                    <p className="text-xs text-[#B8BDC9]">
+                    <p className="text-xs text-[#6B7280]">
                       Find this in your GoHighLevel Settings → Locations
                     </p>
                   </div>
@@ -579,8 +579,8 @@ export default function SignUpPage() {
             {step === 3 && (
               <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
                 <div>
-                  <h2 className="text-2xl font-semibold mb-2 text-[#F5F7FA]">Configure Settings</h2>
-                  <p className="text-[#B8BDC9]">
+                  <h2 className="text-2xl font-semibold mb-2 text-[#111827]">Configure Settings</h2>
+                  <p className="text-[#6B7280]">
                     Set up your revival preferences. You can change these anytime in Settings.
                   </p>
                 </div>
@@ -599,22 +599,22 @@ export default function SignUpPage() {
                       onChange={(e) => handleInputChange("thresholdDays", e.target.value)}
                       className="h-11"
                     />
-                    <p className="text-xs text-[#B8BDC9]">
+                    <p className="text-xs text-[#6B7280]">
                       Deals inactive for this many days will be flagged for revival
                     </p>
                   </div>
 
-                  <div className="flex items-start gap-3 p-4 bg-[#1B1F2A] rounded-lg border border-[#2A2F3A] hover:border-[#4F8CFF]/20 transition-colors">
+                  <div className="flex items-start gap-3 p-4 bg-white rounded-lg border border-[#E5E7EB] hover:border-[#4F8CFF]/20 transition-colors">
                     <input
                       type="checkbox"
                       id="auto-approve"
                       checked={formData.autoApprove}
                       onChange={(e) => handleInputChange("autoApprove", e.target.checked)}
-                      className="mt-0.5 rounded border-[#2A2F3A]"
+                      className="mt-0.5 rounded border-[#E5E7EB]"
                     />
                     <Label htmlFor="auto-approve" className="font-normal cursor-pointer flex-1">
-                      <div className="font-medium mb-1 text-[#F5F7FA]">Auto-approve and send messages</div>
-                      <p className="text-xs text-[#B8BDC9]">
+                      <div className="font-medium mb-1 text-[#111827]">Auto-approve and send messages</div>
+                      <p className="text-xs text-[#6B7280]">
                         Recommended to keep off for the first week to review AI-generated messages
                       </p>
                     </Label>
@@ -661,39 +661,39 @@ export default function SignUpPage() {
                     <CheckCircle2 className="h-10 w-10 text-[#4F8CFF] relative z-10" />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-semibold mb-2 text-[#F5F7FA]">You're All Set!</h2>
-                    <p className="text-[#B8BDC9]">
+                    <h2 className="text-2xl font-semibold mb-2 text-[#111827]">You're All Set!</h2>
+                    <p className="text-[#6B7280]">
                       Your Revive.ai account is ready to go. We'll start monitoring your deals immediately.
                     </p>
                   </div>
                 </div>
 
                 <div className="space-y-3">
-                  <div className="flex items-center gap-3 p-4 bg-[#1B1F2A] rounded-lg border border-[#3CCB7F]/20">
+                  <div className="flex items-center gap-3 p-4 bg-white rounded-lg border border-[#3CCB7F]/20">
                     <div className="w-8 h-8 rounded-full bg-[#3CCB7F]/10 flex items-center justify-center flex-shrink-0">
                       <Check className="h-4 w-4 text-[#3CCB7F]" />
                     </div>
                     <div>
-                      <p className="font-medium text-sm text-[#F5F7FA]">Account created successfully</p>
-                      <p className="text-xs text-[#B8BDC9]">Welcome, {formData.name}!</p>
+                      <p className="font-medium text-sm text-[#111827]">Account created successfully</p>
+                      <p className="text-xs text-[#6B7280]">Welcome, {formData.name}!</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3 p-4 bg-[#1B1F2A] rounded-lg border border-[#3CCB7F]/20">
+                  <div className="flex items-center gap-3 p-4 bg-white rounded-lg border border-[#3CCB7F]/20">
                     <div className="w-8 h-8 rounded-full bg-[#3CCB7F]/10 flex items-center justify-center flex-shrink-0">
                       <Check className="h-4 w-4 text-[#3CCB7F]" />
                     </div>
                     <div>
-                      <p className="font-medium text-sm text-[#F5F7FA]">GoHighLevel connected</p>
-                      <p className="text-xs text-[#B8BDC9]">Location ID: {formData.locationId}</p>
+                      <p className="font-medium text-sm text-[#111827]">GoHighLevel connected</p>
+                      <p className="text-xs text-[#6B7280]">Location ID: {formData.locationId}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3 p-4 bg-[#1B1F2A] rounded-lg border border-[#3CCB7F]/20">
+                  <div className="flex items-center gap-3 p-4 bg-white rounded-lg border border-[#3CCB7F]/20">
                     <div className="w-8 h-8 rounded-full bg-[#3CCB7F]/10 flex items-center justify-center flex-shrink-0">
                       <Check className="h-4 w-4 text-[#3CCB7F]" />
                     </div>
                     <div>
-                      <p className="font-medium text-sm text-[#F5F7FA]">Settings configured</p>
-                      <p className="text-xs text-[#B8BDC9]">Threshold: {formData.thresholdDays} days</p>
+                      <p className="font-medium text-sm text-[#111827]">Settings configured</p>
+                      <p className="text-xs text-[#6B7280]">Threshold: {formData.thresholdDays} days</p>
                     </div>
                   </div>
                 </div>
@@ -727,7 +727,7 @@ export default function SignUpPage() {
         </Card>
 
         {/* Footer */}
-        <div className="text-center mt-6 text-sm text-[#B8BDC9]">
+        <div className="text-center mt-6 text-sm text-[#6B7280]">
           <p>
             Already have an account?{" "}
             <Link href="/login" className="text-[#4F8CFF] hover:underline font-medium">

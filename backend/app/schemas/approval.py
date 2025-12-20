@@ -13,10 +13,12 @@ class ApprovalItem(BaseModel):
     deal_title: Optional[str] = None
     generated_message: str
     edited_message: Optional[str] = None
+    user_feedback: Optional[str] = None
     status: str
     created_at: datetime
     approved_at: Optional[datetime] = None
     sent_at: Optional[datetime] = None
+    scheduled_at: Optional[datetime] = None
     
     class Config:
         json_schema_extra = {
@@ -55,11 +57,39 @@ class RejectRequest(BaseModel):
     pass  # No additional fields needed for reject
 
 
+class UpdateMessageRequest(BaseModel):
+    """Request schema for updating an edited message."""
+    edited_message: str = Field(
+        ...,
+        description="The edited version of the message"
+    )
+
+
+class FeedbackRequest(BaseModel):
+    """Request schema for providing feedback on AI-generated message."""
+    feedback: str = Field(
+        ...,
+        description="User feedback to help improve future AI-generated messages"
+    )
+
+
 class SendRequest(BaseModel):
-    """Request schema for sending a message (with optional edits)."""
+    """Request schema for sending a message (with optional edits and scheduling)."""
     edited_message: Optional[str] = Field(
         None,
         description="Optional edited version of the message. If not provided, uses generated_message or edited_message"
+    )
+    scheduled_at: Optional[datetime] = Field(
+        None,
+        description="Optional datetime to schedule the message for later sending. If not provided, sends immediately."
+    )
+    channel: Optional[str] = Field(
+        "sms",
+        description="Channel to send message: 'sms', 'email', or 'both'"
+    )
+    email_subject: Optional[str] = Field(
+        None,
+        description="Email subject (required if channel is 'email' or 'both')"
     )
 
 

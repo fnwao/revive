@@ -35,6 +35,15 @@ export interface StalledDeal {
   days_since_activity: number
   contact_id: string
   pipeline_id: string
+  tags?: string[] | null
+  // Intelligence fields
+  intelligence_score?: number
+  priority?: "critical" | "high" | "medium" | "low"
+  insights?: string[]
+  recommended_action?: string
+  response_probability?: number
+  response_confidence?: number
+  sentiment?: "positive" | "neutral" | "negative"
 }
 
 export interface Approval {
@@ -44,10 +53,12 @@ export interface Approval {
   deal_title: string
   generated_message: string
   edited_message: string | null
+  user_feedback: string | null
   status: "pending" | "approved" | "rejected" | "sent"
   created_at: string
   approved_at: string | null
   sent_at: string | null
+  scheduled_at: string | null
 }
 
 export interface DashboardStats {
@@ -86,33 +97,43 @@ async function fetchApi<T>(
   }
 
   const apiUrl = getApiUrl()
-  const response = await fetch(`${apiUrl}${endpoint}`, {
-    ...options,
-    headers,
-  })
+  
+  try {
+    const response = await fetch(`${apiUrl}${endpoint}`, {
+      ...options,
+      headers,
+    })
 
-  if (!response.ok) {
-    let errorMessage = `HTTP ${response.status}: ${response.statusText}`
-    try {
-      const error: ApiError = await response.json()
-      errorMessage = error.detail || errorMessage
-    } catch {
-      // If JSON parsing fails, use default message
+    if (!response.ok) {
+      let errorMessage = `HTTP ${response.status}: ${response.statusText}`
+      try {
+        const error: ApiError = await response.json()
+        errorMessage = error.detail || errorMessage
+      } catch {
+        // If JSON parsing fails, use default message
+      }
+      
+      // Handle specific error cases
+      if (response.status === 401) {
+        errorMessage = "Unauthorized. Please check your API key in Settings."
+      } else if (response.status === 404) {
+        errorMessage = "Endpoint not found. The backend may not be running."
+      } else if (response.status >= 500) {
+        errorMessage = "Server error. Please try again later."
+      }
+      
+      throw new Error(errorMessage)
     }
-    
-    // Handle specific error cases
-    if (response.status === 401) {
-      errorMessage = "Unauthorized. Please check your API key in Settings."
-    } else if (response.status === 404) {
-      errorMessage = "Endpoint not found. The backend may not be running."
-    } else if (response.status >= 500) {
-      errorMessage = "Server error. Please try again later."
+
+    return response.json()
+  } catch (error: any) {
+    // Handle network errors (backend not running, CORS, etc.)
+    if (error instanceof TypeError && error.message === "Failed to fetch") {
+      throw new Error(`Cannot connect to backend at ${apiUrl}. Is the server running?`)
     }
-    
-    throw new Error(errorMessage)
+    // Re-throw other errors
+    throw error
   }
-
-  return response.json()
 }
 
 // Dashboard API
@@ -147,7 +168,9 @@ export async function getDashboardStats(): Promise<DashboardStats> {
 export async function detectStalledDeals(
   pipelineId?: string,
   dealIds?: string[],
-  thresholdDays: number = 7
+  thresholdDays: number = 7,
+  statusFilter?: string[],
+  tagsFilter?: string[]
 ): Promise<{ stalled_deals: StalledDeal[]; total_found: number }> {
   // Return mock data if no API key
   if (!hasApiKey()) {
@@ -162,6 +185,7 @@ export async function detectStalledDeals(
         days_since_activity: 10,
         contact_id: "contact-001",
         pipeline_id: "pipeline-001",
+        tags: ["enterprise", "high-value"],
       },
       {
         deal_id: "deal-002",
@@ -173,17 +197,33 @@ export async function detectStalledDeals(
         days_since_activity: 8,
         contact_id: "contact-002",
         pipeline_id: "pipeline-001",
+        tags: ["startup", "small-business"],
+        intelligence_score: 58.0,
+        priority: "medium",
+        insights: ["Deal inactive for 8 days - good time to re-engage"],
+        recommended_action: "Send friendly follow-up message",
+        response_probability: 55.0,
+        response_confidence: 60.0,
+        sentiment: "neutral",
       },
       {
         deal_id: "deal-003",
         title: "Global Solutions - Premium",
-        status: "active",
+        status: "won",
         value: 10000,
         currency: "USD",
         last_activity_date: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000).toISOString(),
         days_since_activity: 12,
         contact_id: "contact-003",
         pipeline_id: "pipeline-001",
+        tags: ["enterprise", "premium"],
+        intelligence_score: 85.0,
+        priority: "critical",
+        insights: ["High-value deal ($10,000) - significant revenue potential", "Deal appears to be in final stages - high conversion potential"],
+        recommended_action: "Send personalized reactivation message immediately",
+        response_probability: 75.0,
+        response_confidence: 80.0,
+        sentiment: "positive",
       },
       {
         deal_id: "deal-004",
@@ -195,6 +235,7 @@ export async function detectStalledDeals(
         days_since_activity: 15,
         contact_id: "contact-004",
         pipeline_id: "pipeline-001",
+        tags: ["growth", "mid-market"],
       },
       {
         deal_id: "deal-005",
@@ -206,17 +247,26 @@ export async function detectStalledDeals(
         days_since_activity: 9,
         contact_id: "contact-005",
         pipeline_id: "pipeline-001",
+        tags: ["enterprise", "high-value", "priority"],
+        intelligence_score: 78.0,
+        priority: "high",
+        insights: ["High-value deal ($12,000) - significant revenue potential", "Deal inactive for 9 days - good time to re-engage"],
+        recommended_action: "High-value deal - craft personalized message with specific value points",
+        response_probability: 70.0,
+        response_confidence: 75.0,
+        sentiment: "positive",
       },
       {
         deal_id: "deal-006",
         title: "DataFlow Systems - Pro Package",
-        status: "active",
+        status: "lost",
         value: 6000,
         currency: "USD",
         last_activity_date: new Date(Date.now() - 11 * 24 * 60 * 60 * 1000).toISOString(),
         days_since_activity: 11,
         contact_id: "contact-006",
         pipeline_id: "pipeline-001",
+        tags: ["pro", "tech"],
       },
       {
         deal_id: "deal-007",
@@ -228,6 +278,7 @@ export async function detectStalledDeals(
         days_since_activity: 13,
         contact_id: "contact-007",
         pipeline_id: "pipeline-001",
+        tags: ["enterprise", "cloud"],
       },
       {
         deal_id: "deal-008",
@@ -239,6 +290,7 @@ export async function detectStalledDeals(
         days_since_activity: 14,
         contact_id: "contact-008",
         pipeline_id: "pipeline-001",
+        tags: ["premium", "mid-market"],
       },
       {
         deal_id: "deal-009",
@@ -250,6 +302,7 @@ export async function detectStalledDeals(
         days_since_activity: 16,
         contact_id: "contact-009",
         pipeline_id: "pipeline-001",
+        tags: ["growth", "small-business"],
       },
       {
         deal_id: "deal-010",
@@ -261,6 +314,14 @@ export async function detectStalledDeals(
         days_since_activity: 18,
         contact_id: "contact-010",
         pipeline_id: "pipeline-001",
+        tags: ["enterprise", "high-value", "priority"],
+        intelligence_score: 82.0,
+        priority: "critical",
+        insights: ["High-value deal ($15,000) - significant revenue potential", "Deal inactive for 18 days - urgent attention needed"],
+        recommended_action: "Urgent: Deal at risk - send message with value proposition",
+        response_probability: 68.0,
+        response_confidence: 70.0,
+        sentiment: "neutral",
       },
       {
         deal_id: "deal-011",
@@ -272,6 +333,7 @@ export async function detectStalledDeals(
         days_since_activity: 7,
         contact_id: "contact-011",
         pipeline_id: "pipeline-001",
+        tags: ["startup", "small-business"],
       },
       {
         deal_id: "deal-012",
@@ -283,12 +345,108 @@ export async function detectStalledDeals(
         days_since_activity: 19,
         contact_id: "contact-012",
         pipeline_id: "pipeline-001",
+        tags: ["professional", "mid-market"],
+      },
+      {
+        deal_id: "deal-013",
+        title: "MedTech Solutions - Enterprise",
+        status: "active",
+        value: 18000,
+        currency: "USD",
+        last_activity_date: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(),
+        days_since_activity: 6,
+        contact_id: "contact-013",
+        pipeline_id: "pipeline-001",
+        tags: ["enterprise", "healthcare", "high-value"],
+        intelligence_score: 88.0,
+        priority: "critical",
+        insights: ["High-value deal ($18,000) - significant revenue potential", "Deal recently active - good momentum to maintain"],
+        recommended_action: "Send personalized reactivation message immediately",
+        response_probability: 80.0,
+        response_confidence: 85.0,
+        sentiment: "positive",
+      },
+      {
+        deal_id: "deal-014",
+        title: "FinTech Innovations - Premium",
+        status: "active",
+        value: 14000,
+        currency: "USD",
+        last_activity_date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+        days_since_activity: 5,
+        contact_id: "contact-014",
+        pipeline_id: "pipeline-001",
+        tags: ["premium", "fintech", "high-value"],
+      },
+      {
+        deal_id: "deal-015",
+        title: "EduTech Academy - Growth Package",
+        status: "active",
+        value: 6800,
+        currency: "USD",
+        last_activity_date: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
+        days_since_activity: 4,
+        contact_id: "contact-015",
+        pipeline_id: "pipeline-001",
+        tags: ["growth", "education", "mid-market"],
+      },
+      {
+        deal_id: "deal-016",
+        title: "RetailMax Corp - Professional",
+        status: "active",
+        value: 11000,
+        currency: "USD",
+        last_activity_date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+        days_since_activity: 3,
+        contact_id: "contact-016",
+        pipeline_id: "pipeline-001",
+        tags: ["professional", "retail", "high-value"],
+      },
+      {
+        deal_id: "deal-017",
+        title: "GreenEnergy Solutions - Starter Package",
+        status: "active",
+        value: 2200,
+        currency: "USD",
+        last_activity_date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+        days_since_activity: 2,
+        contact_id: "contact-017",
+        pipeline_id: "pipeline-001",
+        tags: ["startup", "small-business", "green"],
+      },
+      {
+        deal_id: "deal-018",
+        title: "Logistics Pro - Enterprise",
+        status: "active",
+        value: 16000,
+        currency: "USD",
+        last_activity_date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+        days_since_activity: 1,
+        contact_id: "contact-018",
+        pipeline_id: "pipeline-001",
+        tags: ["enterprise", "logistics", "high-value", "priority"],
       },
     ]
 
+    // Apply filters to mock data
+    let filteredDeals = [...mockDeals]
+    
+    if (statusFilter && statusFilter.length > 0) {
+      filteredDeals = filteredDeals.filter(deal => 
+        deal.status && statusFilter.includes(deal.status)
+      )
+    }
+    
+    if (tagsFilter && tagsFilter.length > 0) {
+      filteredDeals = filteredDeals.filter(deal => {
+        const dealTags = deal.tags || []
+        return tagsFilter.some(tag => dealTags.includes(tag))
+      })
+    }
+
     return {
-      stalled_deals: mockDeals,
-      total_found: mockDeals.length,
+      stalled_deals: filteredDeals,
+      total_found: filteredDeals.length,
     }
   }
 
@@ -300,6 +458,14 @@ export async function detectStalledDeals(
   } else {
     // Default to a pipeline ID if none provided (for testing with database deals)
     body.pipeline_id = "pipeline-001"
+  }
+  
+  // Add filters
+  if (statusFilter && statusFilter.length > 0) {
+    body.status_filter = statusFilter
+  }
+  if (tagsFilter && tagsFilter.length > 0) {
+    body.tags_filter = tagsFilter
   }
 
   try {
@@ -356,6 +522,18 @@ export async function generateMessage(dealId: string): Promise<{ message: string
       "deal-004": "Hey David! Quick check-in on the Growth Package. I know you were evaluating options, and I wanted to see where things stand. Happy to answer any questions or adjust the proposal to better fit your needs.",
       "deal-005": "Hi Lisa! Following up on our Enterprise package discussion. I wanted to see if you've had a chance to review the proposal and if there's anything else I can provide to help with your decision.",
       "deal-006": "Hi Tom! I noticed we haven't touched base on the Pro Package in a bit. I wanted to reach out and see if you're still considering it or if there's anything I can clarify. Let me know what you think!",
+      "deal-007": "Hi Rachel! I wanted to follow up on our discussion about the Enterprise solution for CloudSync. We covered a lot about multi-cloud support and Kubernetes. Are you ready to move forward?",
+      "deal-008": "Hey James! Quick check-in on the Premium package onboarding discussion. I know you were reviewing the training materials with your team. How's that going?",
+      "deal-009": "Hi Amanda! Following up on the Growth Package pricing discussion. I sent over the scaling guide and pricing sheet. Have you had a chance to review it?",
+      "deal-010": "Hi Robert! I wanted to check in on the custom integrations discussion for PrimeTech. We covered Salesforce, HubSpot, and your ERP. What's the status on your end?",
+      "deal-011": "Hey Chris! How's the trial going? I wanted to check in and see if you have any questions or if you'd like to discuss moving forward with the Starter Package.",
+      "deal-012": "Hi Patricia! Following up on the Professional package API documentation. I know you were reviewing the rate limits and API capabilities. Any questions?",
+      "deal-013": "Hi Dr. Watson! I wanted to follow up on our HIPAA compliance and HL7 integration discussion. We covered a lot in our call. Are you ready to move forward with implementation?",
+      "deal-014": "Hi Michael! Following up on the security review for FinTech Innovations. I know security is critical for you. Have you had a chance to review everything with your team?",
+      "deal-015": "Hi Jessica! Quick check-in on the EduTech Academy Growth Package quote. I sent over pricing based on your 5,000 students. Have you had a chance to review it?",
+      "deal-016": "Hi Daniel! Following up on the Square POS integration demo for RetailMax. The integration looked great! Have you discussed it with your team?",
+      "deal-017": "Hi Maria! Your trial is ending soon. How's everything going? I wanted to check in and see if you'd like to continue with the Starter Package or if you have any questions.",
+      "deal-018": "Hi Kevin! Following up on the FedEx and UPS carrier integration demo for Logistics Pro. The demo went well! Are you ready to move forward?",
     }
 
     // Simulate API delay
@@ -468,7 +646,9 @@ export async function getApprovals(params?: {
         deal_title: "Acme Corp - Enterprise Package",
         generated_message: "Hi Sarah! I noticed we haven't connected in a while about the Enterprise Package. I wanted to check in and see if you're still interested in moving forward. We've had some great success with similar companies, and I'd love to show you how this could work for Acme Corp. Are you available for a quick call this week?",
         edited_message: null,
+        user_feedback: null,
         status: "pending",
+        scheduled_at: null,
         created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
         approved_at: null,
         sent_at: null,
@@ -480,7 +660,9 @@ export async function getApprovals(params?: {
         deal_title: "TechStart Inc - Starter Package",
         generated_message: "Hey Mike! Hope you're doing well. I saw we started discussing the Starter Package a few weeks back but haven't finalized things yet. I wanted to reach out and see if there are any questions I can answer or if you'd like to revisit the proposal. What works best for you?",
         edited_message: null,
+        user_feedback: null,
         status: "pending",
+        scheduled_at: null,
         created_at: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
         approved_at: null,
         sent_at: null,
@@ -564,31 +746,858 @@ export async function rejectMessage(approvalId: string): Promise<{ id: string; s
   }
 }
 
-export async function sendMessage(approvalId: string): Promise<{ id: string; status: string; message: string; sent: boolean }> {
+export async function updateEditedMessage(approvalId: string, editedMessage: string): Promise<{ id: string; status: string; message: string }> {
   if (!hasApiKey()) {
     // Simulate API call for demo - update mock state
-    await new Promise(resolve => setTimeout(resolve, 800))
+    await new Promise(resolve => setTimeout(resolve, 300))
     
     const { updateMockApproval } = await import("./mock-state")
     updateMockApproval(approvalId, {
-      status: "sent",
-      sent_at: new Date().toISOString(),
+      edited_message: editedMessage,
     })
     
     return {
       id: approvalId,
-      status: "sent",
-      message: "Message sent successfully",
-      sent: true,
+      status: "pending",
+      message: "Message updated successfully",
     }
   }
 
   try {
-    return await fetchApi(`/api/v1/approvals/${approvalId}/send`, {
-      method: "POST",
+    return await fetchApi(`/api/v1/approvals/${approvalId}/edit`, {
+      method: "PUT",
+      body: JSON.stringify({ edited_message: editedMessage }),
     })
   } catch (error) {
     throw error
   }
 }
+
+export async function submitFeedback(approvalId: string, feedback: string): Promise<{ id: string; status: string; message: string }> {
+  if (!hasApiKey()) {
+    // Simulate API call for demo - update mock state
+    await new Promise(resolve => setTimeout(resolve, 300))
+    
+    const { updateMockApproval } = await import("./mock-state")
+    updateMockApproval(approvalId, {
+      user_feedback: feedback,
+    })
+    
+    return {
+      id: approvalId,
+      status: "pending",
+      message: "Feedback submitted successfully",
+    }
+  }
+
+  try {
+    return await fetchApi(`/api/v1/approvals/${approvalId}/feedback`, {
+      method: "POST",
+      body: JSON.stringify({ feedback }),
+    })
+  } catch (error) {
+    throw error
+  }
+}
+
+export async function regenerateMessage(approvalId: string, feedback: string): Promise<{ id: string; status: string; message: string; generated_message?: string }> {
+  if (!hasApiKey()) {
+    // Simulate API call for demo - regenerate message with feedback
+    await new Promise(resolve => setTimeout(resolve, 2000))
+    
+    const { getMockApproval, updateMockApproval } = await import("./mock-state")
+    const approval = getMockApproval(approvalId)
+    
+    if (!approval) {
+      throw new Error("Approval not found")
+    }
+    
+    // Simulate regenerated message based on feedback
+    const previousMessage = approval.edited_message || approval.generated_message
+    let regeneratedMessage = previousMessage
+    
+    // Simple mock regeneration based on common feedback patterns
+    const feedbackLower = feedback.toLowerCase()
+    if (feedbackLower.includes("more casual") || feedbackLower.includes("less formal")) {
+      regeneratedMessage = previousMessage.replace(/Hi!|Hello|Dear/g, "Hey").replace(/\./g, "!")
+    } else if (feedbackLower.includes("more formal") || feedbackLower.includes("professional")) {
+      regeneratedMessage = previousMessage.replace(/Hey|Hi/g, "Hello").replace(/!/g, ".")
+    } else if (feedbackLower.includes("shorter") || feedbackLower.includes("concise")) {
+      regeneratedMessage = previousMessage.split(".")[0] + "."
+    } else if (feedbackLower.includes("longer") || feedbackLower.includes("more detail")) {
+      regeneratedMessage = previousMessage + " I'd love to discuss how we can help you achieve your goals."
+    } else if (feedbackLower.includes("pricing") || feedbackLower.includes("price")) {
+      regeneratedMessage = previousMessage + " I can share our pricing options if you're interested."
+    } else {
+      // Default: add feedback context
+      regeneratedMessage = previousMessage + " " + feedback
+    }
+    
+    // Update approval with regenerated message
+    updateMockApproval(approvalId, {
+      generated_message: regeneratedMessage,
+      user_feedback: feedback,
+      status: "pending",
+    })
+    
+    return {
+      id: approvalId,
+      status: "pending",
+      message: "Message regenerated successfully",
+      generated_message: regeneratedMessage,
+    }
+  }
+
+  try {
+    return await fetchApi(`/api/v1/approvals/${approvalId}/regenerate`, {
+      method: "POST",
+      body: JSON.stringify({ feedback }),
+    })
+  } catch (error) {
+    throw error
+  }
+}
+
+// Knowledge Base Chat API
+export async function chatWithKnowledgeBase(
+  message: string,
+  conversationHistory?: Array<{ role: string; content: string }>
+): Promise<{ response: string; document_created: boolean; document_id: string | null; document_title?: string; document_content?: string }> {
+  if (!hasApiKey()) {
+    // Mock implementation for demo - use AI-like logic
+    await new Promise(resolve => setTimeout(resolve, 2000))
+    
+    // Determine if we should create a document based on message intent
+    const messageLower = message.toLowerCase()
+    const shouldCreate = messageLower.includes("add") || 
+                        messageLower.includes("create") ||
+                        messageLower.includes("update") ||
+                        messageLower.includes("save") ||
+                        messageLower.includes("document") ||
+                        messageLower.includes("faq") ||
+                        messageLower.includes("script") ||
+                        messageLower.includes("pricing")
+    
+    if (shouldCreate) {
+      // Import and add document to mock storage
+      const { addDocument } = await import("./knowledge-base")
+      
+      // Generate a better document based on message content
+      let docTitle = "Document from Chat"
+      let docContent = `# Document Created from Chat\n\n${message}\n\nThis document was created through the chat interface.`
+      let docType = "TXT"
+      
+      // Try to infer document type and create better content
+      if (messageLower.includes("faq") || messageLower.includes("question")) {
+        docTitle = "FAQ - " + message.split(" ").slice(0, 5).join(" ")
+        docType = "FAQ"
+        docContent = `# FAQ\n\n## Question\n${message}\n\n## Answer\n[Answer to be provided]`
+      } else if (messageLower.includes("script") || messageLower.includes("sales")) {
+        docTitle = "Sales Script - " + message.split(" ").slice(0, 5).join(" ")
+        docType = "Sales Script"
+        docContent = `# Sales Script\n\n## Opening\n${message}\n\n## Key Points\n- Point 1\n- Point 2\n\n## Closing\n[Closing statement]`
+      } else if (messageLower.includes("pricing") || messageLower.includes("price")) {
+        docTitle = "Pricing Information"
+        docType = "Pricing Guide"
+        docContent = `# Pricing Information\n\n${message}\n\n## Pricing Tiers\n\n[Add your pricing tiers here]`
+      } else {
+        // Generic document
+        docTitle = message.split(" ").slice(0, 8).join(" ") || "Document from Chat"
+        if (docTitle.length > 50) docTitle = docTitle.substring(0, 50) + "..."
+        docContent = `# ${docTitle}\n\n${message}\n\n## Details\n\n[Additional details can be added here]`
+      }
+      
+      const doc = addDocument({
+        name: docTitle,
+        type: docType,
+        size: docContent.length,
+        content: docContent,
+        tags: ["chat-created"],
+      })
+      
+      return {
+        response: `I've created a document titled "${docTitle}" in your knowledge base based on your message. You can find it in the documents list and edit it if needed.`,
+        document_created: true,
+        document_id: doc.id,
+        document_title: docTitle,
+        document_content: docContent,
+      }
+    }
+    
+    return {
+      response: "I understand. Could you provide more details about what information you'd like to add to the knowledge base? For example, you could say 'Add a FAQ about pricing' or 'Create a sales script for cold outreach'.",
+      document_created: false,
+      document_id: null,
+    }
+  }
+
+  try {
+    const result = await fetchApi<{ response: string; document_created: boolean; document_id: string | null }>("/api/v1/knowledge-base/chat", {
+      method: "POST",
+      body: JSON.stringify({
+        message,
+        conversation_history: conversationHistory || [],
+      }),
+    })
+    
+    // If document was created, we need to add it to local storage for consistency
+    // In a real app, you'd fetch the document from the backend
+    if (result.document_created && result.document_id) {
+      // The document is already in the backend database
+      // For now, we'll rely on the parent component to refresh
+      // In the future, we could add a GET endpoint to fetch the document
+    }
+    
+    return result
+  } catch (error) {
+    throw error
+  }
+}
+
+export async function sendMessage(
+  approvalId: string, 
+  editedMessage?: string,
+  scheduledAt?: string | Date,
+  channel?: "sms" | "email" | "both",
+  emailSubject?: string
+): Promise<{ id: string; status: string; message: string; sent: boolean }> {
+  if (!hasApiKey()) {
+    // Simulate API call for demo - update mock state
+    await new Promise(resolve => setTimeout(resolve, 800))
+    
+    const { updateMockApproval } = await import("./mock-state")
+    const isScheduled = scheduledAt !== undefined
+    const scheduledTime = scheduledAt ? (typeof scheduledAt === 'string' ? scheduledAt : scheduledAt.toISOString()) : null
+    
+    updateMockApproval(approvalId, {
+      status: isScheduled ? "approved" : "sent",
+      sent_at: isScheduled ? null : new Date().toISOString(),
+      scheduled_at: scheduledTime,
+      edited_message: editedMessage || null,
+    })
+    
+    return {
+      id: approvalId,
+      status: isScheduled ? "approved" : "sent",
+      message: isScheduled 
+        ? `Message scheduled for ${new Date(scheduledTime!).toLocaleString()}`
+        : "Message sent successfully",
+      sent: !isScheduled,
+    }
+  }
+
+  try {
+    const body: any = {}
+    if (editedMessage) {
+      body.edited_message = editedMessage
+    }
+    if (scheduledAt) {
+      body.scheduled_at = typeof scheduledAt === 'string' ? scheduledAt : scheduledAt.toISOString()
+    }
+    if (channel) {
+      body.channel = channel
+    }
+    if (emailSubject) {
+      body.email_subject = emailSubject
+    }
+    return await fetchApi(`/api/v1/approvals/${approvalId}/send`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    })
+  } catch (error) {
+    throw error
+  }
+}
+
+// Settings API
+export interface UserSettings {
+  id: string
+  user_id: string
+  auto_detect_stalled: boolean
+  stalled_threshold_days: number
+  require_approval: boolean
+  auto_approve: boolean
+  email_notifications: boolean
+  sms_notifications: boolean
+  notify_on_stalled: boolean
+  notify_on_response: boolean
+  ghl_connected: boolean
+  ghl_api_key: string | null
+  ghl_location_id: string | null
+  created_at: string
+  updated_at: string | null
+}
+
+export interface UserSettingsUpdate {
+  auto_detect_stalled?: boolean
+  stalled_threshold_days?: number
+  require_approval?: boolean
+  auto_approve?: boolean
+  email_notifications?: boolean
+  sms_notifications?: boolean
+  notify_on_stalled?: boolean
+  notify_on_response?: boolean
+  ghl_connected?: boolean
+  ghl_api_key?: string | null
+  ghl_location_id?: string | null
+}
+
+export async function getSettings(): Promise<UserSettings> {
+  if (!hasApiKey()) {
+    // Return default settings from localStorage if no API key
+    const saved = localStorage.getItem("revive_settings")
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved)
+        return {
+          id: "local-settings",
+          user_id: "local-user",
+          auto_detect_stalled: parsed.autoDetectStalled ?? true,
+          stalled_threshold_days: parsed.stalledThresholdDays ?? 7,
+          require_approval: parsed.requireApproval ?? true,
+          auto_approve: parsed.autoApprove ?? false,
+          email_notifications: parsed.emailNotifications ?? true,
+          sms_notifications: parsed.smsNotifications ?? false,
+          notify_on_stalled: parsed.notifyOnStalled ?? true,
+          notify_on_response: parsed.notifyOnResponse ?? true,
+          ghl_connected: parsed.ghlConnected ?? false,
+          ghl_api_key: parsed.ghlApiKey ?? null,
+          ghl_location_id: parsed.ghlLocationId ?? null,
+          created_at: new Date().toISOString(),
+          updated_at: null,
+        }
+      } catch {
+        // Fall through to default
+      }
+    }
+    
+    // Return default settings
+    return {
+      id: "local-settings",
+      user_id: "local-user",
+      auto_detect_stalled: true,
+      stalled_threshold_days: 7,
+      require_approval: true,
+      auto_approve: false,
+      email_notifications: true,
+      sms_notifications: false,
+      notify_on_stalled: true,
+      notify_on_response: true,
+      ghl_connected: false,
+      ghl_api_key: null,
+      ghl_location_id: null,
+      created_at: new Date().toISOString(),
+      updated_at: null,
+    }
+  }
+
+  try {
+    return await fetchApi<UserSettings>("/api/v1/settings")
+  } catch (error: any) {
+    console.warn("Error fetching settings from backend, using localStorage:", error.message)
+    // Fallback to localStorage - don't throw, just use local storage
+    const saved = localStorage.getItem("revive_settings")
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved)
+        return {
+          id: "local-settings",
+          user_id: "local-user",
+          auto_detect_stalled: parsed.autoDetectStalled ?? true,
+          stalled_threshold_days: parsed.stalledThresholdDays ?? 7,
+          require_approval: parsed.requireApproval ?? true,
+          auto_approve: parsed.autoApprove ?? false,
+          email_notifications: parsed.emailNotifications ?? true,
+          sms_notifications: parsed.smsNotifications ?? false,
+          notify_on_stalled: parsed.notifyOnStalled ?? true,
+          notify_on_response: parsed.notifyOnResponse ?? true,
+          ghl_connected: parsed.ghlConnected ?? false,
+          ghl_api_key: parsed.ghlApiKey ?? null,
+          ghl_location_id: parsed.ghlLocationId ?? null,
+          created_at: new Date().toISOString(),
+          updated_at: null,
+        }
+      } catch {
+        // Fall through to default
+      }
+    }
+    
+    // Return default settings instead of throwing
+    return {
+      id: "local-settings",
+      user_id: "local-user",
+      auto_detect_stalled: true,
+      stalled_threshold_days: 7,
+      require_approval: true,
+      auto_approve: false,
+      email_notifications: true,
+      sms_notifications: false,
+      notify_on_stalled: true,
+      notify_on_response: true,
+      ghl_connected: false,
+      ghl_api_key: null,
+      ghl_location_id: null,
+      created_at: new Date().toISOString(),
+      updated_at: null,
+    }
+  }
+}
+
+export async function updateSettings(settings: UserSettingsUpdate): Promise<UserSettings> {
+  const apiUrl = getApiUrl()
+  const apiKey = getApiKey()
+  
+  if (!apiKey) {
+    throw new Error("API key not configured")
+  }
+  
+  try {
+    const response = await fetch(`${apiUrl}/api/v1/settings`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify(settings),
+    })
+    
+    if (!response.ok) {
+      const error: ApiError = await response.json()
+      throw new Error(error.detail || "Failed to update settings")
+    }
+    
+    return await response.json()
+  } catch (error) {
+    console.error("Error updating settings:", error)
+    throw error
+  }
+}
+
+// ========== NOTIFICATIONS ==========
+
+export interface Notification {
+  id: string
+  type: string
+  title: string
+  message: string
+  data?: Record<string, any>
+  status: "unread" | "read" | "archived"
+  read_at?: string
+  created_at: string
+}
+
+export interface NotificationListResponse {
+  notifications: Notification[]
+  total: number
+  unread_count: number
+}
+
+export async function getNotifications(params?: {
+  status_filter?: string
+  limit?: number
+  offset?: number
+}): Promise<NotificationListResponse> {
+  if (!hasApiKey()) {
+    // Return mock data
+    return {
+      notifications: [],
+      total: 0,
+      unread_count: 0,
+    }
+  }
+
+  const queryParams = new URLSearchParams()
+  if (params?.status_filter) queryParams.append("status_filter", params.status_filter)
+  if (params?.limit) queryParams.append("limit", params.limit.toString())
+  if (params?.offset) queryParams.append("offset", params.offset.toString())
+
+  const query = queryParams.toString()
+  try {
+    return await fetchApi(`/api/v1/notifications${query ? `?${query}` : ""}`)
+  } catch {
+    return {
+      notifications: [],
+      total: 0,
+      unread_count: 0,
+    }
+  }
+}
+
+export async function getUnreadNotificationCount(): Promise<number> {
+  if (!hasApiKey()) {
+    return 0
+  }
+
+  try {
+    const response = await fetchApi<{ unread_count: number }>("/api/v1/notifications/unread-count")
+    return response.unread_count
+  } catch {
+    return 0
+  }
+}
+
+export async function markNotificationAsRead(notificationId: string): Promise<void> {
+  if (!hasApiKey()) {
+    return
+  }
+
+  try {
+    await fetchApi(`/api/v1/notifications/${notificationId}/read`, {
+      method: "POST",
+    })
+  } catch (error) {
+    console.error("Error marking notification as read:", error)
+  }
+}
+
+export async function markAllNotificationsAsRead(): Promise<number> {
+  if (!hasApiKey()) {
+    return 0
+  }
+
+  try {
+    const response = await fetchApi<{ marked_count: number }>("/api/v1/notifications/mark-all-read", {
+      method: "POST",
+    })
+    return response.marked_count
+  } catch {
+    return 0
+  }
+}
+
+// ========== TEMPLATES ==========
+
+export interface MessageTemplate {
+  id: string
+  name: string
+  description?: string
+  type: "sms" | "email" | "both"
+  category?: string
+  subject?: string
+  body: string
+  variables?: string[]
+  usage_count: number
+  success_rate?: number
+  is_public: boolean
+  is_active: boolean
+  created_at: string
+  updated_at?: string
+  created_by?: string
+}
+
+export interface TemplateListResponse {
+  templates: MessageTemplate[]
+  total: number
+}
+
+export async function getTemplates(params?: {
+  category?: string
+  type?: string
+  is_active?: boolean
+  include_public?: boolean
+}): Promise<TemplateListResponse> {
+  if (!hasApiKey()) {
+    return {
+      templates: [],
+      total: 0,
+    }
+  }
+
+  const queryParams = new URLSearchParams()
+  if (params?.category) queryParams.append("category", params.category)
+  if (params?.type) queryParams.append("type", params.type)
+  if (params?.is_active !== undefined) queryParams.append("is_active", params.is_active.toString())
+  if (params?.include_public !== undefined) queryParams.append("include_public", params.include_public.toString())
+
+  const query = queryParams.toString()
+  try {
+    return await fetchApi(`/api/v1/templates${query ? `?${query}` : ""}`)
+  } catch {
+    return {
+      templates: [],
+      total: 0,
+    }
+  }
+}
+
+export async function createTemplate(template: {
+  name: string
+  description?: string
+  type: "sms" | "email" | "both"
+  category?: string
+  subject?: string
+  body: string
+  variables?: string[]
+  is_public?: boolean
+}): Promise<MessageTemplate> {
+  if (!hasApiKey()) {
+    throw new Error("API key not configured")
+  }
+
+  try {
+    return await fetchApi("/api/v1/templates", {
+      method: "POST",
+      body: JSON.stringify(template),
+    })
+  } catch (error) {
+    console.error("Error creating template:", error)
+    throw error
+  }
+}
+
+export async function updateTemplate(templateId: string, updates: Partial<MessageTemplate>): Promise<MessageTemplate> {
+  if (!hasApiKey()) {
+    throw new Error("API key not configured")
+  }
+
+  try {
+    return await fetchApi(`/api/v1/templates/${templateId}`, {
+      method: "PUT",
+      body: JSON.stringify(updates),
+    })
+  } catch (error) {
+    console.error("Error updating template:", error)
+    throw error
+  }
+}
+
+export async function deleteTemplate(templateId: string): Promise<void> {
+  if (!hasApiKey()) {
+    return
+  }
+
+  try {
+    await fetchApi(`/api/v1/templates/${templateId}`, {
+      method: "DELETE",
+    })
+  } catch (error) {
+    console.error("Error deleting template:", error)
+    throw error
+  }
+}
+
+// ========== TEAMS ==========
+
+export interface Team {
+  id: string
+  name: string
+  description?: string
+  settings?: Record<string, any>
+  created_at: string
+  member_count: number
+  current_user_role?: string
+}
+
+export interface TeamMember {
+  id: string
+  user_id: string
+  user_email: string
+  role: string
+  permissions?: Record<string, any>
+  is_active: boolean
+  joined_at: string
+}
+
+export interface TeamListResponse {
+  teams: Team[]
+  total: number
+}
+
+export async function getTeams(): Promise<TeamListResponse> {
+  if (!hasApiKey()) {
+    return {
+      teams: [],
+      total: 0,
+    }
+  }
+
+  try {
+    return await fetchApi("/api/v1/teams")
+  } catch {
+    return {
+      teams: [],
+      total: 0,
+    }
+  }
+}
+
+export async function createTeam(team: { name: string; description?: string }): Promise<Team> {
+  if (!hasApiKey()) {
+    throw new Error("API key not configured")
+  }
+
+  try {
+    return await fetchApi("/api/v1/teams", {
+      method: "POST",
+      body: JSON.stringify(team),
+    })
+  } catch (error) {
+    console.error("Error creating team:", error)
+    throw error
+  }
+}
+
+export async function getTeamMembers(teamId: string): Promise<TeamMember[]> {
+  if (!hasApiKey()) {
+    return []
+  }
+
+  try {
+    return await fetchApi(`/api/v1/teams/${teamId}/members`)
+  } catch {
+    return []
+  }
+}
+
+export async function addTeamMember(teamId: string, member: { user_id: string; role: string; permissions?: Record<string, any> }): Promise<TeamMember> {
+  if (!hasApiKey()) {
+    throw new Error("API key not configured")
+  }
+
+  try {
+    return await fetchApi(`/api/v1/teams/${teamId}/members`, {
+      method: "POST",
+      body: JSON.stringify(member),
+    })
+  } catch (error) {
+    console.error("Error adding team member:", error)
+    throw error
+  }
+}
+
+// ========== WEBHOOKS ==========
+
+export interface Webhook {
+  id: string
+  name: string
+  url: string
+  secret?: string
+  events: string[]
+  status: "active" | "inactive" | "failed"
+  retry_count: number
+  timeout_seconds: number
+  total_requests: number
+  successful_requests: number
+  failed_requests: number
+  last_triggered_at?: string
+  last_success_at?: string
+  last_failure_at?: string
+  created_at: string
+}
+
+export interface WebhookDelivery {
+  id: string
+  event_type: string
+  status: string
+  response_status?: number
+  attempts: number
+  error_message?: string
+  triggered_at: string
+  delivered_at?: string
+}
+
+export interface WebhookListResponse {
+  webhooks: Webhook[]
+  total: number
+}
+
+export async function getWebhooks(params?: { status_filter?: string }): Promise<WebhookListResponse> {
+  if (!hasApiKey()) {
+    return {
+      webhooks: [],
+      total: 0,
+    }
+  }
+
+  const queryParams = new URLSearchParams()
+  if (params?.status_filter) queryParams.append("status_filter", params.status_filter)
+
+  const query = queryParams.toString()
+  try {
+    return await fetchApi(`/api/v1/webhooks${query ? `?${query}` : ""}`)
+  } catch {
+    return {
+      webhooks: [],
+      total: 0,
+    }
+  }
+}
+
+export async function createWebhook(webhook: {
+  name: string
+  url: string
+  secret?: string
+  events: string[]
+  retry_count?: number
+  timeout_seconds?: number
+}): Promise<Webhook> {
+  if (!hasApiKey()) {
+    throw new Error("API key not configured")
+  }
+
+  try {
+    return await fetchApi("/api/v1/webhooks", {
+      method: "POST",
+      body: JSON.stringify(webhook),
+    })
+  } catch (error) {
+    console.error("Error creating webhook:", error)
+    throw error
+  }
+}
+
+export async function updateWebhook(webhookId: string, updates: Partial<Webhook> & Record<string, any>): Promise<Webhook> {
+  if (!hasApiKey()) {
+    throw new Error("API key not configured")
+  }
+
+  try {
+    return await fetchApi(`/api/v1/webhooks/${webhookId}`, {
+      method: "PUT",
+      body: JSON.stringify(updates),
+    })
+  } catch (error) {
+    console.error("Error updating webhook:", error)
+    throw error
+  }
+}
+
+export async function deleteWebhook(webhookId: string): Promise<void> {
+  if (!hasApiKey()) {
+    return
+  }
+
+  try {
+    await fetchApi(`/api/v1/webhooks/${webhookId}`, {
+      method: "DELETE",
+    })
+  } catch (error) {
+    console.error("Error deleting webhook:", error)
+    throw error
+  }
+}
+
+export async function getWebhookDeliveries(webhookId: string, params?: {
+  limit?: number
+  offset?: number
+  status_filter?: string
+}): Promise<WebhookDelivery[]> {
+  if (!hasApiKey()) {
+    return []
+  }
+
+  const queryParams = new URLSearchParams()
+  if (params?.limit) queryParams.append("limit", params.limit.toString())
+  if (params?.offset) queryParams.append("offset", params.offset.toString())
+  if (params?.status_filter) queryParams.append("status_filter", params.status_filter)
+
+  const query = queryParams.toString()
+  try {
+    return await fetchApi(`/api/v1/webhooks/${webhookId}/deliveries${query ? `?${query}` : ""}`)
+  } catch {
+    return []
+  }
+}
+
+// Note: sendMessage function is already defined above with email support
 

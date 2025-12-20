@@ -33,6 +33,12 @@ class ApprovalQueue(Base):
     generated_message = Column(Text, nullable=False)
     edited_message = Column(Text, nullable=True)  # User edits before sending
     final_message = Column(Text, nullable=True)  # Message that was actually sent
+    user_feedback = Column(Text, nullable=True)  # User feedback for AI improvement
+    
+    # Template and channel
+    template_id = Column(UUID(as_uuid=True), ForeignKey("message_templates.id"), nullable=True)
+    channel = Column(String(20), default="sms", index=True)  # sms, email, both
+    email_subject = Column(String(255), nullable=True)  # For email messages
     
     # Status
     status = Column(SQLEnum(ApprovalStatus), nullable=False, default=ApprovalStatus.PENDING, index=True)
@@ -41,8 +47,10 @@ class ApprovalQueue(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
     approved_at = Column(DateTime(timezone=True), nullable=True)
     sent_at = Column(DateTime(timezone=True), nullable=True)
+    scheduled_at = Column(DateTime(timezone=True), nullable=True, index=True)  # When message should be sent
     
     # Relationships
     user = relationship("User", backref="approvals")
     deal = relationship("Deal", backref="approvals")
+    template = relationship("MessageTemplate", backref="approvals")
 

@@ -20,6 +20,19 @@ class User(Base):
     ghl_refresh_token = Column(Text, nullable=True)
     ghl_location_id = Column(String(255), nullable=True)
     
+    # Team/Organization
+    default_team_id = Column(UUID(as_uuid=True), ForeignKey("teams.id"), nullable=True)
+    
+    # Email settings
+    email_enabled = Column(Boolean, default=True)
+    email_address = Column(String(255), nullable=True)
+    
+    # Notification preferences
+    notification_preferences = Column(JSONB, nullable=True)  # JSON with notification settings
+    
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    # Relationships
+    default_team = relationship("Team", foreign_keys=[default_team_id])
 

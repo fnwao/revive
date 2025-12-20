@@ -54,15 +54,21 @@ export function TutorialOverlay({ steps, onComplete, onSkip }: TutorialOverlayPr
 
   if (!currentStepData) return null
 
-  const getTooltipPosition = () => {
+  type TooltipPosition = 
+    | "center"
+    | { top: number; left: number; position: "top" | "bottom" | "left" | "right" }
+
+  const getTooltipPosition = (): TooltipPosition => {
     if (!highlightedElement) return "center"
     const rect = highlightedElement.getBoundingClientRect()
     const position = currentStepData.position || "bottom"
     
+    if (position === "center") return "center"
+    
     return {
       top: position === "top" ? rect.top - 20 : position === "bottom" ? rect.bottom + 20 : rect.top + rect.height / 2,
       left: position === "left" ? rect.left - 20 : position === "right" ? rect.right + 20 : rect.left + rect.width / 2,
-      position: position
+      position: position as "top" | "bottom" | "left" | "right"
     }
   }
 
@@ -93,7 +99,7 @@ export function TutorialOverlay({ steps, onComplete, onSkip }: TutorialOverlayPr
           !highlightedElement && "top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
         )}
         style={
-          highlightedElement
+          highlightedElement && typeof tooltipPos !== "string"
             ? {
                 top: tooltipPos.position === "top" || tooltipPos.position === "bottom" 
                   ? `${tooltipPos.top}px` 

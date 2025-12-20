@@ -200,9 +200,9 @@ export default function PricingPage() {
   const isCancelling = subscription.cancelAtPeriodEnd
 
   return (
-    <div className="flex flex-col h-full min-h-0 bg-[#0F1115]">
+    <div className="flex flex-col h-full min-h-0 bg-white">
       {/* Header */}
-      <div className="border-b border-[#2A2F3A] bg-[#0F1115] px-6 py-4 flex-shrink-0">
+      <div className="border-b border-[#E5E7EB] bg-white px-6 py-4 flex-shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link href="/settings">
@@ -222,19 +222,19 @@ export default function PricingPage() {
           <div className="text-center mb-16">
             <div className="flex items-center justify-center gap-2 mb-6">
               <AcquiriLogo className="h-8 w-8" />
-              <h1 className="text-h1 text-[#F5F7FA]">Choose Your Plan</h1>
+              <h1 className="text-h1 text-[#111827]">Choose Your Plan</h1>
             </div>
-            <p className="text-body text-[#B8BDC9] max-w-2xl mx-auto mb-8">
+            <p className="text-body text-[#6B7280] max-w-2xl mx-auto mb-8">
               Start recovering revenue from stalled deals. Upgrade anytime, cancel anytime.
             </p>
 
             {/* Current Plan Status */}
             {subscription.plan !== "free" && (
-              <div className="mb-8 p-4 bg-[#1B1F2A] border border-[#2A2F3A] rounded-lg max-w-md mx-auto">
+              <div className="mb-8 p-4 bg-white border border-[#E5E7EB] rounded-lg max-w-md mx-auto">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="h-4 w-4 text-[#3CCB7F]" />
-                    <span className="text-sm font-medium text-[#F5F7FA]">
+                    <span className="text-sm font-medium text-[#111827]">
                       Current: {plans.find(p => p.id === subscription.plan)?.name}
                     </span>
                   </div>
@@ -244,7 +244,7 @@ export default function PricingPage() {
                     </span>
                   )}
                 </div>
-                <div className="flex items-center gap-4 text-xs text-[#8A90A2]">
+                <div className="flex items-center gap-4 text-xs text-[#6B7280]">
                   <div className="flex items-center gap-1">
                     <Calendar className="h-3 w-3" />
                     <span>Renews {periodEnd.toLocaleDateString()}</span>
@@ -255,7 +255,7 @@ export default function PricingPage() {
                   </div>
                 </div>
                 {isCancelling && (
-                  <div className="mt-3 pt-3 border-t border-[#2A2F3A]">
+                  <div className="mt-3 pt-3 border-t border-[#E5E7EB]">
                     <Button
                       size="sm"
                       variant="outline"
@@ -282,7 +282,7 @@ export default function PricingPage() {
               <button
                 type="button"
                 onClick={() => {
-                  const newCycle = "monthly"
+                  const newCycle: BillingCycle = "monthly"
                   setBillingCycle(newCycle)
                   // Save billing cycle preference
                   const currentSub = getSubscription()
@@ -295,8 +295,8 @@ export default function PricingPage() {
                 className={cn(
                   "text-sm font-medium transition-colors px-3 py-2 rounded-md",
                   billingCycle === "monthly" 
-                    ? "text-[#F5F7FA] font-semibold bg-[#1B1F2A]" 
-                    : "text-[#8A90A2] hover:text-[#F5F7FA] hover:bg-[#1B1F2A]/50"
+                    ? "text-[#111827] font-semibold bg-white" 
+                    : "text-[#6B7280] hover:text-[#111827] hover:bg-white/50"
                 )}
               >
                 Monthly
@@ -304,7 +304,7 @@ export default function PricingPage() {
               <Switch
                 checked={billingCycle === "annual"}
                 onCheckedChange={(checked) => {
-                  const newCycle = checked ? "annual" : "monthly"
+                  const newCycle: BillingCycle = checked ? "annual" : "monthly"
                   setBillingCycle(newCycle)
                   // Save billing cycle preference
                   const currentSub = getSubscription()
@@ -319,7 +319,7 @@ export default function PricingPage() {
               <button
                 type="button"
                 onClick={() => {
-                  const newCycle = "annual"
+                  const newCycle: BillingCycle = "annual"
                   setBillingCycle(newCycle)
                   // Save billing cycle preference
                   const currentSub = getSubscription()
@@ -332,8 +332,8 @@ export default function PricingPage() {
                 className={cn(
                   "text-sm font-medium transition-colors px-3 py-2 rounded-md",
                   billingCycle === "annual" 
-                    ? "text-[#F5F7FA] font-semibold bg-[#1B1F2A]" 
-                    : "text-[#8A90A2] hover:text-[#F5F7FA] hover:bg-[#1B1F2A]/50"
+                    ? "text-[#111827] font-semibold bg-white" 
+                    : "text-[#6B7280] hover:text-[#111827] hover:bg-white/50"
                 )}
               >
                 Annual
@@ -344,18 +344,18 @@ export default function PricingPage() {
 
           {/* Success/Error Messages */}
           {success && (
-            <div className="mb-6 p-4 rounded-lg bg-[#1B1F2A] border border-[#3CCB7F]/20">
+            <div className="mb-6 p-4 rounded-lg bg-white border border-[#3CCB7F]/20">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4 text-[#3CCB7F]" />
-                <p className="text-sm text-[#F5F7FA]">{success}</p>
+                <p className="text-sm text-[#111827]">{success}</p>
               </div>
             </div>
           )}
           {error && (
-            <div className="mb-6 p-4 rounded-lg bg-[#1B1F2A] border border-[#E06C75]/20">
+            <div className="mb-6 p-4 rounded-lg bg-white border border-[#E06C75]/20">
               <div className="flex items-center gap-2">
                 <AlertCircle className="h-4 w-4 text-[#E06C75]" />
-                <p className="text-sm text-[#F5F7FA]">{error}</p>
+                <p className="text-sm text-[#111827]">{error}</p>
               </div>
             </div>
           )}
@@ -395,11 +395,11 @@ export default function PricingPage() {
                   )}
                   
                   <CardHeader className="pb-4">
-                    <CardTitle className="text-xl mb-1 text-[#F5F7FA]">{plan.name}</CardTitle>
-                    <CardDescription className="text-[#B8BDC9]">{plan.description}</CardDescription>
+                    <CardTitle className="text-xl mb-1 text-[#111827]">{plan.name}</CardTitle>
+                    <CardDescription className="text-[#6B7280]">{plan.description}</CardDescription>
                     <div className="mt-4">
                       <div className="flex items-baseline gap-1">
-                        <span className="text-3xl font-bold text-[#F5F7FA]">
+                        <span className="text-3xl font-bold text-[#111827]">
                           {plan.id === "free" 
                             ? "$0"
                             : billingCycle === "annual"
@@ -407,13 +407,13 @@ export default function PricingPage() {
                             : formatPrice(getPlanPrice(plan.id, "monthly"), "monthly")}
                         </span>
                         {plan.id !== "free" && (
-                          <span className="text-sm text-[#8A90A2]">
+                          <span className="text-sm text-[#6B7280]">
                             {billingCycle === "annual" ? "/year" : "/month"}
                           </span>
                         )}
                       </div>
                       {billingCycle === "annual" && plan.id !== "free" && (
-                        <p className="text-xs text-[#8A90A2] mt-1">
+                        <p className="text-xs text-[#6B7280] mt-1">
                           ${getMonthlyEquivalent(plan.id)}/month billed annually
                         </p>
                       )}
@@ -424,7 +424,7 @@ export default function PricingPage() {
                     <Button
                       className={cn(
                         "w-full mb-6",
-                        isCurrent && "bg-[#1B1F2A] text-[#8A90A2] border border-[#2A2F3A]",
+                        isCurrent && "bg-white text-[#6B7280] border border-[#E5E7EB]",
                         plan.popular && !isCurrent && "bg-[#4F8CFF] hover:bg-[#6EA0FF]"
                       )}
                       variant={isCurrent ? "outline" : "default"}
@@ -445,7 +445,7 @@ export default function PricingPage() {
                       {plan.features.map((feature, idx) => (
                         <li key={idx} className="flex items-start gap-2">
                           <Check className="h-4 w-4 text-[#4F8CFF] mt-0.5 flex-shrink-0" />
-                          <span className="text-sm text-[#B8BDC9]">{feature}</span>
+                          <span className="text-sm text-[#6B7280]">{feature}</span>
                         </li>
                       ))}
                     </ul>

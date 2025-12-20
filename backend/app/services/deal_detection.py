@@ -15,7 +15,9 @@ async def detect_stalled_deals(
     user: User,
     pipeline_id: str = None,
     deal_ids: List[str] = None,
-    threshold_days: int = 7
+    threshold_days: int = 7,
+    status_filter: List[str] = None,
+    tags_filter: List[str] = None
 ) -> List[Dict[str, Any]]:
     """
     Detect stalled deals based on last activity date.
@@ -62,6 +64,19 @@ async def detect_stalled_deals(
         
         # Convert database deals to dict format
         for db_deal in db_deals:
+            # Apply status filter if provided
+            if status_filter and db_deal.status not in status_filter:
+                continue
+            
+            # Apply tags filter if provided
+            if tags_filter:
+                deal_tags = db_deal.tags if db_deal.tags else []
+                if not isinstance(deal_tags, list):
+                    deal_tags = []
+                # Check if deal has at least one of the required tags
+                if not any(tag in deal_tags for tag in tags_filter):
+                    continue
+            
             deals_to_check.append({
                 "id": db_deal.ghl_deal_id,
                 "dealId": db_deal.ghl_deal_id,
@@ -71,6 +86,7 @@ async def detect_stalled_deals(
                 "contactId": db_deal.ghl_contact_id,
                 "pipelineId": db_deal.ghl_pipeline_id,
                 "lastActivityDate": db_deal.last_activity_date.isoformat() if db_deal.last_activity_date else None,
+                "tags": db_deal.tags if db_deal.tags else [],
             })
         
         if db_deals:
@@ -103,6 +119,19 @@ async def detect_stalled_deals(
     
     # Check each deal for stalled status
     for deal in deals_to_check:
+        # Apply status filter if provided (for GHL deals)
+        if status_filter and deal.get("status") not in status_filter:
+            continue
+        
+        # Apply tags filter if provided (for GHL deals)
+        if tags_filter:
+            deal_tags = deal.get("tags", [])
+            if not isinstance(deal_tags, list):
+                deal_tags = []
+            # Check if deal has at least one of the required tags
+            if not any(tag in deal_tags for tag in tags_filter):
+                continue
+        
         last_activity_str = deal.get("lastActivityDate")
         last_activity = None
         
@@ -133,6 +162,7 @@ async def detect_stalled_deals(
                 "days_since_activity": 999,  # High number to indicate no activity
                 "contact_id": deal.get("contactId"),
                 "pipeline_id": deal.get("pipelineId"),
+                "tags": deal.get("tags", []),
             })
             continue
         
@@ -154,6 +184,7 @@ async def detect_stalled_deals(
                 "days_since_activity": days_since,
                 "contact_id": deal.get("contactId"),
                 "pipeline_id": deal.get("pipelineId"),
+                "tags": deal.get("tags", []),
             })
             
             logger.info(

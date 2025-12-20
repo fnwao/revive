@@ -11,6 +11,10 @@ from app.schemas.message import GenerateMessageResponse
 from app.services.deal_detection import detect_stalled_deals
 from app.services.ghl import get_ghl_service
 from app.services.ai import AIService
+from app.services.intelligence import IntelligenceService
+from app.services.notification_service import NotificationService, NotificationType
+from app.services.webhook_service import WebhookService
+from app.models.webhook import WebhookEvent
 from datetime import datetime
 import logging
 import uuid
@@ -65,8 +69,64 @@ async def detect_stalled(
             user=current_user,
             pipeline_id=request.pipeline_id,
             deal_ids=request.deal_ids,
-            threshold_days=request.stalled_threshold_days
+            threshold_days=request.stalled_threshold_days,
+            status_filter=request.status_filter,
+            tags_filter=request.tags_filter
         )
+        
+        # Add intelligence scoring to each deal
+        intelligence_service = IntelligenceService()
+        ghl_service = get_ghl_service(current_user)
+        
+        for deal_data in stalled_deals_data:
+            # Fetch conversation history for intelligence analysis
+            try:
+                conversations = await ghl_service.get_deal_conversations(
+                    deal_data.get("deal_id"), 
+                    limit=20
+                )
+                
+                # Analyze sentiment
+                sentiment_analysis = intelligence_service.analyze_conversation_sentiment(conversations)
+                
+                # Calculate deal score
+                deal_score = intelligence_service.calculate_deal_score(
+                    deal_value=deal_data.get("value"),
+                    days_since_activity=deal_data.get("days_since_activity", 0),
+                    conversation_count=len(conversations),
+                    last_message_sentiment=sentiment_analysis.get("last_message_sentiment"),
+                    deal_stage=deal_data.get("status", "active")
+                )
+                
+                # Predict response probability
+                response_prediction = intelligence_service.predict_response_probability(
+                    days_since_activity=deal_data.get("days_since_activity", 0),
+                    conversation_count=len(conversations),
+                    last_message_sentiment=sentiment_analysis.get("last_message_sentiment"),
+                    deal_value=deal_data.get("value")
+                )
+                
+                # Add intelligence data to deal
+                deal_data["intelligence_score"] = deal_score["score"]
+                deal_data["priority"] = deal_score["priority"]
+                deal_data["insights"] = deal_score["insights"]
+                deal_data["recommended_action"] = deal_score["recommended_action"]
+                deal_data["response_probability"] = response_prediction["probability"]
+                deal_data["response_confidence"] = response_prediction["confidence"]
+                deal_data["sentiment"] = sentiment_analysis.get("overall_sentiment", "neutral")
+            except Exception as e:
+                logger.warning(f"Error adding intelligence to deal {deal_data.get('deal_id')}: {e}")
+                # Add default values if intelligence analysis fails
+                deal_data["intelligence_score"] = 50.0
+                deal_data["priority"] = "medium"
+                deal_data["insights"] = []
+                deal_data["recommended_action"] = "Send follow-up message"
+                deal_data["response_probability"] = 50.0
+                deal_data["response_confidence"] = 50.0
+                deal_data["sentiment"] = "neutral"
+        
+        # Sort by intelligence score (highest first)
+        stalled_deals_data.sort(key=lambda x: x.get("intelligence_score", 0), reverse=True)
         
         # Convert to response schema
         stalled_deals = [
@@ -167,6 +227,29 @@ async def generate_message(
         db.add(approval)
         db.commit()
         db.refresh(approval)
+        
+        # Create notification
+        NotificationService.create_notification(
+            db=db,
+            user_id=str(current_user.id),
+            notification_type=NotificationType.MESSAGE_GENERATED,
+            title="New Message Generated",
+            message=f"AI has generated a reactivation message for {deal.title or 'a deal'}. Review and approve to send.",
+            data={"approval_id": str(approval.id), "deal_id": deal_id}
+        )
+        
+        # Trigger webhook
+        await WebhookService.trigger_webhooks_for_event(
+            db=db,
+            user_id=str(current_user.id),
+            event_type=WebhookEvent.MESSAGE_GENERATED,
+            payload={
+                "approval_id": str(approval.id),
+                "deal_id": deal_id,
+                "generated_message": generated_message,
+                "created_at": approval.created_at.isoformat()
+            }
+        )
         
         logger.info(f"Generated message for deal {deal_id}, approval ID: {approval.id}")
         

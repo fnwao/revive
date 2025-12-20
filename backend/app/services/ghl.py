@@ -125,6 +125,66 @@ class GHLService:
                 logger.error(f"Error sending SMS: {str(e)}")
                 return False
     
+    async def send_email(
+        self,
+        contact_id: str,
+        subject: str,
+        body: str,
+        deal_id: Optional[str] = None
+    ) -> bool:
+        """Send email via GHL."""
+        async with httpx.AsyncClient() as client:
+            try:
+                payload = {
+                    "to": contact_id,  # Contact email
+                    "subject": subject,
+                    "htmlBody": body,
+                    "textBody": body  # Plain text fallback
+                }
+                
+                if deal_id:
+                    payload["dealId"] = deal_id
+                
+                response = await client.post(
+                    f"{self.BASE_URL}/contacts/{contact_id}/communications/email",
+                    headers=self._get_headers(),
+                    json=payload
+                )
+                response.raise_for_status()
+                return True
+            except httpx.HTTPError as e:
+                logger.error(f"Error sending email: {str(e)}")
+                return False
+    
+    async def get_deal_emails(
+        self,
+        deal_id: str,
+        limit: int = 20
+    ) -> List[Dict[str, Any]]:
+        """Get email conversation history for a deal."""
+        async with httpx.AsyncClient() as client:
+            try:
+                # Get contact ID from deal first
+                deal = await self.get_deal(deal_id)
+                if not deal or not deal.get("contactId"):
+                    return []
+                
+                contact_id = deal["contactId"]
+                
+                # Fetch emails
+                response = await client.get(
+                    f"{self.BASE_URL}/contacts/{contact_id}/communications/email",
+                    headers=self._get_headers(),
+                    params={"limit": limit}
+                )
+                response.raise_for_status()
+                data = response.json()
+                return data.get("emails", [])
+                
+            except httpx.HTTPError as e:
+                logger.error(f"Error fetching emails for deal {deal_id}: {str(e)}")
+                return []
+    
     def sync_deal_to_db(self, db: Session, ghl_deal_data: Dict[str, Any]) -> Deal:
         """Sync deal data from GHL to local database."""
         ghl_deal_id = ghl_deal_data.get("id") or ghl_deal_data.get("dealId")
@@ -145,6 +205,10 @@ class GHLService:
         deal.title = ghl_deal_data.get("title")
         deal.status = ghl_deal_data.get("status")
         deal.value = ghl_deal_data.get("monetaryValue")
+        # Save tags if available
+        tags = ghl_deal_data.get("tags") or ghl_deal_data.get("tagIds")
+        if tags:
+            deal.tags = tags if isinstance(tags, list) else [tags]
         
         # Parse dates
         if ghl_deal_data.get("lastActivityDate"):

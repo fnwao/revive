@@ -1,6 +1,6 @@
 """Deal/Opportunity model."""
 from sqlalchemy import Column, String, DateTime, Numeric, ForeignKey, Index
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import uuid
@@ -22,9 +22,10 @@ class Deal(Base):
     
     # Deal data
     title = Column(String(500), nullable=True)
-    status = Column(String(100), nullable=True)
+    status = Column(String(100), nullable=True, index=True)
     value = Column(Numeric(10, 2), nullable=True)
     currency = Column(String(10), default="USD")
+    tags = Column(JSONB, nullable=True)  # Array of tag strings from GHL
     
     # Activity tracking
     last_activity_date = Column(DateTime(timezone=True), nullable=True, index=True)
