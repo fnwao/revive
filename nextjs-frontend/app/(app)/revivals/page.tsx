@@ -132,13 +132,14 @@ export default function RevivalsPage() {
   // Auto-refresh when enabled
   useEffect(() => {
     if (autoRefresh) {
-      const interval = setInterval(() => {
+      const interval = window.setInterval(() => {
         loadStalledDeals(false) // Don't show errors on auto-refresh
         loadApprovals(false)
       }, 30000) // Refresh every 30 seconds
-      setRefreshInterval(interval)
+      refreshIntervalRef.current = interval
       return () => {
-        if (interval) clearInterval(interval)
+        if (interval) window.clearInterval(interval)
+        refreshIntervalRef.current = null
       }
     } else {
       if (refreshIntervalRef.current !== null) {
