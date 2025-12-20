@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Tooltip } from "@/components/ui/tooltip"
 import { 
   DollarSign, 
   Zap, 
@@ -15,7 +16,9 @@ import {
   AlertCircle,
   RefreshCw,
   MessageSquare,
-  Bell
+  Bell,
+  Brain,
+  Radio
 } from "lucide-react"
 import { getDashboardStats, getApprovals, approveMessage, rejectMessage, sendMessage, type Approval, hasApiKey, type DashboardStats, getNotifications, markNotificationAsRead, type Notification } from "@/lib/api"
 import { getUser, getGreeting, getFirstName } from "@/lib/user"
@@ -41,6 +44,7 @@ export default function DashboardPage() {
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date())
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
+  const [recentActivity, setRecentActivity] = useState<Array<{ action: string; time: string; icon: string }>>([])
 
   // Reload user data when component mounts or user updates
   useEffect(() => {
@@ -124,6 +128,46 @@ export default function DashboardPage() {
         const notificationsData = await getNotifications({ limit: 5 })
         setNotifications(notificationsData.notifications || [])
         setUnreadCount(notificationsData.unread_count || 0)
+        
+        // Generate recent activity from notifications and approvals
+        const activity: Array<{ action: string; time: string; icon: string }> = []
+        
+        // Add recent message generations
+        const recentApprovals = approvalsData.approvals?.slice(0, 3) || []
+        recentApprovals.forEach(approval => {
+          const timeAgo = Math.floor((Date.now() - new Date(approval.created_at).getTime()) / 1000 / 60)
+          if (timeAgo < 60) {
+            activity.push({
+              action: `Generated message for ${approval.deal_title || 'a deal'}`,
+              time: timeAgo === 0 ? 'Just now' : `${timeAgo}m ago`,
+              icon: 'message'
+            })
+          }
+        })
+        
+        // Add recent notifications as activity
+        notificationsData.notifications?.slice(0, 2).forEach(notification => {
+          const timeAgo = Math.floor((Date.now() - new Date(notification.created_at).getTime()) / 1000 / 60)
+          if (timeAgo < 60) {
+            activity.push({
+              action: notification.title,
+              time: timeAgo === 0 ? 'Just now' : `${timeAgo}m ago`,
+              icon: 'bell'
+            })
+          }
+        })
+        
+        // If no recent activity, show default activity (check if we have active revivals or pending approvals)
+        const hasActiveRevivals = statsData.active_revivals > 0 || statsData.pending_approvals > 0
+        if (activity.length === 0 && hasActiveRevivals) {
+          activity.push({
+            action: 'Monitoring pipeline for stalled deals',
+            time: 'Active',
+            icon: 'monitor'
+          })
+        }
+        
+        setRecentActivity(activity.slice(0, 3))
       } catch (error) {
         console.error("Error loading notifications:", error)
       }
@@ -262,38 +306,157 @@ export default function DashboardPage() {
       <div className="flex-1 overflow-y-auto min-h-0">
         <div className="max-w-5xl mx-auto px-6 py-12">
           {/* Clear Title */}
-          <div className="mb-8 flex items-center justify-between">
+          <div className="mb-6 flex items-center justify-between">
             <div>
               <h1 className="text-h1 text-[#111827] mb-2">
                 {greeting}, {firstName}
               </h1>
               <p className="text-body text-[#6B7280]">
-                Revenue recovery is {isActive ? "active" : "inactive"}. Here's what's happening this month.
+                Here's what's happening this month.
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  loadData()
-                  setLastRefresh(new Date())
-                }}
-                disabled={loading}
-                title="Refresh data"
+              <Tooltip content="Refresh dashboard data now" side="bottom">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    loadData()
+                    setLastRefresh(new Date())
+                  }}
+                  disabled={loading}
+                >
+                  <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
+                </Button>
+              </Tooltip>
+              <Tooltip 
+                content={autoRefresh ? "Auto-refresh enabled (updates every 30 seconds)" : "Enable auto-refresh (updates every 30 seconds)"} 
+                side="bottom"
               >
-                <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
-              </Button>
-              <Button
-                variant={autoRefresh ? "default" : "outline"}
-                size="sm"
-                onClick={() => setAutoRefresh(!autoRefresh)}
-                title={autoRefresh ? "Auto-refresh enabled (every 30s)" : "Enable auto-refresh"}
-              >
-                <Clock className={cn("h-4 w-4", autoRefresh && "animate-pulse")} />
-              </Button>
+                <Button
+                  variant={autoRefresh ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setAutoRefresh(!autoRefresh)}
+                >
+                  <Clock className={cn("h-4 w-4", autoRefresh && "animate-pulse")} />
+                </Button>
+              </Tooltip>
             </div>
           </div>
+
+          {/* AI Status Indicator - Prominent Visual */}
+          <Card className={cn(
+            "mb-8 border-2 transition-all",
+            isActive 
+              ? "bg-gradient-to-br from-[#3CCB7F]/10 via-[#3CCB7F]/5 to-transparent border-[#3CCB7F]/30 shadow-lg shadow-[#3CCB7F]/10" 
+              : "bg-gradient-to-br from-[#8A90A2]/10 via-[#8A90A2]/5 to-transparent border-[#8A90A2]/20"
+          )}>
+            <div className="p-6">
+              <div className="flex items-center gap-4">
+                {/* Pulsing Status Dot */}
+                <div className="relative flex-shrink-0">
+                  <div className={cn(
+                    "h-16 w-16 rounded-full flex items-center justify-center border-2",
+                    isActive 
+                      ? "bg-[#3CCB7F]/20 border-[#3CCB7F]/40" 
+                      : "bg-[#8A90A2]/20 border-[#8A90A2]/40"
+                  )}>
+                    {isActive ? (
+                      <Brain className="h-8 w-8 text-[#3CCB7F]" />
+                    ) : (
+                      <Brain className="h-8 w-8 text-[#8A90A2]" />
+                    )}
+                  </div>
+                  {isActive && (
+                    <>
+                      {/* Outer pulsing ring */}
+                      <div className="absolute inset-0 rounded-full bg-[#3CCB7F]/20 animate-ping" />
+                      {/* Inner pulsing ring */}
+                      <div className="absolute inset-2 rounded-full bg-[#3CCB7F]/10 animate-pulse" />
+                    </>
+                  )}
+                </div>
+
+                {/* Status Text */}
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-2">
+                    <h2 className={cn(
+                      "text-xl font-bold",
+                      isActive ? "text-[#111827]" : "text-[#6B7280]"
+                    )}>
+                      AI is {isActive ? "actively monitoring" : "inactive"}
+                    </h2>
+                    {isActive && (
+                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#3CCB7F]/20">
+                        <div className="h-2 w-2 rounded-full bg-[#3CCB7F] animate-pulse" />
+                        <span className="text-xs font-medium text-[#3CCB7F]">LIVE</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="space-y-1">
+                    {isActive ? (
+                      <>
+                        <p className="text-sm text-[#6B7280]">
+                          Monitoring <span className="font-semibold text-[#111827]">{stats.active_revivals}</span> deals and analyzing conversations in real-time
+                        </p>
+                        <div className="flex items-center gap-4 text-xs text-[#6B7280] mt-2">
+                          <div className="flex items-center gap-1.5">
+                            <Radio className="h-3 w-3 text-[#3CCB7F]" />
+                            <span>Pipeline monitoring active</span>
+                          </div>
+                          {stats.pending_approvals > 0 && (
+                            <div className="flex items-center gap-1.5">
+                              <MessageSquare className="h-3 w-3 text-[#F6C177]" />
+                              <span>{stats.pending_approvals} message{stats.pending_approvals > 1 ? 's' : ''} ready for review</span>
+                            </div>
+                          )}
+                          {lastRefresh && (
+                            <div className="flex items-center gap-1.5">
+                              <Clock className="h-3 w-3 text-[#4F8CFF]" />
+                              <span>Last checked {Math.floor((Date.now() - lastRefresh.getTime()) / 1000 / 60)}m ago</span>
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Recent Activity Feed */}
+                        {recentActivity.length > 0 && (
+                          <div className="mt-4 pt-4 border-t border-[#3CCB7F]/20">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Activity className="h-3.5 w-3.5 text-[#3CCB7F]" />
+                              <span className="text-xs font-semibold text-[#6B7280] uppercase tracking-wide">Recent Activity</span>
+                            </div>
+                            <div className="space-y-2">
+                              {recentActivity.map((item, idx) => (
+                                <div key={idx} className="flex items-center gap-2 text-xs text-[#6B7280]">
+                                  <div className="h-1.5 w-1.5 rounded-full bg-[#3CCB7F] flex-shrink-0" />
+                                  <span className="flex-1">{item.action}</span>
+                                  <span className="text-[#8A90A2]">{item.time}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <p className="text-sm text-[#6B7280]">
+                        AI monitoring is paused. Start detecting stalled deals to activate.
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Action Button */}
+                {!isActive && (
+                  <Link href="/revivals">
+                    <Button size="sm" className="flex-shrink-0">
+                      <Zap className="h-4 w-4 mr-2" />
+                      Activate AI
+                    </Button>
+                  </Link>
+                )}
+              </div>
+            </div>
+          </Card>
 
           {/* Success/Error Messages */}
           {success && (
@@ -315,7 +478,7 @@ export default function DashboardPage() {
 
           {/* Primary Metric - Revenue Recovered (Emphasized) */}
           <Card className="p-8 mb-8 bg-gradient-to-br from-[#4F8CFF]/10 via-[#4F8CFF]/5 to-transparent border-2 border-[#4F8CFF]/20">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className="h-16 w-16 rounded-xl bg-[#4F8CFF]/20 flex items-center justify-center">
                   <DollarSign className="h-8 w-8 text-[#4F8CFF]" />
@@ -323,6 +486,7 @@ export default function DashboardPage() {
                 <div>
                   <p className="text-sm font-medium text-[#6B7280] uppercase tracking-wide mb-1">Revenue Recovered</p>
                   <p className="text-4xl font-bold text-[#111827]">${stats.revenue_recovered.toLocaleString()}</p>
+                  <p className="text-xs text-[#6B7280] mt-1">This month</p>
                 </div>
               </div>
               <div className="text-right">
@@ -330,23 +494,13 @@ export default function DashboardPage() {
                   <TrendingUp className="h-4 w-4" />
                   <span className="text-sm font-medium">{stats.success_rate}% success rate</span>
                 </div>
-                <p className="text-xs text-[#6B7280]">This month</p>
-              </div>
-            </div>
-            <div className="pt-4 border-t border-[#E5E7EB]">
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <p className="text-xs text-[#6B7280] mb-1">Avg Response Time</p>
-                  <p className="text-lg font-semibold text-[#111827]">{stats.avg_response_time}h</p>
-                </div>
-                <div>
-                  <p className="text-xs text-[#6B7280] mb-1">Active Revivals</p>
-                  <p className="text-lg font-semibold text-[#111827]">{stats.active_revivals}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-[#6B7280] mb-1">Pending Approvals</p>
-                  <p className="text-lg font-semibold text-[#111827]">{stats.pending_approvals}</p>
-                </div>
+                <Link href="/revivals">
+                  <Button size="sm" className="mt-2">
+                    <Zap className="h-4 w-4 mr-2" />
+                    View Revivals
+                    <ArrowRight className="h-4 w-4 ml-2" />
+                  </Button>
+                </Link>
               </div>
             </div>
           </Card>
@@ -396,24 +550,24 @@ export default function DashboardPage() {
               <div className="flex items-center gap-3 mb-3">
                 <div className={cn(
                   "h-10 w-10 rounded-lg flex items-center justify-center",
-                  isActive ? "bg-[#3CCB7F]/12" : "bg-[#8A90A2]/12"
+                  stats.pending_approvals > 0 ? "bg-[#F6C177]/12" : "bg-[#8A90A2]/12"
                 )}>
-                  <Activity className={cn(
+                  <AlertCircle className={cn(
                     "h-5 w-5",
-                    isActive ? "text-[#3CCB7F]" : "text-[#8A90A2]"
+                    stats.pending_approvals > 0 ? "text-[#F6C177]" : "text-[#8A90A2]"
                   )} />
                 </div>
                 <div className="flex-1">
-                  <p className="text-xs text-[#6B7280] uppercase tracking-wide">Status</p>
+                  <p className="text-xs text-[#6B7280] uppercase tracking-wide">Pending</p>
                   <p className={cn(
                     "text-2xl font-bold mt-1",
-                    isActive ? "text-[#3CCB7F]" : "text-[#8A90A2]"
+                    stats.pending_approvals > 0 ? "text-[#F6C177]" : "text-[#8A90A2]"
                   )}>
-                    {isActive ? "Active" : "Inactive"}
+                    {stats.pending_approvals}
                   </p>
                 </div>
               </div>
-              <p className="text-xs text-[#6B7280]">System {isActive ? "running" : "paused"}</p>
+              <p className="text-xs text-[#6B7280]">Messages awaiting review</p>
             </Card>
           </div>
 
@@ -592,69 +746,81 @@ export default function DashboardPage() {
             </Card>
           </div>
 
+          {/* Primary CTA Section */}
+          {stats.pending_approvals === 0 && stats.active_revivals === 0 && (
+            <Card className="p-8 mb-8 bg-gradient-to-br from-[#4F8CFF]/10 via-[#4F8CFF]/5 to-transparent border-2 border-[#4F8CFF]/20">
+              <div className="text-center">
+                <div className="h-16 w-16 rounded-full bg-[#4F8CFF]/20 flex items-center justify-center mx-auto mb-4">
+                  <Zap className="h-8 w-8 text-[#4F8CFF]" />
+                </div>
+                <h2 className="text-2xl font-bold text-[#111827] mb-2">Get Started</h2>
+                <p className="text-body text-[#6B7280] mb-6 max-w-md mx-auto">
+                  Start recovering revenue by detecting stalled deals and generating personalized revival messages.
+                </p>
+                <div className="flex items-center justify-center gap-3">
+                  <Link href="/revivals">
+                    <Button size="lg">
+                      <Zap className="h-5 w-5 mr-2" />
+                      Detect Stalled Deals
+                      <ArrowRight className="h-5 w-5 ml-2" />
+                    </Button>
+                  </Link>
+                  <Link href="/knowledge-base">
+                    <Button size="lg" variant="outline">
+                      Set Up Knowledge Base
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </Card>
+          )}
+
           {/* Actionable Insights */}
-          <div className="mb-8 space-y-3">
-            {stats.pending_approvals === 0 && stats.active_revivals === 0 && (
-              <Card className="p-5 bg-gradient-to-r from-[#4F8CFF]/5 to-transparent border-[#4F8CFF]/20">
-                <div className="flex items-start gap-3">
-                  <MessageSquare className="h-5 w-5 text-[#4F8CFF] mt-0.5" />
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-[#111827] mb-1">No active revivals</h3>
-                    <p className="text-sm text-[#6B7280] mb-3">
-                      Start recovering revenue by detecting stalled deals and generating revival messages.
-                    </p>
-                    <Link href="/revivals">
-                      <Button size="sm">
-                        Detect Stalled Deals
-                        <ArrowRight className="h-4 w-4 ml-2" />
-                      </Button>
-                    </Link>
+          {stats.active_revivals > 0 && (
+            <div className="mb-8 space-y-3">
+              {stats.success_rate < 50 && (
+                <Card className="p-5 bg-gradient-to-r from-[#F6C177]/5 to-transparent border-[#F6C177]/20">
+                  <div className="flex items-start gap-3">
+                    <TrendingUp className="h-5 w-5 text-[#F6C177] mt-0.5" />
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-[#111827] mb-1">Improve Success Rate</h3>
+                      <p className="text-sm text-[#6B7280] mb-3">
+                        Your success rate is {stats.success_rate}%. Consider refining your knowledge base or message tone to improve responses.
+                      </p>
+                      <Link href="/knowledge-base">
+                        <Button size="sm" variant="outline">
+                          Update Knowledge Base
+                          <ArrowRight className="h-4 w-4 ml-2" />
+                        </Button>
+                      </Link>
+                    </div>
                   </div>
-                </div>
-              </Card>
-            )}
-            {stats.success_rate < 50 && stats.active_revivals > 0 && (
-              <Card className="p-5 bg-gradient-to-r from-[#F6C177]/5 to-transparent border-[#F6C177]/20">
-                <div className="flex items-start gap-3">
-                  <TrendingUp className="h-5 w-5 text-[#F6C177] mt-0.5" />
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-[#111827] mb-1">Improve Success Rate</h3>
-                    <p className="text-sm text-[#6B7280] mb-3">
-                      Your success rate is {stats.success_rate}%. Consider refining your knowledge base or message tone to improve responses.
-                    </p>
-                    <Link href="/knowledge-base">
-                      <Button size="sm" variant="outline">
-                        Update Knowledge Base
-                        <ArrowRight className="h-4 w-4 ml-2" />
-                      </Button>
-                    </Link>
+                </Card>
+              )}
+              {stats.avg_response_time > 24 && (
+                <Card className="p-5 bg-gradient-to-r from-[#4F8CFF]/5 to-transparent border-[#4F8CFF]/20">
+                  <div className="flex items-start gap-3">
+                    <Clock className="h-5 w-5 text-[#4F8CFF] mt-0.5" />
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-[#111827] mb-1">Response Time</h3>
+                      <p className="text-sm text-[#6B7280] mb-3">
+                        Average response time is {stats.avg_response_time} hours. Consider following up on older messages.
+                      </p>
+                      <Link href="/revivals">
+                        <Button size="sm" variant="outline">
+                          Review Messages
+                          <ArrowRight className="h-4 w-4 ml-2" />
+                        </Button>
+                      </Link>
+                    </div>
                   </div>
-                </div>
-              </Card>
-            )}
-            {stats.avg_response_time > 24 && stats.active_revivals > 0 && (
-              <Card className="p-5 bg-gradient-to-r from-[#4F8CFF]/5 to-transparent border-[#4F8CFF]/20">
-                <div className="flex items-start gap-3">
-                  <Clock className="h-5 w-5 text-[#4F8CFF] mt-0.5" />
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-[#111827] mb-1">Response Time</h3>
-                    <p className="text-sm text-[#6B7280] mb-3">
-                      Average response time is {stats.avg_response_time} hours. Consider following up on older messages.
-                    </p>
-                    <Link href="/revivals">
-                      <Button size="sm" variant="outline">
-                        Review Messages
-                        <ArrowRight className="h-4 w-4 ml-2" />
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
-              </Card>
-            )}
-          </div>
+                </Card>
+              )}
+            </div>
+          )}
 
           {/* Quick Actions */}
-          <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-3 flex-wrap mb-4">
             <Link href="/revivals">
               <Button variant="default">
                 <Zap className="h-4 w-4 mr-2" />
@@ -662,9 +828,14 @@ export default function DashboardPage() {
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             </Link>
+            <Link href="/knowledge-base">
+              <Button variant="outline">
+                Knowledge Base
+              </Button>
+            </Link>
             <Link href="/settings">
               <Button variant="outline">
-                Configure Settings
+                Settings
               </Button>
             </Link>
             {lastRefresh && (

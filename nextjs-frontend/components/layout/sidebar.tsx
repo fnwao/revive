@@ -2,13 +2,13 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { usePathname, useRouter } from "next/navigation"
+import { usePathname } from "next/navigation"
 import { 
   LayoutDashboard, 
   Zap, 
   BookOpen, 
   Settings,
-  Plus
+  ArrowRight
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -24,7 +24,6 @@ const navigation = [
 
 export function Sidebar() {
   const pathname = usePathname()
-  const router = useRouter()
   const [subscription, setSubscription] = useState(getSubscription())
 
   useEffect(() => {
@@ -39,21 +38,7 @@ export function Sidebar() {
   }, [])
 
   const limits = getPlanLimits(subscription.plan)
-  const revivalsText = limits.revivalsPerMonth === -1 
-    ? "Unlimited revivals" 
-    : `${limits.revivalsPerMonth} revivals/month`
-
-  const handleNewRevival = () => {
-    if (pathname === "/revivals") {
-      // If already on revivals page, trigger a custom event to refresh deals
-      window.dispatchEvent(new CustomEvent("triggerDealDetection"))
-    } else {
-      // Set a flag in sessionStorage to trigger detection after navigation
-      sessionStorage.setItem("triggerDealDetection", "true")
-      // Navigate to revivals page
-      router.push("/revivals")
-    }
-  }
+  const revivalsText = `${limits.opportunitiesPerMonth.toLocaleString()} opportunities/month`
 
   return (
     <div className="flex h-full w-64 flex-col border-r border-[#E5E7EB] bg-white flex-shrink-0">
@@ -63,18 +48,20 @@ export function Sidebar() {
           <span className="text-base font-semibold text-[#111827]">Revive.ai</span>
         </div>
       </div>
-      <div className="p-3">
-        <Button 
-          className="w-full justify-start" 
-          size="sm" 
-          variant="default"
-          onClick={handleNewRevival}
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          New Revival
-        </Button>
+      <div className="p-3 border-b border-[#E5E7EB]">
+        <Link href="/revivals">
+          <Button 
+            className="w-full justify-start" 
+            size="sm" 
+            variant="default"
+          >
+            <Zap className="h-4 w-4 mr-2" />
+            View Revivals
+            <ArrowRight className="h-4 w-4 ml-auto" />
+          </Button>
+        </Link>
       </div>
-      <nav className="flex-1 space-y-0.5 px-2 overflow-y-auto min-h-0">
+      <nav className="flex-1 space-y-0.5 px-2 overflow-y-auto min-h-0 pt-2">
         {navigation.map((item) => {
           const isActive = pathname === item.href
           return (

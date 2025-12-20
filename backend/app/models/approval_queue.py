@@ -30,10 +30,11 @@ class ApprovalQueue(Base):
     ghl_contact_id = Column(String(255), nullable=True)
     
     # Message data
-    generated_message = Column(Text, nullable=False)
-    edited_message = Column(Text, nullable=True)  # User edits before sending
-    final_message = Column(Text, nullable=True)  # Message that was actually sent
+    generated_message = Column(Text, nullable=False)  # JSON array for message sequences, or single message
+    edited_message = Column(Text, nullable=True)  # JSON array for edited sequences, or single edited message
+    final_message = Column(Text, nullable=True)  # JSON array for sent sequences, or single sent message
     user_feedback = Column(Text, nullable=True)  # User feedback for AI improvement
+    message_sequence = Column(Text, nullable=True)  # JSON array of message sequence with delays
     
     # Template and channel
     template_id = Column(UUID(as_uuid=True), ForeignKey("message_templates.id"), nullable=True)

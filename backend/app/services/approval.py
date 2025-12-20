@@ -33,12 +33,44 @@ async def send_approved_message(
         True if sent successfully, False otherwise
     """
     try:
-        # Determine which message to send
-        message_to_send = edited_message or approval.edited_message or approval.generated_message
+        # Check if this is a message sequence
+        import json
+        is_sequence = False
+        messages_to_send = []
         
-        if not message_to_send:
-            logger.error(f"Approval {approval.id} has no message to send")
-            return False
+        # Try to parse as sequence (JSON array)
+        try:
+            if approval.message_sequence:
+                sequence_data = json.loads(approval.message_sequence)
+                # Use edited sequence if available, otherwise use generated
+                if edited_message:
+                    edited_sequence = json.loads(edited_message) if edited_message.startswith("[") else None
+                    if edited_sequence:
+                        messages_to_send = [item.get("message", item) if isinstance(item, dict) else item for item in edited_sequence]
+                    else:
+                        # Single edited message, convert to sequence
+                        messages_to_send = [edited_message]
+                elif approval.edited_message and approval.edited_message.startswith("["):
+                    edited_sequence = json.loads(approval.edited_message)
+                    messages_to_send = [item.get("message", item) if isinstance(item, dict) else item for item in edited_sequence]
+                else:
+                    # Use generated sequence
+                    messages_to_send = [item.get("message", item) if isinstance(item, dict) else item for item in sequence_data]
+                
+                if messages_to_send:
+                    is_sequence = True
+                    delays = [item.get("delay_seconds", 0) if isinstance(item, dict) else 0 for item in sequence_data[:len(messages_to_send)]]
+        except:
+            pass
+        
+        # Fallback to single message
+        if not is_sequence:
+            message_to_send = edited_message or approval.edited_message or approval.generated_message
+            if not message_to_send:
+                logger.error(f"Approval {approval.id} has no message to send")
+                return False
+            messages_to_send = [message_to_send]
+            delays = [0]
         
         # Get deal to find contact_id
         deal = db.query(Deal).filter(Deal.id == approval.deal_id).first()
@@ -53,36 +85,64 @@ async def send_approved_message(
         
         # Determine channel (default to SMS, but check approval.channel if set)
         channel = approval.channel or "sms"
-        success = False
         
         # Get GHL service
         ghl_service = get_ghl_service(user)
         
-        # Send via appropriate channel
-        if channel == "email" or channel == "both":
-            # Send email
-            email_subject = approval.email_subject or f"Follow-up on {deal.title or 'your deal'}"
-            email_success = await EmailService.send_email(
-                user=user,
-                contact_id=contact_id,
-                subject=email_subject,
-                body=message_to_send,
-                deal_id=approval.ghl_deal_id
-            )
-            if channel == "email":
-                success = email_success
-            elif channel == "both":
-                # Also send SMS
-                sms_success = await ghl_service.send_sms(contact_id, message_to_send)
-                success = email_success and sms_success
-        else:
-            # Send SMS
-            success = await ghl_service.send_sms(contact_id, message_to_send)
+        # Send message sequence with delays (human-like timing)
+        import asyncio
+        sent_messages = []
+        all_success = True
         
-        if success:
+        for i, msg in enumerate(messages_to_send):
+            # Wait for delay (except first message)
+            if i > 0 and delays[i] > 0:
+                await asyncio.sleep(delays[i])
+            
+            # Send via appropriate channel
+            if channel == "email" or channel == "both":
+                # Send email
+                email_subject = approval.email_subject or f"Follow-up on {deal.title or 'your deal'}"
+                if i == 0:
+                    # First message gets subject
+                    email_success = await EmailService.send_email(
+                        user=user,
+                        contact_id=contact_id,
+                        subject=email_subject,
+                        body=msg,
+                        deal_id=approval.ghl_deal_id
+                    )
+                else:
+                    # Subsequent messages as follow-ups
+                    email_success = await EmailService.send_email(
+                        user=user,
+                        contact_id=contact_id,
+                        subject=f"Re: {email_subject}",
+                        body=msg,
+                        deal_id=approval.ghl_deal_id
+                    )
+                
+                if channel == "email":
+                    success = email_success
+                elif channel == "both":
+                    # Also send SMS
+                    sms_success = await ghl_service.send_sms(contact_id, msg)
+                    success = email_success and sms_success
+            else:
+                # Send SMS
+                success = await ghl_service.send_sms(contact_id, msg)
+            
+            if success:
+                sent_messages.append(msg)
+            else:
+                all_success = False
+                logger.warning(f"Failed to send message {i+1} of {len(messages_to_send)} for approval {approval.id}")
+        
+        if all_success and sent_messages:
             # Update approval status
             approval.status = ApprovalStatus.SENT
-            approval.final_message = message_to_send
+            # Store sent messages as JSON array
+            approval.final_message = json.dumps(sent_messages) if len(sent_messages) > 1 else sent_messages[0]
             approval.sent_at = datetime.now()
             db.commit()
             

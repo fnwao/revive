@@ -96,6 +96,17 @@ async def list_approvals(
             deal = db.query(Deal).filter(Deal.id == approval.deal_id).first()
             deal_title = deal.title if deal else None
             
+            # Parse message sequence if available
+            message_sequence = None
+            if approval.message_sequence:
+                try:
+                    import json
+                    sequence_data = json.loads(approval.message_sequence)
+                    from app.schemas.approval import MessageSequenceItem
+                    message_sequence = [MessageSequenceItem(**item) for item in sequence_data]
+                except Exception as e:
+                    logger.warning(f"Error parsing message sequence for approval {approval.id}: {e}")
+            
             approval_items.append(ApprovalItem(
                 id=str(approval.id),
                 deal_id=approval.ghl_deal_id,  # Return GHL deal ID for convenience
@@ -103,6 +114,7 @@ async def list_approvals(
                 deal_title=deal_title,
                 generated_message=approval.generated_message,
                 edited_message=approval.edited_message,
+                message_sequence=message_sequence,
                 user_feedback=approval.user_feedback,
                 status=approval.status.value,
                 created_at=approval.created_at,

@@ -1,7 +1,7 @@
 // Subscription management
 // Stores subscription info in localStorage for demo mode
 
-export type PlanName = "free" | "starter" | "professional"
+export type PlanName = "starter" | "pro" | "scale"
 export type BillingCycle = "monthly" | "annual"
 
 export interface Subscription {
@@ -18,7 +18,7 @@ export interface Subscription {
 const STORAGE_KEY = "acquiri_subscription"
 
 const defaultSubscription: Subscription = {
-  plan: "free",
+  plan: "pro", // Pro is the default plan
   billingCycle: "monthly",
   status: "active",
   currentPeriodStart: new Date().toISOString(),
@@ -96,46 +96,74 @@ export function reactivateSubscription(): Subscription {
 }
 
 export function getPlanLimits(plan: PlanName): {
-  revivalsPerMonth: number | "unlimited"
-  knowledgeBaseDocs: number | "unlimited"
-  teamMembers: number | "unlimited"
-  apiAccess: boolean
-  autoApproval: boolean
+  opportunitiesPerMonth: number
+  ghlAccounts: number
+  autoSend: boolean
+  knowledgeBase: boolean
+  callTranscripts: boolean
+  timingOptimization: boolean
+  revenueAttribution: boolean
+  multiplePipelines: boolean
+  multipleUsers: boolean
+  slackEmailSummaries: boolean
+  advancedApproval: boolean
+  priorityProcessing: boolean
 } {
   switch (plan) {
-    case "free":
-      return {
-        revivalsPerMonth: 5,
-        knowledgeBaseDocs: 0,
-        teamMembers: 1,
-        apiAccess: false,
-        autoApproval: false,
-      }
     case "starter":
       return {
-        revivalsPerMonth: 50,
-        knowledgeBaseDocs: 10,
-        teamMembers: 1,
-        apiAccess: false,
-        autoApproval: true,
+        opportunitiesPerMonth: 500,
+        ghlAccounts: 1,
+        autoSend: false,
+        knowledgeBase: false,
+        callTranscripts: false,
+        timingOptimization: false,
+        revenueAttribution: false,
+        multiplePipelines: false,
+        multipleUsers: false,
+        slackEmailSummaries: false,
+        advancedApproval: false,
+        priorityProcessing: false,
       }
-    case "professional":
+    case "pro":
       return {
-        revivalsPerMonth: "unlimited",
-        knowledgeBaseDocs: "unlimited",
-        teamMembers: 3,
-        apiAccess: true,
-        autoApproval: true,
+        opportunitiesPerMonth: 2000,
+        ghlAccounts: 1,
+        autoSend: true,
+        knowledgeBase: true,
+        callTranscripts: true,
+        timingOptimization: true,
+        revenueAttribution: true,
+        multiplePipelines: false,
+        multipleUsers: false,
+        slackEmailSummaries: false,
+        advancedApproval: false,
+        priorityProcessing: true,
+      }
+    case "scale":
+      return {
+        opportunitiesPerMonth: 5000,
+        ghlAccounts: 1, // Can be extended later
+        autoSend: true,
+        knowledgeBase: true,
+        callTranscripts: true,
+        timingOptimization: true,
+        revenueAttribution: true,
+        multiplePipelines: true,
+        multipleUsers: true,
+        slackEmailSummaries: true,
+        advancedApproval: true,
+        priorityProcessing: true,
       }
   }
 }
 
 export function getPlanPrice(plan: PlanName, billingCycle: BillingCycle): number {
-  if (plan === "free") return 0
-  
-  const monthlyPrices = {
-    starter: 49,
-    professional: 149,
+  // Pricing from environment variables or defaults
+  const monthlyPrices: Record<PlanName, number> = {
+    starter: parseInt(process.env.NEXT_PUBLIC_PLAN_STARTER_PRICE || "97"),
+    pro: parseInt(process.env.NEXT_PUBLIC_PLAN_PRO_PRICE || "299"),
+    scale: parseInt(process.env.NEXT_PUBLIC_PLAN_SCALE_PRICE || "499"),
   }
   
   const monthlyPrice = monthlyPrices[plan]
@@ -153,5 +181,34 @@ export function formatPrice(price: number, billingCycle: BillingCycle): string {
     return `$${price.toLocaleString()}/year`
   }
   return `$${price}/month`
+}
+
+// Entitlement checks for plan limits
+export function checkOpportunityLimit(plan: PlanName, currentCount: number): {
+  allowed: boolean
+  remaining: number
+  limit: number
+} {
+  const limits = getPlanLimits(plan)
+  const limit = limits.opportunitiesPerMonth
+  
+  return {
+    allowed: currentCount < limit,
+    remaining: Math.max(0, limit - currentCount),
+    limit,
+  }
+}
+
+export function canUseFeature(plan: PlanName, feature: keyof ReturnType<typeof getPlanLimits>): boolean {
+  const limits = getPlanLimits(plan)
+  return limits[feature] === true
+}
+
+export function getPlanTier(plan: PlanName): number {
+  switch (plan) {
+    case "starter": return 1
+    case "pro": return 2
+    case "scale": return 3
+  }
 }
 

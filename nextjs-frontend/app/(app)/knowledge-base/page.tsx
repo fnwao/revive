@@ -80,8 +80,10 @@ export default function KnowledgeBasePage() {
   }, [selectedDoc, editingDoc])
 
   const limits = getPlanLimits(subscription.plan)
-  const maxDocs = limits.knowledgeBaseDocs === "unlimited" ? Infinity : limits.knowledgeBaseDocs
-  const canUpload = documents.length < maxDocs
+  // Knowledge base is available for Pro and Scale plans (unlimited)
+  const hasKnowledgeBase = limits.knowledgeBase
+  const maxDocs = hasKnowledgeBase ? Infinity : 0
+  const canUpload = hasKnowledgeBase && documents.length < maxDocs
 
   // Get unique document types for filter
   const documentTypes = Array.from(new Set(documents.map(doc => doc.type))).sort()
@@ -139,8 +141,9 @@ export default function KnowledgeBasePage() {
     const currentDocs = getDocuments()
     const currentCount = currentDocs.length
     const limits = getPlanLimits(subscription.plan)
-    const maxDocs = limits.knowledgeBaseDocs === "unlimited" ? Infinity : limits.knowledgeBaseDocs
-    const canUpload = currentCount < maxDocs
+    const hasKnowledgeBase = limits.knowledgeBase
+    const maxDocs = hasKnowledgeBase ? Infinity : 0
+    const canUpload = hasKnowledgeBase && currentCount < maxDocs
 
     // Check if user can upload more documents
     if (!canUpload) {
@@ -340,8 +343,9 @@ export default function KnowledgeBasePage() {
     
     const currentDocs = getDocuments()
     const limits = getPlanLimits(subscription.plan)
-    const maxDocs = limits.knowledgeBaseDocs === "unlimited" ? Infinity : limits.knowledgeBaseDocs
-    const canUpload = currentDocs.length < maxDocs
+    const hasKnowledgeBase = limits.knowledgeBase
+    const maxDocs = hasKnowledgeBase ? Infinity : 0
+    const canUpload = hasKnowledgeBase && currentDocs.length < maxDocs
     
     if (!canUpload) {
       showError(`You've reached your plan limit of ${maxDocs} documents. Upgrade to upload more.`)
@@ -448,9 +452,11 @@ export default function KnowledgeBasePage() {
                     </p>
                     <p className="text-xs text-[#6B7280] mb-3">
                       You've reached your plan limit of {maxDocs} document{maxDocs !== 1 ? "s" : ""}. 
-                      {subscription.plan !== "professional" && " Upgrade to Professional for unlimited documents."}
+                      {!hasKnowledgeBase 
+                        ? "Knowledge base is not available on your current plan. Upgrade to Pro or Scale to access this feature."
+                        : `You've reached your plan limit. Upgrade to Scale for unlimited documents.`}
                     </p>
-                    {subscription.plan !== "professional" && (
+                    {!hasKnowledgeBase && (
                       <Button size="sm" asChild>
                         <a href="/pricing">Upgrade Plan</a>
                       </Button>
@@ -461,7 +467,7 @@ export default function KnowledgeBasePage() {
             )}
 
             {/* Usage Stats */}
-            {limits.knowledgeBaseDocs !== "unlimited" && documents.length > 0 && (
+            {hasKnowledgeBase && documents.length > 0 && (
               <Card className="p-4 bg-gradient-to-r from-[#4F8CFF]/5 to-transparent border-[#4F8CFF]/20">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-[#111827]">

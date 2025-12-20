@@ -8,7 +8,9 @@ class GenerateMessageResponse(BaseModel):
     """Response schema for message generation."""
     approval_id: str
     deal_id: str
-    generated_message: str
+    generated_message: str  # First message for backward compatibility
+    generated_messages: Optional[List[str]] = None  # Full message sequence (3-4 messages)
+    message_sequence: Optional[List[dict]] = None  # Sequence with delays
     status: str = "pending"
     created_at: datetime
     

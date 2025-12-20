@@ -5,14 +5,22 @@ from datetime import datetime
 from app.models.approval_queue import ApprovalStatus
 
 
+class MessageSequenceItem(BaseModel):
+    """Schema for a single message in a sequence."""
+    message: str
+    order: int
+    delay_seconds: int = 0
+
+
 class ApprovalItem(BaseModel):
     """Schema for a single approval queue item."""
     id: str
     deal_id: str
     ghl_deal_id: str
     deal_title: Optional[str] = None
-    generated_message: str
-    edited_message: Optional[str] = None
+    generated_message: str  # JSON array for sequences, or single message for backward compatibility
+    edited_message: Optional[str] = None  # JSON array for edited sequences, or single message
+    message_sequence: Optional[List[MessageSequenceItem]] = None  # Parsed message sequence
     user_feedback: Optional[str] = None
     status: str
     created_at: datetime

@@ -190,88 +190,39 @@ export function RevivalsPipeline({ stalledDeals, approvals, onDealClick, selecte
                           draggedDeal?.deal_id === deal.deal_id && "opacity-50"
                         )}
                       >
-                        <div className="space-y-3">
+                        <div className="space-y-2">
                           {/* Deal Title */}
                           <div>
-                            <h4 className="font-semibold text-sm text-[#111827] mb-1 line-clamp-2">
+                            <h4 className="font-semibold text-sm text-[#111827] mb-1.5 line-clamp-2">
                               {deal.title}
                             </h4>
-                            <div className="flex items-center gap-2 text-xs text-[#6B7280]">
+                          </div>
+
+                          {/* Deal Value & Days */}
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1.5 text-xs text-[#6B7280]">
                               <DollarSign className="h-3 w-3" />
                               <span>{formatCurrency(deal.value, deal.currency)}</span>
                             </div>
+                            <div className="flex items-center gap-1.5 text-xs text-[#6B7280]">
+                              <Clock className="h-3 w-3" />
+                              <span>{deal.days_since_activity}d</span>
+                            </div>
                           </div>
 
-                          {/* Deal Status & Days */}
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-1.5">
-                              <Clock className="h-3 w-3 text-[#6B7280]" />
-                              <span className="text-xs text-[#6B7280]">
-                                {deal.days_since_activity} days
-                              </span>
-                            </div>
-                            {deal.status && (
-                              <Badge
-                                variant="outline"
-                                className={cn(
-                                  "text-[10px] px-1.5 py-0.5",
-                                  deal.status === "active" && "border-green-500/20 text-green-700 bg-green-50",
-                                  deal.status === "new" && "border-blue-500/20 text-blue-700 bg-blue-50",
-                                  deal.status === "won" && "border-emerald-500/20 text-emerald-700 bg-emerald-50"
-                                )}
-                              >
-                                {deal.status}
-                              </Badge>
-                            )}
-                          </div>
-
-                          {/* Tags */}
-                          {deal.tags && deal.tags.length > 0 && (
-                            <div className="flex items-center gap-1 flex-wrap">
-                              <Tag className="h-3 w-3 text-[#6B7280]" />
-                              {deal.tags.slice(0, 2).map((tag, idx) => (
-                                <Badge
-                                  key={idx}
-                                  variant="secondary"
-                                  className="text-[10px] px-1.5 py-0.5 bg-[#4F8CFF]/10 text-[#4F8CFF] border-0"
-                                >
-                                  {tag}
-                                </Badge>
-                              ))}
-                              {deal.tags.length > 2 && (
-                                <span className="text-[10px] text-[#6B7280]">+{deal.tags.length - 2}</span>
-                              )}
-                            </div>
-                          )}
-
-                          {/* Approval Status */}
+                          {/* Approval Status - Simplified */}
                           {approval && (
                             <div className="pt-2 border-t border-[#E5E7EB]">
-                              <div className="flex items-center gap-2">
-                                <MessageSquare className="h-3 w-3 text-[#6B7280]" />
-                                <span className="text-xs text-[#6B7280]">
-                                  {approval.status === "pending" && "Pending approval"}
-                                  {approval.status === "approved" && "Approved"}
-                                  {approval.status === "sent" && "Sent"}
-                                  {approval.scheduled_at && " • Scheduled"}
+                              <div className="flex items-center gap-1.5">
+                                {approval.status === "pending" && <AlertCircle className="h-3 w-3 text-yellow-500" />}
+                                {approval.status === "approved" && <Check className="h-3 w-3 text-green-500" />}
+                                {approval.status === "sent" && <Send className="h-3 w-3 text-blue-500" />}
+                                <span className="text-xs text-[#6B7280] capitalize">
+                                  {approval.status}
                                 </span>
                               </div>
-                              {approval.scheduled_at && (
-                                <div className="flex items-center gap-1 mt-1">
-                                  <Calendar className="h-3 w-3 text-[#6B7280]" />
-                                  <span className="text-xs text-[#6B7280]">
-                                    {formatDate(approval.scheduled_at)}
-                                  </span>
-                                </div>
-                              )}
                             </div>
                           )}
-
-                          {/* Last Activity */}
-                          <div className="flex items-center gap-1 text-xs text-[#6B7280]">
-                            <Clock className="h-3 w-3" />
-                            <span>Last activity: {formatDate(deal.last_activity_date)}</span>
-                          </div>
                         </div>
                       </Card>
                     )

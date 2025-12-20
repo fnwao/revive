@@ -46,13 +46,20 @@ export interface StalledDeal {
   sentiment?: "positive" | "neutral" | "negative"
 }
 
+export interface MessageSequenceItem {
+  message: string
+  order: number
+  delay_seconds: number
+}
+
 export interface Approval {
   id: string
   deal_id: string
   ghl_deal_id: string
   deal_title: string
-  generated_message: string
-  edited_message: string | null
+  generated_message: string  // JSON array for sequences, or single message
+  edited_message: string | null  // JSON array for edited sequences, or single message
+  message_sequence?: MessageSequenceItem[]  // Parsed message sequence
   user_feedback: string | null
   status: "pending" | "approved" | "rejected" | "sent"
   created_at: string
@@ -512,7 +519,12 @@ export async function detectStalledDeals(
   }
 }
 
-export async function generateMessage(dealId: string): Promise<{ message: string; approval_id: string }> {
+export async function generateMessage(dealId: string): Promise<{ 
+  message: string
+  approval_id: string
+  generated_messages?: string[]
+  message_sequence?: Array<{ message: string; order: number; delay_seconds: number }>
+}> {
   // Return mock messages based on deal
   if (!hasApiKey()) {
     const messages: Record<string, string> = {
@@ -546,32 +558,92 @@ export async function generateMessage(dealId: string): Promise<{ message: string
   }
 
   try {
-    // Backend returns { approval_id, deal_id, generated_message, status, created_at }
+    // Backend returns { approval_id, deal_id, generated_message, generated_messages?, message_sequence?, status, created_at }
     const response = await fetchApi<{
       approval_id: string
       deal_id: string
       generated_message: string
+      generated_messages?: string[]
+      message_sequence?: Array<{ message: string; order: number; delay_seconds: number }>
       status: string
       created_at: string
     }>(`/api/v1/deals/${dealId}/generate-message`, {
       method: "POST",
     })
     
+    // Parse generated_message if it's a JSON array (sequence)
+    let parsedMessages: string[] = []
+    let parsedSequence: Array<{ message: string; order: number; delay_seconds: number }> = []
+    
+    try {
+      // Try to parse as JSON array first
+      if (response.generated_message && response.generated_message.trim().startsWith('[')) {
+        const parsed = JSON.parse(response.generated_message)
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          // Check if it's an array of strings or objects
+          if (typeof parsed[0] === 'string') {
+            parsedMessages = parsed
+          } else if (typeof parsed[0] === 'object' && parsed[0].message) {
+            parsedMessages = parsed.map((item: any) => item.message || String(item))
+          } else {
+            parsedMessages = [response.generated_message]
+          }
+        } else {
+          parsedMessages = [response.generated_message]
+        }
+      } else {
+        parsedMessages = [response.generated_message]
+      }
+    } catch (e) {
+      // If parsing fails, treat as single message
+      parsedMessages = [response.generated_message || '']
+    }
+    
+    // Use provided sequences or construct from parsed messages
+    if (response.generated_messages) {
+      parsedMessages = response.generated_messages
+    }
+    if (response.message_sequence) {
+      parsedSequence = response.message_sequence
+    } else if (parsedMessages.length > 1) {
+      // Construct sequence with delays if not provided
+      parsedSequence = parsedMessages.map((msg, i) => ({
+        message: msg,
+        order: i + 1,
+        delay_seconds: i === 0 ? 0 : i === 1 ? 30 : i === 2 ? 120 : 300
+      }))
+    }
+    
+    // Ensure we have at least one message
+    if (parsedMessages.length === 0) {
+      parsedMessages = [response.generated_message || 'Message generated']
+    }
+    
     // Transform backend response to frontend format
     return {
-      message: response.generated_message,
+      message: parsedMessages[0] || response.generated_message || 'Message generated', // First message for backward compatibility
       approval_id: response.approval_id,
+      generated_messages: parsedMessages.length > 1 ? parsedMessages : undefined,
+      message_sequence: parsedSequence.length > 0 ? parsedSequence : undefined,
     }
   } catch (error) {
     console.error("Error generating message:", error)
-    // Fallback to mock message
-    const messages: Record<string, string> = {
-      "deal-001": "Hi Sarah! I noticed we haven't connected in a while about the Enterprise Package. I wanted to check in and see if you're still interested in moving forward.",
-      "deal-002": "Hey Mike! Hope you're doing well. I saw we started discussing the Starter Package a few weeks back but haven't finalized things yet.",
-    }
+    // Fallback to mock message sequence
+    const fallbackSequence = [
+      "Hi! 👋",
+      "Wanted to follow up on our previous conversation.",
+      "Still interested in moving forward?"
+    ]
+    
     return {
-      message: messages[dealId] || "Hi! I wanted to follow up on our previous conversation. Are you still interested in moving forward?",
+      message: fallbackSequence[0],
       approval_id: `approval-${dealId}-${Date.now()}`,
+      generated_messages: fallbackSequence,
+      message_sequence: fallbackSequence.map((msg, i) => ({
+        message: msg,
+        order: i + 1,
+        delay_seconds: i === 0 ? 0 : i === 1 ? 30 : 120
+      }))
     }
   }
 }

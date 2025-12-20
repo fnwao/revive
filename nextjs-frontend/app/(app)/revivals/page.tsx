@@ -4,10 +4,11 @@ import { useState, useEffect } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
 import { detectStalledDeals, generateMessage, getApprovals, approveMessage, rejectMessage, sendMessage, updateEditedMessage, submitFeedback, regenerateMessage, getTemplates, type StalledDeal, type Approval, hasApiKey, type MessageTemplate } from "@/lib/api"
 import { getConversationForDeal, type ConversationMessage } from "@/lib/demo-data"
 import { RevivalsPipeline } from "@/components/revivals-pipeline"
-import { Search, RefreshCw, MessageSquare, Clock, DollarSign, Send, Check, X, AlertCircle, User, Loader2, Edit2, Save, MessageCircle, Calendar, Filter, Tag, LayoutGrid, List, TrendingUp, Brain, Target, Zap, Mail, FileText } from "lucide-react"
+import { Search, RefreshCw, MessageSquare, Clock, DollarSign, Send, Check, X, AlertCircle, User, Loader2, Edit2, Save, MessageCircle, Calendar, Filter, Tag, LayoutGrid, List, TrendingUp, Brain, Target, Zap, Mail, FileText, ArrowRight, Plus } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { showToast } from "@/lib/toast"
@@ -22,7 +23,10 @@ export default function RevivalsPage() {
   const [tagFilters, setTagFilters] = useState<string[]>([])
   const [selectedDeal, setSelectedDeal] = useState<StalledDeal | null>(null)
   const [generatedMessage, setGeneratedMessage] = useState<string>("")
+  const [generatedMessages, setGeneratedMessages] = useState<string[]>([])
+  const [messageSequence, setMessageSequence] = useState<Array<{ message: string; order: number; delay_seconds: number }>>([])
   const [editedMessage, setEditedMessage] = useState<string>("")
+  const [editedMessages, setEditedMessages] = useState<string[]>([])
   const [isEditing, setIsEditing] = useState(false)
   const [feedback, setFeedback] = useState<string>("")
   const [showFeedback, setShowFeedback] = useState(false)
@@ -172,8 +176,11 @@ export default function RevivalsPage() {
     
     try {
       const result = await generateMessage(deal.deal_id)
-      setGeneratedMessage(result.message)
+      setGeneratedMessage(result.message) // First message for display
+      setGeneratedMessages(result.generated_messages || [result.message])
+      setMessageSequence(result.message_sequence || [])
       setEditedMessage(result.message)
+      setEditedMessages(result.generated_messages || [result.message])
       setIsEditing(false)
       setFeedback("")
       setShowFeedback(false)
@@ -182,13 +189,20 @@ export default function RevivalsPage() {
       setCurrentApprovalId(result.approval_id)
       // Reload approvals to get the new one
       await loadApprovals()
-      showToast.success("Message generated", "AI has generated a personalized message for this deal.")
+      const messageCount = result.generated_messages?.length || 1
+      showToast.success(
+        "Message sequence generated", 
+        `AI has generated ${messageCount} message${messageCount > 1 ? 's' : ''} for natural conversation flow.`
+      )
     } catch (error) {
       console.error("Failed to generate message:", error)
       showToast.error("Generation failed", error instanceof Error ? error.message : "Please try again.")
       const fallbackMessage = "Hi! I wanted to follow up on our previous conversation. Are you still interested in moving forward?"
       setGeneratedMessage(fallbackMessage)
+      setGeneratedMessages([fallbackMessage])
       setEditedMessage(fallbackMessage)
+      setEditedMessages([fallbackMessage])
+      setMessageSequence([])
       setCurrentApprovalId(null)
     } finally {
       setLoading(false)
@@ -239,10 +253,30 @@ export default function RevivalsPage() {
   const handleSaveEdits = async () => {
     if (!currentApprovalId) return
     
+    // Filter out empty messages
+    const validEditedMessages = editedMessages.filter(msg => msg && msg.trim().length > 0)
+    
+    // Validate we have at least one message
+    if (validEditedMessages.length === 0 && (!editedMessage || !editedMessage.trim())) {
+      showToast.error("Invalid message", "Please enter at least one message.")
+      return
+    }
+    
     setActionLoading("save")
     try {
-      await updateEditedMessage(currentApprovalId, editedMessage)
-      setGeneratedMessage(editedMessage)
+      // If we have multiple messages, send as JSON array, otherwise send as single message
+      const messageToSave = validEditedMessages.length > 1 
+        ? JSON.stringify(validEditedMessages)
+        : (validEditedMessages[0] || editedMessage)
+      
+      if (!messageToSave || !messageToSave.trim()) {
+        showToast.error("Invalid message", "Please enter at least one message.")
+        return
+      }
+      
+      await updateEditedMessage(currentApprovalId, messageToSave)
+      setGeneratedMessage(validEditedMessages[0] || editedMessage)
+      setGeneratedMessages(validEditedMessages.length > 0 ? validEditedMessages : [editedMessage])
       setIsEditing(false)
       showToast.success("Edits saved", "Your changes have been saved.")
       await loadApprovals()
@@ -279,8 +313,23 @@ export default function RevivalsPage() {
     
     setActionLoading("send")
     try {
-      // Send the edited message if it's different from the generated one
-      const messageToSend = editedMessage !== generatedMessage ? editedMessage : undefined
+      // Determine message to send - handle sequences
+      let messageToSend: string | undefined = undefined
+      
+      // Filter out empty messages from sequences
+      const validEditedMessages = editedMessages.filter(msg => msg && msg.trim().length > 0)
+      
+      if (validEditedMessages.length > 1) {
+        // Multiple messages - send as JSON array
+        const hasEdits = JSON.stringify(validEditedMessages) !== JSON.stringify(generatedMessages.filter(m => m && m.trim().length > 0))
+        messageToSend = hasEdits ? JSON.stringify(validEditedMessages) : undefined
+      } else if (validEditedMessages.length === 1) {
+        // Single message (after filtering)
+        messageToSend = validEditedMessages[0] !== generatedMessage ? validEditedMessages[0] : undefined
+      } else {
+        // Single message (fallback to editedMessage)
+        messageToSend = editedMessage && editedMessage.trim() && editedMessage !== generatedMessage ? editedMessage : undefined
+      }
       
       // Check if scheduling is enabled
       let scheduledAt: Date | undefined = undefined
@@ -302,14 +351,26 @@ export default function RevivalsPage() {
         messageChannel === "email" || messageChannel === "both" ? emailSubject : undefined
       )
       
+      // Count valid messages (filter out empty ones)
+      const validMessages = editedMessages.filter(msg => msg && msg.trim().length > 0)
+      const messageCount = validMessages.length > 1 ? validMessages.length : 1
       if (scheduledAt) {
-        showToast.success("Message scheduled", `The message has been scheduled for ${scheduledAt.toLocaleString()}.`)
+        showToast.success(
+          "Message sequence scheduled", 
+          `${messageCount} message${messageCount > 1 ? 's' : ''} scheduled for ${scheduledAt.toLocaleString()}.`
+        )
       } else {
-        showToast.success("Message sent", "The message has been sent successfully!")
+        showToast.success(
+          "Message sequence sent", 
+          `${messageCount} message${messageCount > 1 ? 's' : ''} sent successfully!`
+        )
       }
       
       setGeneratedMessage("")
+      setGeneratedMessages([])
       setEditedMessage("")
+      setEditedMessages([])
+      setMessageSequence([])
       setIsEditing(false)
       setFeedback("")
       setShowFeedback(false)
@@ -429,11 +490,13 @@ export default function RevivalsPage() {
           {/* View Toggle */}
           <div className="flex gap-1 p-1 bg-muted/30 rounded-lg mb-3">
             <Button
-              variant={viewMode === "list" ? "default" : "ghost"}
+              variant="ghost"
               size="sm"
               className={cn(
                 "flex-1",
-                viewMode === "list" ? "bg-background shadow-sm" : ""
+                viewMode === "list" 
+                  ? "bg-white shadow-sm text-[#111827] hover:bg-white" 
+                  : "text-[#6B7280] hover:text-[#111827]"
               )}
               onClick={() => setViewMode("list")}
             >
@@ -441,11 +504,13 @@ export default function RevivalsPage() {
               List
             </Button>
             <Button
-              variant={viewMode === "pipeline" ? "default" : "ghost"}
+              variant="ghost"
               size="sm"
               className={cn(
                 "flex-1",
-                viewMode === "pipeline" ? "bg-background shadow-sm" : ""
+                viewMode === "pipeline" 
+                  ? "bg-white shadow-sm text-[#111827] hover:bg-white" 
+                  : "text-[#6B7280] hover:text-[#111827]"
               )}
               onClick={() => setViewMode("pipeline")}
             >
@@ -580,7 +645,7 @@ export default function RevivalsPage() {
               )}
             </div>
           ) : (
-            <div className="divide-y">
+            <div className="divide-y divide-border">
               {filteredDeals.map((deal) => {
                 const approval = getDealApproval(deal.deal_id)
                 return (
@@ -588,111 +653,39 @@ export default function RevivalsPage() {
                     key={deal.deal_id}
                     onClick={() => handleGenerateMessage(deal)}
                     className={cn(
-                      "w-full text-left p-4 hover:bg-accent transition-colors",
-                      selectedDeal?.deal_id === deal.deal_id && "bg-accent"
+                      "w-full text-left p-4 hover:bg-muted/50 transition-colors border-l-2",
+                      selectedDeal?.deal_id === deal.deal_id 
+                        ? "bg-primary/5 border-l-primary" 
+                        : "border-l-transparent"
                     )}
                   >
-                    <div className="flex items-start justify-between mb-1">
-                      <div className="font-medium text-sm flex-1">{deal.title}</div>
-                      {deal.intelligence_score !== undefined && (
-                        <div className="flex items-center gap-1.5">
-                          <div className={cn(
-                            "px-1.5 py-0.5 rounded text-[10px] font-semibold flex items-center gap-1",
-                            deal.priority === "critical" && "bg-red-100 text-red-700",
-                            deal.priority === "high" && "bg-orange-100 text-orange-700",
-                            deal.priority === "medium" && "bg-yellow-100 text-yellow-700",
-                            deal.priority === "low" && "bg-blue-100 text-blue-700",
-                            !deal.priority && "bg-muted text-muted-foreground"
-                          )}>
-                            <Brain className="h-2.5 w-2.5" />
-                            {deal.intelligence_score.toFixed(0)}
-                          </div>
-                          {deal.priority && (
-                            <span className={cn(
-                              "px-1.5 py-0.5 rounded text-[10px] font-medium capitalize",
-                              deal.priority === "critical" && "bg-red-50 text-red-600 border border-red-200",
-                              deal.priority === "high" && "bg-orange-50 text-orange-600 border border-orange-200",
-                              deal.priority === "medium" && "bg-yellow-50 text-yellow-600 border border-yellow-200",
-                              deal.priority === "low" && "bg-blue-50 text-blue-600 border border-blue-200"
-                            )}>
-                              {deal.priority}
-                            </span>
-                          )}
+                    <div className="flex items-start justify-between gap-3 mb-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-sm text-foreground mb-1 line-clamp-1">
+                          {deal.title}
+                        </div>
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <DollarSign className="h-3 w-3" />
+                            ${deal.value.toLocaleString()}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {deal.days_since_activity}d inactive
+                          </span>
+                        </div>
+                      </div>
+                      {approval && (
+                        <div className={cn(
+                          "px-2 py-0.5 rounded text-[10px] font-medium flex-shrink-0",
+                          approval.status === "pending" && "bg-yellow-100 text-yellow-700",
+                          approval.status === "approved" && "bg-green-100 text-green-700",
+                          approval.status === "sent" && "bg-blue-100 text-blue-700"
+                        )}>
+                          {approval.status}
                         </div>
                       )}
                     </div>
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground mb-1">
-                      <span className="flex items-center gap-1">
-                        <DollarSign className="h-3 w-3" />
-                        ${deal.value.toLocaleString()}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        {deal.days_since_activity}d
-                      </span>
-                      {deal.response_probability !== undefined && (
-                        <span className="flex items-center gap-1 text-primary">
-                          <Target className="h-3 w-3" />
-                          {deal.response_probability.toFixed(0)}% response
-                        </span>
-                      )}
-                      {deal.status && (
-                        <span className="px-1.5 py-0.5 rounded bg-muted text-[10px] capitalize">
-                          {deal.status}
-                        </span>
-                      )}
-                    </div>
-                    {deal.insights && deal.insights.length > 0 && (
-                      <div className="mt-2 p-2 bg-muted/30 rounded border border-muted/50">
-                        <div className="flex items-center gap-1 mb-1">
-                          <Zap className="h-3 w-3 text-primary" />
-                          <span className="text-[10px] font-medium text-foreground">Insights</span>
-                        </div>
-                        <ul className="text-[10px] text-muted-foreground space-y-0.5">
-                          {deal.insights.slice(0, 2).map((insight, idx) => (
-                            <li key={idx} className="flex items-start gap-1">
-                              <span className="text-primary mt-0.5">•</span>
-                              <span>{insight}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                    {deal.recommended_action && (
-                      <div className="mt-1.5 text-[10px] text-primary font-medium flex items-center gap-1">
-                        <TrendingUp className="h-3 w-3" />
-                        {deal.recommended_action}
-                      </div>
-                    )}
-                    {deal.tags && deal.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {deal.tags.slice(0, 3).map((tag) => (
-                          <span
-                            key={tag}
-                            className="px-1.5 py-0.5 rounded bg-primary/10 text-[10px] text-primary"
-                          >
-                            <Tag className="h-2.5 w-2.5 inline mr-0.5" />
-                            {tag}
-                          </span>
-                        ))}
-                        {deal.tags.length > 3 && (
-                          <span className="text-[10px] text-muted-foreground">
-                            +{deal.tags.length - 3}
-                          </span>
-                        )}
-                      </div>
-                    )}
-                    {approval && (
-                      <div className="mt-2 text-xs text-primary">
-                        {approval.status === "pending" && "Pending approval"}
-                        {approval.status === "approved" && (
-                          approval.scheduled_at 
-                            ? `Scheduled: ${new Date(approval.scheduled_at).toLocaleString()}`
-                            : "Approved"
-                        )}
-                        {approval.status === "sent" && "Sent"}
-                      </div>
-                    )}
                   </button>
                 )
               })}
@@ -702,7 +695,7 @@ export default function RevivalsPage() {
       </div>
 
       {/* Main Content - Pipeline or Conversation View */}
-      <div className="flex-1 flex flex-col bg-background">
+      <div className="flex-1 flex flex-col bg-background min-h-0">
         {viewMode === "pipeline" && !selectedDeal ? (
           <RevivalsPipeline
             stalledDeals={filteredDeals}
@@ -716,33 +709,17 @@ export default function RevivalsPage() {
             <div className="border-b p-4">
               <div className="flex items-center justify-between">
                 <div className="flex-1">
-                  <h2 className="font-semibold text-sm">{selectedDeal.title}</h2>
-                  <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
-                    <span>${selectedDeal.value.toLocaleString()}</span>
-                    <span>{selectedDeal.days_since_activity} days inactive</span>
+                  <h2 className="font-semibold text-base">{selectedDeal.title}</h2>
+                  <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <DollarSign className="h-3 w-3" />
+                      ${selectedDeal.value.toLocaleString()}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      {selectedDeal.days_since_activity} days inactive
+                    </span>
                   </div>
-                  {conversation.length > 0 && (() => {
-                    const dealConv = getConversationForDeal(selectedDeal.deal_id)
-                    if (dealConv) {
-                      return (
-                        <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-                          {dealConv.contact_name && (
-                            <span className="flex items-center gap-1">
-                              <User className="h-3 w-3" />
-                              {dealConv.contact_name}
-                            </span>
-                          )}
-                          {dealConv.contact_phone && (
-                            <span>{dealConv.contact_phone}</span>
-                          )}
-                          {dealConv.contact_email && (
-                            <span>{dealConv.contact_email}</span>
-                          )}
-                        </div>
-                      )
-                    }
-                    return null
-                  })()}
                 </div>
                 <Button
                   variant="ghost"
@@ -932,14 +909,79 @@ export default function RevivalsPage() {
                       <MessageSquare className="h-5 w-5 text-primary" />
                     </div>
                     <div className="flex-1 space-y-4">
+                      {/* Message Sequence Display */}
+                      {generatedMessages.length > 1 && (
+                        <div className="mb-3 p-2 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-900">
+                          <div className="flex items-center gap-2 text-xs text-blue-700 dark:text-blue-300">
+                            <MessageSquare className="h-3 w-3" />
+                            <span className="font-medium">
+                              {generatedMessages.length} messages queued for natural conversation flow
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                      
                       {isEditing ? (
                         <div className="space-y-3">
-                          <textarea
-                            value={editedMessage}
-                            onChange={(e) => setEditedMessage(e.target.value)}
-                            className="w-full min-h-[140px] p-4 text-sm rounded-xl border-2 border-primary/30 bg-background resize-y focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 transition-all"
-                            placeholder="Edit the message..."
-                          />
+                          {editedMessages.length > 1 ? (
+                            // Edit sequence mode
+                            <div className="space-y-3">
+                              {editedMessages.map((msg, idx) => (
+                                <div key={idx} className="space-y-2">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs font-medium text-muted-foreground">
+                                      Message {idx + 1}
+                                      {messageSequence[idx] && messageSequence[idx].delay_seconds > 0 && (
+                                        <span className="ml-2 text-[10px]">
+                                          (sends after {messageSequence[idx].delay_seconds}s delay)
+                                        </span>
+                                      )}
+                                    </span>
+                                    {editedMessages.length > 1 && (
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="h-6 px-2 ml-auto"
+                                        onClick={() => {
+                                          const newMessages = editedMessages.filter((_, i) => i !== idx)
+                                          setEditedMessages(newMessages)
+                                        }}
+                                      >
+                                        <X className="h-3 w-3" />
+                                      </Button>
+                                    )}
+                                  </div>
+                                  <textarea
+                                    value={msg}
+                                    onChange={(e) => {
+                                      const newMessages = [...editedMessages]
+                                      newMessages[idx] = e.target.value
+                                      setEditedMessages(newMessages)
+                                    }}
+                                    className="w-full min-h-[80px] p-3 text-sm rounded-lg border-2 border-primary/30 bg-background resize-y focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 transition-all"
+                                    placeholder={`Message ${idx + 1}...`}
+                                  />
+                                </div>
+                              ))}
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setEditedMessages([...editedMessages, ""])}
+                                className="w-full"
+                              >
+                                <Plus className="h-4 w-4 mr-1" />
+                                Add Message
+                              </Button>
+                            </div>
+                          ) : (
+                            // Single message edit mode
+                            <textarea
+                              value={editedMessage}
+                              onChange={(e) => setEditedMessage(e.target.value)}
+                              className="w-full min-h-[140px] p-4 text-sm rounded-xl border-2 border-primary/30 bg-background resize-y focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 transition-all"
+                              placeholder="Edit the message..."
+                            />
+                          )}
                           <div className="flex items-center gap-2">
                             <Button
                               size="sm"
@@ -958,6 +1000,7 @@ export default function RevivalsPage() {
                               variant="ghost"
                               onClick={() => {
                                 setEditedMessage(generatedMessage)
+                                setEditedMessages(generatedMessages)
                                 setIsEditing(false)
                               }}
                               disabled={actionLoading !== null}
@@ -967,16 +1010,44 @@ export default function RevivalsPage() {
                           </div>
                         </div>
                       ) : (
-                        <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-2 border-primary/20 rounded-xl p-5 shadow-sm">
-                          <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
-                            {editedMessage !== generatedMessage ? editedMessage : generatedMessage}
-                          </p>
-                          {editedMessage !== generatedMessage && (
-                            <div className="mt-3 pt-3 border-t border-primary/10">
-                              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                <Edit2 className="h-3 w-3" />
-                                <span className="italic">Message has been edited</span>
+                        // Display mode
+                        <div className="space-y-3">
+                          {editedMessages.length > 1 ? (
+                            // Display sequence
+                            editedMessages.map((msg, idx) => (
+                              <div
+                                key={idx}
+                                className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-2 border-primary/20 rounded-xl p-4 shadow-sm relative"
+                              >
+                                <div className="flex items-center gap-2 mb-2">
+                                  <span className="text-xs font-semibold text-primary/70">
+                                    Message {idx + 1}
+                                  </span>
+                                  {messageSequence[idx] && messageSequence[idx].delay_seconds > 0 && (
+                                    <span className="text-[10px] text-muted-foreground">
+                                      • Sends after {messageSequence[idx].delay_seconds}s
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
+                                  {msg}
+                                </p>
                               </div>
+                            ))
+                          ) : (
+                            // Single message display
+                            <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-2 border-primary/20 rounded-xl p-5 shadow-sm">
+                              <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
+                                {editedMessage !== generatedMessage ? editedMessage : generatedMessage}
+                              </p>
+                              {editedMessage !== generatedMessage && (
+                                <div className="mt-3 pt-3 border-t border-primary/10">
+                                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                    <Edit2 className="h-3 w-3" />
+                                    <span className="italic">Message has been edited</span>
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
@@ -1257,7 +1328,7 @@ export default function RevivalsPage() {
             )}
           </>
         ) : (
-          <div className="flex items-center justify-center h-full">
+          <div className="flex-1 flex items-center justify-center">
             <div className="text-center max-w-md">
               <MessageSquare className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
               <h3 className="font-semibold text-lg mb-2">Select a deal to get started</h3>
@@ -1267,6 +1338,70 @@ export default function RevivalsPage() {
             </div>
           </div>
         )}
+
+        {/* Template Library Section - Always visible at bottom */}
+        <div className="border-t p-6 bg-muted/30 flex-shrink-0">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="font-semibold text-base mb-1">Template Library</h3>
+              <p className="text-sm text-muted-foreground">
+                Browse and use pre-built message templates
+              </p>
+            </div>
+            <Link href="/templates">
+              <Button variant="outline" size="sm">
+                View All
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            </Link>
+          </div>
+          
+          {templates.length === 0 ? (
+            <div className="text-center py-6">
+              <FileText className="h-8 w-8 text-muted-foreground mx-auto mb-2 opacity-50" />
+              <p className="text-sm text-muted-foreground mb-3">No templates available</p>
+              <Link href="/templates">
+                <Button size="sm" variant="outline">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Template
+                </Button>
+              </Link>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-48 overflow-y-auto">
+              {templates.slice(0, 6).map((template) => (
+                <Card
+                  key={template.id}
+                  className="p-3 hover:bg-accent transition-colors cursor-pointer"
+                  onClick={() => {
+                    if (selectedDeal) {
+                      handleTemplateSelect(template)
+                    }
+                  }}
+                >
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-medium text-sm line-clamp-1">{template.name}</h4>
+                      <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
+                        {template.description || template.body.substring(0, 60)}...
+                      </p>
+                    </div>
+                    <Badge variant="outline" className="text-[10px] capitalize flex-shrink-0">
+                      {template.type}
+                    </Badge>
+                  </div>
+                  {template.category && (
+                    <div className="mt-2">
+                      <span className="text-[10px] text-muted-foreground">
+                        {template.category}
+                      </span>
+                    </div>
+                  )}
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )

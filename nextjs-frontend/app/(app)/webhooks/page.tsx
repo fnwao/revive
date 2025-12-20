@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Webhook, Plus, Edit, Trash2, CheckCircle, XCircle, Clock, Activity } from "lucide-react"
+import { Webhook, Plus, Edit, Trash2, CheckCircle, XCircle, Clock, Activity, Zap, Link2, Building2, Briefcase, Mail, Calendar, MessageSquare, Database, Cloud } from "lucide-react"
 import { getWebhooks, createWebhook, updateWebhook, deleteWebhook, getWebhookDeliveries, type Webhook as WebhookType, type WebhookDelivery } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
@@ -22,6 +22,21 @@ const WEBHOOK_EVENTS = [
   { value: "message.rejected", label: "Message Rejected" },
   { value: "deal.updated", label: "Deal Updated" },
   { value: "deal.closed", label: "Deal Closed" },
+]
+
+const COMING_SOON_INTEGRATIONS = [
+  { name: "Zapier", icon: Zap, description: "Connect to 6,000+ apps" },
+  { name: "Make (Integromat)", icon: Link2, description: "Automate workflows" },
+  { name: "Close CRM", icon: Briefcase, description: "Sync deals and contacts" },
+  { name: "HubSpot", icon: Building2, description: "CRM and marketing automation" },
+  { name: "Salesforce", icon: Cloud, description: "Enterprise CRM integration" },
+  { name: "Pipedrive", icon: Database, description: "Sales pipeline management" },
+  { name: "Airtable", icon: Database, description: "Database and workflow tool" },
+  { name: "Slack", icon: MessageSquare, description: "Team notifications" },
+  { name: "Microsoft Teams", icon: MessageSquare, description: "Team collaboration" },
+  { name: "Google Sheets", icon: Database, description: "Spreadsheet automation" },
+  { name: "Notion", icon: Database, description: "Workspace and notes" },
+  { name: "Monday.com", icon: Calendar, description: "Project management" },
 ]
 
 export default function WebhooksPage() {
@@ -119,11 +134,11 @@ export default function WebhooksPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Webhooks</h1>
-          <p className="text-muted-foreground mt-1">Configure webhooks to receive real-time events</p>
+          <h1 className="text-2xl font-bold mb-2">Webhooks</h1>
+          <p className="text-muted-foreground">Configure webhooks to receive real-time events</p>
         </div>
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
@@ -155,25 +170,25 @@ export default function WebhooksPage() {
           </Button>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 gap-4">
+        <div className="grid grid-cols-1 gap-6">
           {webhooks.map((webhook) => (
             <Card
               key={webhook.id}
               className={cn(
-                "p-4 cursor-pointer hover:shadow-md transition-shadow",
+                "p-6 cursor-pointer hover:shadow-md transition-shadow",
                 selectedWebhook?.id === webhook.id && "ring-2 ring-primary"
               )}
               onClick={() => setSelectedWebhook(webhook)}
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
+                  <div className="flex items-center gap-2 mb-3">
                     <Webhook className="h-5 w-5 text-primary" />
                     <h3 className="font-semibold">{webhook.name}</h3>
                     {getStatusBadge(webhook.status)}
                   </div>
-                  <p className="text-sm text-muted-foreground mb-2 font-mono break-all">{webhook.url}</p>
-                  <div className="flex flex-wrap gap-2 mb-2">
+                  <p className="text-sm text-muted-foreground mb-3 font-mono break-all">{webhook.url}</p>
+                  <div className="flex flex-wrap gap-2 mb-3">
                     {webhook.events.map((event) => (
                       <Badge key={event} variant="outline" className="text-xs">
                         {WEBHOOK_EVENTS.find((e) => e.value === event)?.label || event}
@@ -232,13 +247,13 @@ export default function WebhooksPage() {
 
       {selectedWebhook && (
         <Card className="p-6">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-semibold">Delivery History</h2>
             <Button variant="outline" size="sm" onClick={() => setSelectedWebhook(null)}>
               Close
             </Button>
           </div>
-          <div className="space-y-2">
+          <div className="space-y-3">
             {deliveries.length === 0 ? (
               <p className="text-sm text-muted-foreground">No deliveries yet</p>
             ) : (
@@ -274,6 +289,38 @@ export default function WebhooksPage() {
           </div>
         </Card>
       )}
+
+      {/* Coming Soon Integrations */}
+      <div className="mt-10">
+        <div className="mb-6">
+          <h2 className="text-xl font-semibold mb-2">Integrations Coming Soon</h2>
+          <p className="text-sm text-muted-foreground">
+            We're working on native integrations with popular tools. Use webhooks to connect with any service today.
+          </p>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {COMING_SOON_INTEGRATIONS.map((integration) => {
+            const Icon = integration.icon
+            return (
+              <Card
+                key={integration.name}
+                className="p-4 border-dashed border-2 border-muted hover:border-primary/30 transition-colors"
+              >
+                <div className="flex flex-col items-center text-center">
+                  <div className="h-12 w-12 rounded-lg bg-muted/50 flex items-center justify-center mb-3">
+                    <Icon className="h-6 w-6 text-muted-foreground" />
+                  </div>
+                  <h3 className="font-medium text-sm mb-1">{integration.name}</h3>
+                  <p className="text-xs text-muted-foreground mb-2">{integration.description}</p>
+                  <Badge variant="outline" className="text-[10px]">
+                    Coming Soon
+                  </Badge>
+                </div>
+              </Card>
+            )
+          })}
+        </div>
+      </div>
     </div>
   )
 }
@@ -360,8 +407,8 @@ function WebhookForm({ webhook, onSuccess }: { webhook?: WebhookType; onSuccess:
           Configure a webhook to receive real-time events from Revive.ai
         </DialogDescription>
       </DialogHeader>
-      <div className="space-y-4 py-4">
-        <div>
+      <div className="space-y-5 py-4">
+        <div className="space-y-2">
           <Label htmlFor="webhook-name">Webhook Name *</Label>
           <Input
             id="webhook-name"
@@ -371,7 +418,7 @@ function WebhookForm({ webhook, onSuccess }: { webhook?: WebhookType; onSuccess:
             required
           />
         </div>
-        <div>
+        <div className="space-y-2">
           <Label htmlFor="webhook-url">Webhook URL *</Label>
           <Input
             id="webhook-url"
@@ -382,7 +429,7 @@ function WebhookForm({ webhook, onSuccess }: { webhook?: WebhookType; onSuccess:
             required
           />
         </div>
-        <div>
+        <div className="space-y-2">
           <Label htmlFor="webhook-secret">Secret (Optional)</Label>
           <Input
             id="webhook-secret"
@@ -391,13 +438,13 @@ function WebhookForm({ webhook, onSuccess }: { webhook?: WebhookType; onSuccess:
             onChange={(e) => setSecret(e.target.value)}
             placeholder="Secret for signature verification"
           />
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="text-xs text-muted-foreground">
             Used to verify webhook authenticity
           </p>
         </div>
-        <div>
+        <div className="space-y-2">
           <Label>Events *</Label>
-          <div className="grid grid-cols-2 gap-2 mt-2">
+          <div className="grid grid-cols-2 gap-2">
             {WEBHOOK_EVENTS.map((event) => (
               <div key={event.value} className="flex items-center gap-2">
                 <input
@@ -415,7 +462,7 @@ function WebhookForm({ webhook, onSuccess }: { webhook?: WebhookType; onSuccess:
           </div>
         </div>
         <div className="grid grid-cols-2 gap-4">
-          <div>
+          <div className="space-y-2">
             <Label htmlFor="retry-count">Retry Count</Label>
             <Input
               id="retry-count"
@@ -426,7 +473,7 @@ function WebhookForm({ webhook, onSuccess }: { webhook?: WebhookType; onSuccess:
               onChange={(e) => setRetryCount(parseInt(e.target.value))}
             />
           </div>
-          <div>
+          <div className="space-y-2">
             <Label htmlFor="timeout">Timeout (seconds)</Label>
             <Input
               id="timeout"
@@ -439,7 +486,7 @@ function WebhookForm({ webhook, onSuccess }: { webhook?: WebhookType; onSuccess:
           </div>
         </div>
         {webhook && (
-          <div>
+          <div className="space-y-2">
             <Label htmlFor="status">Status</Label>
             <Select id="status" value={status} onChange={(e) => setStatus(e.target.value as "active" | "inactive" | "failed")}>
               <option value="active">Active</option>

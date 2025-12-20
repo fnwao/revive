@@ -202,16 +202,31 @@ async def generate_message(
                 last_activity = last_activity.replace(tzinfo=None)
             days_since_activity = (datetime.now() - last_activity).days
         
-        # Generate message using AI
+        # Generate message sequence using AI (3-4 shorter messages)
         ai_service = AIService()
-        generated_message = ai_service.generate_reactivation_message(
+        generated_messages = ai_service.generate_reactivation_message(
             deal_title=deal.title or ghl_deal.get("title", "Deal"),
             deal_value=deal.value,
             deal_status=deal.status or "active",
             days_since_activity=days_since_activity or 0,
             conversations=conversations,
-            max_length=160  # SMS limit
+            max_length=160,  # SMS limit per message
+            generate_sequence=True  # Generate 3-4 messages for natural flow
         )
+        
+        # Store messages as JSON array
+        import json
+        generated_message_json = json.dumps(generated_messages)
+        
+        # Create message sequence with delays (human-like timing: 30s, 2min, 5min between messages)
+        message_sequence = []
+        delays_seconds = [0, 30, 120, 300]  # 0s, 30s, 2min, 5min
+        for i, msg in enumerate(generated_messages):
+            message_sequence.append({
+                "message": msg,
+                "order": i + 1,
+                "delay_seconds": delays_seconds[i] if i < len(delays_seconds) else delays_seconds[-1]
+            })
         
         # Store in approval queue
         approval = ApprovalQueue(
@@ -220,7 +235,8 @@ async def generate_message(
             deal_id=deal.id,
             ghl_deal_id=deal.ghl_deal_id,
             ghl_contact_id=deal.ghl_contact_id,
-            generated_message=generated_message,
+            generated_message=generated_message_json,
+            message_sequence=json.dumps(message_sequence),
             status=ApprovalStatus.PENDING
         )
         
@@ -253,10 +269,15 @@ async def generate_message(
         
         logger.info(f"Generated message for deal {deal_id}, approval ID: {approval.id}")
         
+        # Return first message for backward compatibility, but frontend should handle sequences
+        first_message = generated_messages[0] if generated_messages else ""
+        
         return GenerateMessageResponse(
             approval_id=str(approval.id),
             deal_id=deal_id,
-            generated_message=generated_message,
+            generated_message=first_message,  # First message for backward compatibility
+            generated_messages=generated_messages,  # Full sequence
+            message_sequence=message_sequence,  # Sequence with delays
             status=approval.status.value,
             created_at=approval.created_at
         )
