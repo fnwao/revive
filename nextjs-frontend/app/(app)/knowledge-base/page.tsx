@@ -149,8 +149,10 @@ export default function KnowledgeBasePage() {
     // Get current document count
     const currentDocs = getDocuments()
     const currentCount = currentDocs.length
-    const limits = getPlanLimits(subscription.plan)
-    const hasKnowledgeBase = limits.knowledgeBase
+    const limits = subscription && subscription.plan 
+      ? getPlanLimits(subscription.plan) 
+      : getPlanLimits("pro")
+    const hasKnowledgeBase = limits?.knowledgeBase ?? false
     const maxDocs = hasKnowledgeBase ? Infinity : 0
     const canUpload = hasKnowledgeBase && currentCount < maxDocs
 
