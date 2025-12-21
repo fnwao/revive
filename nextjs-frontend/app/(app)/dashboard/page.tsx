@@ -156,15 +156,13 @@ export default function DashboardPage() {
       // getDashboardStats and getApprovals should return mock data if no API key or on error
       try {
         statsData = await getDashboardStats()
-        // Update active_revivals with actual stalled deals count if available
-        if (deals.length > 0) {
-          statsData.active_revivals = deals.length
-        }
+        // Always update active_revivals with actual stalled deals count
+        statsData.active_revivals = deals.length
       } catch (error) {
         console.error("Failed to load stats:", error)
         // Fallback to mock stats, but use actual stalled deals count
         statsData = {
-          active_revivals: deals.length || 12,
+          active_revivals: deals.length,
           revenue_recovered: 24500,
           success_rate: 68,
           avg_response_time: 2.4,
@@ -184,16 +182,13 @@ export default function DashboardPage() {
         approvalsData = { approvals: [], total: 0, pending: 0, approved: 0, rejected: 0, sent: 0 }
       }
 
-      setStats(statsData)
+      // Update stats with actual data
+      setStats({
+        ...statsData,
+        active_revivals: deals.length, // Always use actual stalled deals count
+        pending_approvals: approvalsData.pending !== undefined ? approvalsData.pending : statsData.pending_approvals
+      })
       setApprovals(approvalsData.approvals || [])
-      
-      // Update pending approvals count from approvals data if available
-      if (approvalsData.pending !== undefined) {
-        setStats(prev => ({ ...prev, pending_approvals: approvalsData.pending }))
-      }
-      
-      // Update active_revivals with actual stalled deals count
-      setStats(prev => ({ ...prev, active_revivals: deals.length || prev.active_revivals }))
 
       // Load notifications
       try {
