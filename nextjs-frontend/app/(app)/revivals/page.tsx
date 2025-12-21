@@ -328,6 +328,43 @@ export default function RevivalsPage() {
       // Regenerate message with feedback
       const result = await regenerateMessage(currentApprovalId, feedback)
       
+      // Update local state with regenerated message
+      if (result.generated_message) {
+        // Check if it's a JSON array (message sequence)
+        let parsedMessages: string[] = []
+        try {
+          if (result.generated_message.trim().startsWith('[')) {
+            const parsed = JSON.parse(result.generated_message)
+            if (Array.isArray(parsed)) {
+              parsedMessages = parsed.filter((msg: any) => msg && typeof msg === 'string' && msg.trim().length > 0)
+            } else {
+              parsedMessages = [result.generated_message]
+            }
+          } else {
+            parsedMessages = [result.generated_message]
+          }
+        } catch {
+          parsedMessages = [result.generated_message]
+        }
+        
+        setGeneratedMessage(parsedMessages[0] || result.generated_message)
+        setGeneratedMessages(parsedMessages.length > 0 ? parsedMessages : [result.generated_message])
+        setEditedMessage(parsedMessages[0] || result.generated_message)
+        setEditedMessages(parsedMessages.length > 0 ? parsedMessages : [result.generated_message])
+        
+        // Create message sequence with delays
+        if (parsedMessages.length > 1) {
+          const sequence = parsedMessages.map((msg, i) => ({
+            message: msg,
+            order: i + 1,
+            delay_seconds: i === 0 ? 0 : i === 1 ? 30 : i === 2 ? 120 : 300
+          }))
+          setMessageSequence(sequence)
+        } else {
+          setMessageSequence([])
+        }
+      }
+      
       // Reload approvals to get the updated message
       await loadApprovals()
       
