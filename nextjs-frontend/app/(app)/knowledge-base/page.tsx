@@ -267,7 +267,7 @@ export default function KnowledgeBasePage() {
     } finally {
       setIsUploading(false)
     }
-  }, [subscription.plan])
+  }, [subscription?.plan])
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
