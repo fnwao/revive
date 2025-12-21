@@ -245,7 +245,9 @@ Generate a short SMS message (max {max_length} characters) that:
 - Matches prospect's communication style
 - Adds value with benefit-focused language
 - Includes soft, low-pressure CTA
-- Sounds natural and human, not templated or salesy"""
+- Sounds natural and human, not templated or salesy
+
+NOTE: If the message is longer than {max_length} characters, use natural line breaks (\\n) at sentence boundaries or after commas for better readability. The system will automatically split very long messages into multiple messages."""
         else:
             # Add intelligent context analysis
             value_context = ""
@@ -411,7 +413,9 @@ Generate a short SMS message (max {max_length} characters) that:
 - Matches prospect's communication style
 - Adds value, not just "checking in"
 - Has a soft, low-pressure CTA
-- Sounds natural and human, not templated or salesy"""
+- Sounds natural and human, not templated or salesy
+
+NOTE: If the message is longer than {max_length} characters, use natural line breaks (\\n) at sentence boundaries or after commas for better readability. The system will automatically split very long messages into multiple messages."""
         
         try:
             if generate_sequence and not feedback:
