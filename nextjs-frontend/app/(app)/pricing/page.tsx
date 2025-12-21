@@ -110,6 +110,10 @@ export default function PricingPage() {
   }, [])
 
   const handleUpgrade = async (planId: PlanName) => {
+    if (!subscription) {
+      setError("Please wait, loading subscription...")
+      return
+    }
     if (planId === subscription.plan) {
       showToast.warning("Already on this plan", "You're already subscribed to this plan.")
       setError("You're already on this plan")
@@ -444,7 +448,7 @@ export default function PricingPage() {
           </div>
 
           {/* Cancel Subscription */}
-          {subscription.plan && !isCancelling && (
+          {subscription?.plan && !isCancelling && (
             <div className="mt-16 pt-8 border-t border-[#E5E7EB]">
               <div className="max-w-md mx-auto text-center">
                 <p className="text-sm text-[#6B7280] mb-4">

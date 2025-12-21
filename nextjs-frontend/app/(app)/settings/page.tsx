@@ -1323,10 +1323,9 @@ export default function SettingsPage() {
               <div className="px-6 pb-6 space-y-4 border-t border-[#E5E7EB] pt-6">
                 <div className="flex items-center justify-between p-4 bg-white border border-[#E5E7EB] rounded-lg">
                 <div>
-                  <p className="text-sm font-medium text-[#111827] capitalize">{subscription.plan} Plan</p>
+                  <p className="text-sm font-medium text-[#111827] capitalize">{subscription?.plan || "pro"} Plan</p>
                   <p className="text-xs text-[#6B7280]">
-                    {formatPrice(getPlanPrice(subscription.plan, subscription.billingCycle), subscription.billingCycle)}
-                    /{subscription.billingCycle === "monthly" ? "month" : "year"}
+                    {subscription ? `${formatPrice(getPlanPrice(subscription.plan, subscription.billingCycle), subscription.billingCycle)}/${subscription.billingCycle === "monthly" ? "month" : "year"}` : "Loading..."}
                   </p>
                 </div>
                 <Link href="/pricing">
