@@ -398,7 +398,7 @@ export default function SettingsPage() {
     }
   }
 
-  const limits = getPlanLimits(subscription.plan)
+  const limits = subscription ? getPlanLimits(subscription.plan) : getPlanLimits("pro")
 
   // Filter settings based on search
   const sections = [

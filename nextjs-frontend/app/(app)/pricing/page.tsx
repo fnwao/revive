@@ -201,8 +201,8 @@ export default function PricingPage() {
     return plan?.cta || `Upgrade to ${plan?.name}`
   }
 
-  const periodEnd = new Date(subscription.currentPeriodEnd)
-  const isCancelling = subscription.cancelAtPeriodEnd
+  const periodEnd = subscription ? new Date(subscription.currentPeriodEnd) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+  const isCancelling = subscription?.cancelAtPeriodEnd ?? false
 
   return (
     <div className="flex flex-col h-full min-h-0 bg-white">
