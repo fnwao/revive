@@ -506,7 +506,7 @@ export default function SettingsPage() {
 
       {/* Main Content */}
       <div className="flex-1 overflow-y-auto p-6 min-h-0">
-        <div className="max-w-2xl mx-auto space-y-4">
+        <div className="max-w-2xl mx-auto space-y-4 px-4 sm:px-0">
           {filteredSections.length === 0 ? (
             <Card className="p-12 text-center bg-white border-[#E5E7EB]">
               <Search className="mx-auto h-12 w-12 text-[#6B7280] mb-4" />
@@ -555,7 +555,7 @@ export default function SettingsPage() {
             </button>
             
             {expandedSections.has("account") && (
-              <div className="px-6 pb-6 space-y-5 border-t border-[#E5E7EB] pt-6">
+              <div className="px-4 sm:px-6 pb-4 sm:pb-6 space-y-4 sm:space-y-5 border-t border-[#E5E7EB] pt-4 sm:pt-6">
                 <div className="space-y-2">
                 <Label htmlFor="email" className="text-[#111827]">Email</Label>
                 <Input
@@ -669,7 +669,7 @@ export default function SettingsPage() {
             </button>
             
             {expandedSections.has("api") && (
-              <div className="px-6 pb-6 space-y-5 border-t border-[#E5E7EB] pt-6">
+              <div className="px-4 sm:px-6 pb-4 sm:pb-6 space-y-4 sm:space-y-5 border-t border-[#E5E7EB] pt-4 sm:pt-6">
                 <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Label htmlFor="api-url" className="text-[#111827]">API URL</Label>
@@ -853,7 +853,7 @@ export default function SettingsPage() {
             </button>
             
             {expandedSections.has("ghl") && (
-              <div className="px-6 pb-6 space-y-5 border-t border-[#E5E7EB] pt-6">
+              <div className="px-4 sm:px-6 pb-4 sm:pb-6 space-y-4 sm:space-y-5 border-t border-[#E5E7EB] pt-4 sm:pt-6">
                 {settings.ghlConnected ? (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between p-4 bg-white border border-[#E5E7EB] rounded-lg">

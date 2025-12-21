@@ -353,18 +353,18 @@ export default function DashboardPage() {
     <div className="flex flex-col h-full min-h-0">
       {/* Main Content - ChatGPT-style rhythm */}
       <div className="flex-1 overflow-y-auto min-h-0">
-        <div className="max-w-5xl mx-auto px-6 py-12">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-12">
           {/* Clear Title */}
-          <div className="mb-6 flex items-center justify-between">
+          <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-h1 text-[#111827] mb-2">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-[#111827] mb-1 sm:mb-2">
                 {greeting}, {firstName}
               </h1>
-              <p className="text-body text-[#6B7280]">
+              <p className="text-sm sm:text-base text-[#6B7280]">
                 Here's what's happening this month.
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-shrink-0">
               <Tooltip content="Refresh dashboard data now" side="bottom">
                 <Button
                   variant="ghost"
@@ -400,20 +400,20 @@ export default function DashboardPage() {
               ? "bg-gradient-to-br from-[#3CCB7F]/10 via-[#3CCB7F]/5 to-transparent border-[#3CCB7F]/30 shadow-lg shadow-[#3CCB7F]/10" 
               : "bg-gradient-to-br from-[#8A90A2]/10 via-[#8A90A2]/5 to-transparent border-[#8A90A2]/20"
           )}>
-            <div className="p-6">
-              <div className="flex items-center gap-4">
+            <div className="p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                 {/* Pulsing Status Dot */}
                 <div className="relative flex-shrink-0">
                   <div className={cn(
-                    "h-16 w-16 rounded-full flex items-center justify-center border-2",
+                    "h-12 w-12 sm:h-16 sm:w-16 rounded-full flex items-center justify-center border-2",
                     isActive 
                       ? "bg-[#3CCB7F]/20 border-[#3CCB7F]/40" 
                       : "bg-[#8A90A2]/20 border-[#8A90A2]/40"
                   )}>
                     {isActive ? (
-                      <Brain className="h-8 w-8 text-[#3CCB7F]" />
+                      <Brain className="h-6 w-6 sm:h-8 sm:w-8 text-[#3CCB7F]" />
                     ) : (
-                      <Brain className="h-8 w-8 text-[#8A90A2]" />
+                      <Brain className="h-6 w-6 sm:h-8 sm:w-8 text-[#8A90A2]" />
                     )}
                   </div>
                   {isActive && (
@@ -427,10 +427,10 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Status Text */}
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
                     <h2 className={cn(
-                      "text-xl font-bold",
+                      "text-lg sm:text-xl font-bold",
                       isActive ? "text-[#111827]" : "text-[#6B7280]"
                     )}>
                       AI is {isActive ? "actively monitoring" : "inactive"}
@@ -455,8 +455,8 @@ export default function DashboardPage() {
 
                 {/* Action Button */}
                 {!isActive && (
-                  <Link href="/revivals">
-                    <Button size="sm" className="flex-shrink-0">
+                  <Link href="/revivals" className="w-full sm:w-auto">
+                    <Button size="sm" className="w-full sm:w-auto flex-shrink-0">
                       <Zap className="h-4 w-4 mr-2" />
                       Activate AI
                     </Button>
@@ -485,25 +485,25 @@ export default function DashboardPage() {
           )}
 
           {/* Primary Metric - Revenue Recovered (Emphasized) */}
-          <Card className="p-8 mb-8 bg-gradient-to-br from-[#4F8CFF]/10 via-[#4F8CFF]/5 to-transparent border-2 border-[#4F8CFF]/20">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="h-16 w-16 rounded-xl bg-[#4F8CFF]/20 flex items-center justify-center">
-                  <DollarSign className="h-8 w-8 text-[#4F8CFF]" />
+          <Card className="p-6 sm:p-8 mb-6 sm:mb-8 bg-gradient-to-br from-[#4F8CFF]/10 via-[#4F8CFF]/5 to-transparent border-2 border-[#4F8CFF]/20">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="h-12 w-12 sm:h-16 sm:w-16 rounded-xl bg-[#4F8CFF]/20 flex items-center justify-center flex-shrink-0">
+                  <DollarSign className="h-6 w-6 sm:h-8 sm:w-8 text-[#4F8CFF]" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-[#6B7280] uppercase tracking-wide mb-1">Revenue Recovered</p>
-                  <p className="text-4xl font-bold text-[#111827]">${stats.revenue_recovered.toLocaleString()}</p>
+                  <p className="text-xs sm:text-sm font-medium text-[#6B7280] uppercase tracking-wide mb-1">Revenue Recovered</p>
+                  <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-[#111827]">${stats.revenue_recovered.toLocaleString()}</p>
                   <p className="text-xs text-[#6B7280] mt-1">This month</p>
                 </div>
               </div>
-              <div className="text-right">
-                <div className="flex items-center gap-1 text-[#3CCB7F] mb-1">
+              <div className="w-full sm:w-auto text-left sm:text-right">
+                <div className="flex items-center gap-1 text-[#3CCB7F] mb-2 sm:mb-1">
                   <TrendingUp className="h-4 w-4" />
-                  <span className="text-sm font-medium">{stats.success_rate}% success rate</span>
+                  <span className="text-xs sm:text-sm font-medium">{stats.success_rate}% success rate</span>
                 </div>
-                <Link href="/revivals">
-                  <Button size="sm" className="mt-2">
+                <Link href="/revivals" className="block sm:inline-block">
+                  <Button size="sm" className="w-full sm:w-auto">
                     <Zap className="h-4 w-4 mr-2" />
                     View Revivals
                     <ArrowRight className="h-4 w-4 ml-2" />
@@ -515,14 +515,14 @@ export default function DashboardPage() {
 
           {/* Secondary Metrics */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-            <Card className="p-5">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="h-10 w-10 rounded-lg bg-[#3CCB7F]/12 flex items-center justify-center">
-                  <TrendingUp className="h-5 w-5 text-[#3CCB7F]" />
+            <Card className="p-4 sm:p-5">
+              <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+                <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg bg-[#3CCB7F]/12 flex items-center justify-center flex-shrink-0">
+                  <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-[#3CCB7F]" />
                 </div>
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <p className="text-xs text-[#6B7280] uppercase tracking-wide">Success Rate</p>
-                  <p className="text-2xl font-bold text-[#111827] mt-1">{stats.success_rate}%</p>
+                  <p className="text-xl sm:text-2xl font-bold text-[#111827] mt-1">{stats.success_rate}%</p>
                 </div>
               </div>
               <p className="text-xs text-[#6B7280]">Messages getting responses</p>

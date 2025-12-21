@@ -372,7 +372,7 @@ export default function KnowledgeBasePage() {
   return (
     <div className="flex flex-col h-full min-h-0 bg-white">
       {/* Header */}
-      <div className="border-b border-[#E5E7EB] bg-white px-6 py-6 flex-shrink-0">
+      <div className="border-b border-[#E5E7EB] bg-white px-4 sm:px-6 py-4 sm:py-6 flex-shrink-0">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-h2 text-[#111827] mb-1">Knowledge Base</h1>
@@ -430,7 +430,7 @@ export default function KnowledgeBasePage() {
 
       {/* Success/Error Messages */}
       {(success || error) && (
-        <div className="px-6 py-3 flex-shrink-0">
+        <div className="px-4 sm:px-6 py-3 flex-shrink-0">
           {success && (
             <div className="p-3 rounded-lg bg-white border border-[#3CCB7F]/20">
               <div className="flex items-center gap-2">

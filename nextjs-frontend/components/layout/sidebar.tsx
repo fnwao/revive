@@ -54,7 +54,7 @@ export function Sidebar() {
     : "Loading..."
 
   return (
-    <div className="flex h-full w-64 flex-col border-r border-[#E5E7EB] bg-white flex-shrink-0">
+    <div className="hidden sm:flex h-full w-64 flex-col border-r border-[#E5E7EB] bg-white flex-shrink-0">
       <div className="flex h-14 items-center px-4 border-b border-[#E5E7EB] flex-shrink-0">
         <div className="flex items-center gap-2">
           <AcquiriLogo className="h-6 w-6" />

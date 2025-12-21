@@ -95,21 +95,21 @@ export default function TemplatesPage() {
   const hasActiveFilters = categoryFilter !== "all" || typeFilter !== "all" || searchQuery.length > 0
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8 px-4 sm:px-0">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-3 mb-3">
-            <div className="h-10 w-10 rounded-lg bg-[#4F8CFF]/10 flex items-center justify-center">
-              <FileText className="h-5 w-5 text-[#4F8CFF]" />
+          <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+            <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg bg-[#4F8CFF]/10 flex items-center justify-center flex-shrink-0">
+              <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-[#4F8CFF]" />
             </div>
-            <h1 className="text-2xl font-bold text-[#111827]">Message Templates</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-[#111827]">Message Templates</h1>
           </div>
-          <p className="text-muted-foreground">Create and manage reusable message templates</p>
+          <p className="text-sm sm:text-base text-muted-foreground">Create and manage reusable message templates</p>
         </div>
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-[#4F8CFF] hover:bg-[#6EA0FF]">
+            <Button className="bg-[#4F8CFF] hover:bg-[#6EA0FF] w-full sm:w-auto">
               <Plus className="h-4 w-4 mr-2" />
               Create Template
             </Button>
@@ -127,7 +127,7 @@ export default function TemplatesPage() {
 
       {/* Stats */}
       {!loading && totalTemplates > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           <Card className="p-4 bg-gradient-to-br from-[#4F8CFF]/5 to-transparent border-[#4F8CFF]/20">
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-lg bg-[#4F8CFF]/10 flex items-center justify-center">
@@ -273,7 +273,7 @@ export default function TemplatesPage() {
           </div>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {filteredTemplates.map((template) => (
             <Card 
               key={template.id} 
@@ -501,7 +501,7 @@ function TemplateForm({ template, onSuccess }: { template?: MessageTemplate; onS
             placeholder="Optional description"
           />
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="type">Type *</Label>
             <Select 

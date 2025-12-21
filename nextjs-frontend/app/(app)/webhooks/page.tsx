@@ -298,7 +298,7 @@ export default function WebhooksPage() {
             We're working on native integrations with popular tools. Use webhooks to connect with any service today.
           </p>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {COMING_SOON_INTEGRATIONS.map((integration) => {
             const Icon = integration.icon
             return (
@@ -444,7 +444,7 @@ function WebhookForm({ webhook, onSuccess }: { webhook?: WebhookType; onSuccess:
         </div>
         <div className="space-y-2">
           <Label>Events *</Label>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {WEBHOOK_EVENTS.map((event) => (
               <div key={event.value} className="flex items-center gap-2">
                 <input
@@ -461,7 +461,7 @@ function WebhookForm({ webhook, onSuccess }: { webhook?: WebhookType; onSuccess:
             ))}
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="retry-count">Retry Count</Label>
             <Input

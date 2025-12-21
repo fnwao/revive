@@ -222,17 +222,17 @@ export default function PricingPage() {
 
       {/* Main Content */}
       <div className="flex-1 overflow-y-auto min-h-0">
-        <div className="max-w-6xl mx-auto px-6 py-12">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-12">
           {/* Hero Section */}
-          <div className="text-center mb-12">
-            <div className="inline-flex items-center justify-center gap-2 mb-4 px-4 py-2 rounded-full bg-[#4F8CFF]/10 text-[#4F8CFF] text-sm font-medium">
-              <Sparkles className="h-4 w-4" />
+          <div className="text-center mb-8 sm:mb-12">
+            <div className="inline-flex items-center justify-center gap-2 mb-3 sm:mb-4 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-[#4F8CFF]/10 text-[#4F8CFF] text-xs sm:text-sm font-medium">
+              <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               <span>Simple, transparent pricing</span>
             </div>
-            <h1 className="text-4xl md:text-5xl font-bold text-[#111827] mb-4">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-[#111827] mb-3 sm:mb-4 px-4 sm:px-0">
               Choose Your Plan
             </h1>
-            <p className="text-lg text-[#6B7280] max-w-2xl mx-auto mb-6">
+            <p className="text-sm sm:text-base md:text-lg text-[#6B7280] max-w-2xl mx-auto mb-4 sm:mb-6 px-4 sm:px-0">
               Scale with value recovered, not usage complexity. Start recovering revenue from stalled deals.
             </p>
 
@@ -323,7 +323,7 @@ export default function PricingPage() {
           )}
 
           {/* Pricing Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
             {plans.map((plan, planIndex) => {
               const isCurrent = isCurrentPlan(plan.id)
               const price = getPlanPrice(plan.id, "monthly")
@@ -334,7 +334,7 @@ export default function PricingPage() {
                   key={plan.id}
                   className={cn(
                     "relative flex flex-col transition-all duration-300",
-                    isPopular && "border-[#4F8CFF] border-2 shadow-xl scale-105 md:scale-110",
+                    isPopular && "border-[#4F8CFF] border-2 shadow-xl lg:scale-105",
                     isCurrent && "border-[#3CCB7F] border-2 shadow-lg",
                     !isPopular && !isCurrent && "hover:shadow-md"
                   )}

@@ -475,9 +475,9 @@ export default function RevivalsPage() {
   }, [selectedDeal, approvals])
 
   return (
-    <div className="flex h-full min-h-0">
+    <div className="flex flex-col sm:flex-row h-full min-h-0">
       {/* Left Sidebar - Deal List */}
-      <div className="w-80 border-r bg-background flex flex-col">
+      <div className="w-full sm:w-80 border-r bg-background flex flex-col flex-shrink-0">
         <div className="p-4 border-b">
           <div className="relative mb-3">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
