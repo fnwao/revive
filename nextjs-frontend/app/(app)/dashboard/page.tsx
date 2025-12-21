@@ -20,7 +20,7 @@ import {
   Brain,
   Radio
 } from "lucide-react"
-import { getDashboardStats, getApprovals, approveMessage, rejectMessage, sendMessage, type Approval, hasApiKey, type DashboardStats, getNotifications, markNotificationAsRead, type Notification } from "@/lib/api"
+import { getDashboardStats, getApprovals, approveMessage, rejectMessage, sendMessage, type Approval, hasApiKey, type DashboardStats, getNotifications, markNotificationAsRead, type Notification, detectStalledDeals, type StalledDeal, getSettings, type ReactivationRule } from "@/lib/api"
 import { getUser, getGreeting, getFirstName, type User } from "@/lib/user"
 import { cn } from "@/lib/utils"
 import { showToast } from "@/lib/toast"
@@ -47,6 +47,8 @@ export default function DashboardPage() {
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [recentActivity, setRecentActivity] = useState<Array<{ action: string; time: string; icon: string }>>([])
+  const [stalledDeals, setStalledDeals] = useState<StalledDeal[]>([])
+  const [reactivationRules, setReactivationRules] = useState<ReactivationRule[]>([])
 
   // Set mounted state on client-side
   useEffect(() => {
@@ -91,21 +93,78 @@ export default function DashboardPage() {
   const greeting = mounted ? getGreeting() : "Hello"
   const firstName = user ? getFirstName(user.name) : "there"
 
+  const loadReactivationRules = async () => {
+    try {
+      const settings = await getSettings()
+      if (settings.reactivation_rules && settings.reactivation_rules.length > 0) {
+        setReactivationRules(settings.reactivation_rules)
+        return settings.reactivation_rules
+      }
+    } catch (error) {
+      console.error("Failed to load reactivation rules:", error)
+    }
+    return []
+  }
+
+  const loadStalledDeals = async (rules: ReactivationRule[] = []) => {
+    try {
+      // Use reactivation rules if available, otherwise use default threshold
+      let statusFilter: string[] | undefined = undefined
+      let tagFilter: string[] | undefined = undefined
+      let thresholdDays = 7
+      
+      // If we have enabled reactivation rules, use them
+      const enabledRules = rules.filter(r => r.enabled)
+      if (enabledRules.length > 0) {
+        // Use the first enabled rule (can be enhanced to support multiple rules)
+        const activeRule = enabledRules[0]
+        statusFilter = activeRule.statuses.length > 0 ? activeRule.statuses : undefined
+        tagFilter = activeRule.tags.length > 0 ? activeRule.tags : undefined
+        thresholdDays = activeRule.thresholdDays
+      }
+      
+      const result = await detectStalledDeals(
+        undefined, 
+        undefined, 
+        thresholdDays,
+        statusFilter,
+        tagFilter
+      )
+      setStalledDeals(result.stalled_deals)
+      return result.stalled_deals
+    } catch (error) {
+      console.error("Failed to load stalled deals:", error)
+      setStalledDeals([])
+      return []
+    }
+  }
+
   const loadData = async () => {
     setLoading(true)
     setError(null)
     try {
+      // Load reactivation rules first
+      const rules = await loadReactivationRules()
+      setReactivationRules(rules)
+      
+      // Load stalled deals to get accurate count (pass rules to function)
+      const deals = await loadStalledDeals(rules)
+      
       let statsData: DashboardStats
       let approvalsData: { approvals: Approval[]; total: number; pending: number; approved: number; rejected: number; sent: number }
       
       // getDashboardStats and getApprovals should return mock data if no API key or on error
       try {
         statsData = await getDashboardStats()
+        // Update active_revivals with actual stalled deals count if available
+        if (deals.length > 0) {
+          statsData.active_revivals = deals.length
+        }
       } catch (error) {
         console.error("Failed to load stats:", error)
-        // Fallback to mock stats
+        // Fallback to mock stats, but use actual stalled deals count
         statsData = {
-          active_revivals: 12,
+          active_revivals: deals.length || 12,
           revenue_recovered: 24500,
           success_rate: 68,
           avg_response_time: 2.4,
@@ -132,6 +191,9 @@ export default function DashboardPage() {
       if (approvalsData.pending !== undefined) {
         setStats(prev => ({ ...prev, pending_approvals: approvalsData.pending }))
       }
+      
+      // Update active_revivals with actual stalled deals count
+      setStats(prev => ({ ...prev, active_revivals: deals.length || prev.active_revivals }))
 
       // Load notifications
       try {
@@ -227,7 +289,26 @@ export default function DashboardPage() {
       }, 30000) // Refresh every 30 seconds
       return () => window.clearInterval(interval)
     }
-  }, [autoRefresh]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [autoRefresh, reactivationRules]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Listen for deal detection events from revivals page
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    
+    const handleDealDetection = () => {
+      loadData()
+    }
+    
+    window.addEventListener("triggerDealDetection", handleDealDetection as EventListener)
+    window.addEventListener("dealUpdated", handleDealDetection as EventListener)
+    window.addEventListener("approvalUpdated", handleDealDetection as EventListener)
+    
+    return () => {
+      window.removeEventListener("triggerDealDetection", handleDealDetection as EventListener)
+      window.removeEventListener("dealUpdated", handleDealDetection as EventListener)
+      window.removeEventListener("approvalUpdated", handleDealDetection as EventListener)
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const showSuccess = (message: string) => {
     showToast.success(message)
@@ -255,6 +336,10 @@ export default function DashboardPage() {
       await approveMessage(approvalId)
       showToast.messageApproved()
       showSuccess("Message approved successfully")
+      // Trigger update event for other components
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("approvalUpdated"))
+      }
       await loadData()
     } catch (error) {
       console.error("Failed to approve:", error)
@@ -279,6 +364,10 @@ export default function DashboardPage() {
       await rejectMessage(approvalId)
       showToast.messageRejected()
       showSuccess("Message rejected")
+      // Trigger update event for other components
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("approvalUpdated"))
+      }
       await loadData()
     } catch (error) {
       console.error("Failed to reject:", error)
@@ -303,11 +392,11 @@ export default function DashboardPage() {
       await sendMessage(approvalId)
       showToast.messageSent()
       showSuccess("Message sent successfully!")
-      setStats(prev => ({
-        ...prev,
-        active_revivals: Math.max(0, prev.active_revivals - 1),
-        pending_approvals: Math.max(0, prev.pending_approvals - 1),
-      }))
+      // Trigger update event for other components
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("dealUpdated"))
+        window.dispatchEvent(new Event("approvalUpdated"))
+      }
       await loadData()
     } catch (error) {
       console.error("Failed to send:", error)
