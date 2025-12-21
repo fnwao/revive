@@ -528,7 +528,7 @@ export default function DashboardPage() {
                   </div>
                   {isActive ? (
                     <p className="text-sm text-[#6B7280]">
-                      Monitoring <span className="font-semibold text-[#111827]">{stalledDeals.length > 0 ? stalledDeals.length : stats.active_revivals}</span> {stalledDeals.length === 1 ? 'deal' : 'deals'} and analyzing conversations in real-time
+                      Monitoring <span className="font-semibold text-[#111827]">{stats.active_revivals}</span> {stats.active_revivals === 1 ? 'deal' : 'deals'} and analyzing conversations in real-time
                     </p>
                   ) : (
                     <p className="text-sm text-[#6B7280]">
