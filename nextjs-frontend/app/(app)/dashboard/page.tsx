@@ -442,56 +442,15 @@ export default function DashboardPage() {
                       </div>
                     )}
                   </div>
-                  <div className="space-y-1">
-                    {isActive ? (
-                      <>
-                        <p className="text-sm text-[#6B7280]">
-                          Monitoring <span className="font-semibold text-[#111827]">{stats.active_revivals}</span> deals and analyzing conversations in real-time
-                        </p>
-                        <div className="flex items-center gap-4 text-xs text-[#6B7280] mt-2">
-                          <div className="flex items-center gap-1.5">
-                            <Radio className="h-3 w-3 text-[#3CCB7F]" />
-                            <span>Pipeline monitoring active</span>
-                          </div>
-                          {stats.pending_approvals > 0 && (
-                            <div className="flex items-center gap-1.5">
-                              <MessageSquare className="h-3 w-3 text-[#F6C177]" />
-                              <span>{stats.pending_approvals} message{stats.pending_approvals > 1 ? 's' : ''} ready for review</span>
-                            </div>
-                          )}
-                          {lastRefresh && (
-                            <div className="flex items-center gap-1.5">
-                              <Clock className="h-3 w-3 text-[#4F8CFF]" />
-                              <span>Last checked {Math.floor((Date.now() - lastRefresh.getTime()) / 1000 / 60)}m ago</span>
-                            </div>
-                          )}
-                        </div>
-                        
-                        {/* Recent Activity Feed */}
-                        {recentActivity.length > 0 && (
-                          <div className="mt-4 pt-4 border-t border-[#3CCB7F]/20">
-                            <div className="flex items-center gap-2 mb-2">
-                              <Activity className="h-3.5 w-3.5 text-[#3CCB7F]" />
-                              <span className="text-xs font-semibold text-[#6B7280] uppercase tracking-wide">Recent Activity</span>
-                            </div>
-                            <div className="space-y-2">
-                              {recentActivity.map((item, idx) => (
-                                <div key={idx} className="flex items-center gap-2 text-xs text-[#6B7280]">
-                                  <div className="h-1.5 w-1.5 rounded-full bg-[#3CCB7F] flex-shrink-0" />
-                                  <span className="flex-1">{item.action}</span>
-                                  <span className="text-[#8A90A2]">{item.time}</span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </>
-                    ) : (
-                      <p className="text-sm text-[#6B7280]">
-                        AI monitoring is paused. Start detecting stalled deals to activate.
-                      </p>
-                    )}
-                  </div>
+                  {isActive ? (
+                    <p className="text-sm text-[#6B7280]">
+                      Monitoring <span className="font-semibold text-[#111827]">{stats.active_revivals}</span> deals and analyzing conversations in real-time
+                    </p>
+                  ) : (
+                    <p className="text-sm text-[#6B7280]">
+                      AI monitoring is paused. Start detecting stalled deals to activate.
+                    </p>
+                  )}
                 </div>
 
                 {/* Action Button */}
