@@ -80,7 +80,8 @@ export default function DashboardPage() {
     }
   }, [])
 
-  const greeting = getGreeting()
+  // Calculate greeting and firstName only when user is available (client-side)
+  const greeting = typeof window !== "undefined" ? getGreeting() : "Hello"
   const firstName = user ? getFirstName(user.name) : "there"
 
   const loadData = async () => {
