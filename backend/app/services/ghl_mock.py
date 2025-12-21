@@ -18,7 +18,7 @@ class GHLMockService:
         {
             "id": "deal-001",
             "dealId": "deal-001",
-            "title": "Acme Corp - Enterprise Package",
+            "title": "Sarah Johnson - Real Estate Mastery Program",
             "contactId": "contact-001",
             "pipelineId": "pipeline-001",
             "status": "active",
@@ -28,7 +28,7 @@ class GHLMockService:
         {
             "id": "deal-002",
             "dealId": "deal-002",
-            "title": "TechStart Inc - Starter Package",
+            "title": "Mike Chen - Real Estate Mastery Program",
             "contactId": "contact-002",
             "pipelineId": "pipeline-001",
             "status": "active",
@@ -38,7 +38,7 @@ class GHLMockService:
         {
             "id": "deal-003",
             "dealId": "deal-003",
-            "title": "Global Solutions - Premium Package",
+            "title": "Jennifer Martinez - Real Estate Mastery Program",
             "contactId": "contact-003",
             "pipelineId": "pipeline-001",
             "status": "active",
@@ -48,7 +48,7 @@ class GHLMockService:
         {
             "id": "deal-004",
             "dealId": "deal-004",
-            "title": "SmallBiz LLC - Basic Package",
+            "title": "David Park - Real Estate Mastery Program",
             "contactId": "contact-004",
             "pipelineId": "pipeline-002",
             "status": "active",
@@ -58,7 +58,7 @@ class GHLMockService:
         {
             "id": "deal-005",
             "dealId": "deal-005",
-            "title": "MegaCorp - Enterprise Plus",
+            "title": "Lisa Thompson - Real Estate Mastery Program",
             "contactId": "contact-005",
             "pipelineId": "pipeline-001",
             "status": "active",

@@ -184,7 +184,7 @@ export async function detectStalledDeals(
     const mockDeals: StalledDeal[] = [
       {
         deal_id: "deal-001",
-        title: "Acme Corp - Enterprise Package",
+        title: "Sarah Johnson - Real Estate Mastery Program",
         status: "active",
         value: 5000,
         currency: "USD",
@@ -196,7 +196,7 @@ export async function detectStalledDeals(
       },
       {
         deal_id: "deal-002",
-        title: "TechStart Inc - Starter Package",
+        title: "Mike Chen - Real Estate Mastery Program",
         status: "active",
         value: 2000,
         currency: "USD",
@@ -215,7 +215,7 @@ export async function detectStalledDeals(
       },
       {
         deal_id: "deal-003",
-        title: "Global Solutions - Premium",
+        title: "Jennifer Martinez - Real Estate Mastery Program",
         status: "won",
         value: 10000,
         currency: "USD",
@@ -234,7 +234,7 @@ export async function detectStalledDeals(
       },
       {
         deal_id: "deal-004",
-        title: "InnovateCo - Growth Package",
+        title: "David Park - Real Estate Mastery Program",
         status: "active",
         value: 7500,
         currency: "USD",
@@ -246,7 +246,7 @@ export async function detectStalledDeals(
       },
       {
         deal_id: "deal-005",
-        title: "ScaleUp Ventures - Enterprise",
+        title: "Lisa Thompson - Real Estate Mastery Program",
         status: "active",
         value: 12000,
         currency: "USD",
@@ -265,7 +265,7 @@ export async function detectStalledDeals(
       },
       {
         deal_id: "deal-006",
-        title: "DataFlow Systems - Pro Package",
+        title: "Tom Wilson - Real Estate Mastery Program",
         status: "lost",
         value: 6000,
         currency: "USD",
@@ -277,7 +277,7 @@ export async function detectStalledDeals(
       },
       {
         deal_id: "deal-007",
-        title: "CloudSync Technologies - Enterprise",
+        title: "Rachel Kim - Real Estate Mastery Program",
         status: "active",
         value: 8500,
         currency: "USD",
@@ -289,7 +289,7 @@ export async function detectStalledDeals(
       },
       {
         deal_id: "deal-008",
-        title: "NextGen Solutions - Premium",
+        title: "James Rodriguez - Real Estate Mastery Program",
         status: "active",
         value: 7200,
         currency: "USD",
@@ -301,7 +301,7 @@ export async function detectStalledDeals(
       },
       {
         deal_id: "deal-009",
-        title: "Velocity Partners - Growth Package",
+        title: "Amanda Foster - Real Estate Mastery Program",
         status: "active",
         value: 4500,
         currency: "USD",
@@ -313,7 +313,7 @@ export async function detectStalledDeals(
       },
       {
         deal_id: "deal-010",
-        title: "PrimeTech Industries - Enterprise",
+        title: "Robert Chen - Real Estate Mastery Program",
         status: "active",
         value: 15000,
         currency: "USD",
@@ -332,7 +332,7 @@ export async function detectStalledDeals(
       },
       {
         deal_id: "deal-011",
-        title: "Apex Digital - Starter Package",
+        title: "Chris Anderson - Real Estate Mastery Program",
         status: "active",
         value: 1800,
         currency: "USD",
@@ -344,7 +344,7 @@ export async function detectStalledDeals(
       },
       {
         deal_id: "deal-012",
-        title: "Summit Enterprises - Professional",
+        title: "Patricia Lee - Real Estate Mastery Program",
         status: "active",
         value: 9200,
         currency: "USD",
@@ -356,7 +356,7 @@ export async function detectStalledDeals(
       },
       {
         deal_id: "deal-013",
-        title: "MedTech Solutions - Enterprise",
+        title: "Emily Watson - Real Estate Mastery Program",
         status: "active",
         value: 18000,
         currency: "USD",
@@ -375,7 +375,7 @@ export async function detectStalledDeals(
       },
       {
         deal_id: "deal-014",
-        title: "FinTech Innovations - Premium",
+        title: "Michael Brown - Real Estate Mastery Program",
         status: "active",
         value: 14000,
         currency: "USD",
@@ -387,7 +387,7 @@ export async function detectStalledDeals(
       },
       {
         deal_id: "deal-015",
-        title: "EduTech Academy - Growth Package",
+        title: "Jessica Taylor - Real Estate Mastery Program",
         status: "active",
         value: 6800,
         currency: "USD",
@@ -399,7 +399,7 @@ export async function detectStalledDeals(
       },
       {
         deal_id: "deal-016",
-        title: "RetailMax Corp - Professional",
+        title: "Daniel Kim - Real Estate Mastery Program",
         status: "active",
         value: 11000,
         currency: "USD",
@@ -411,7 +411,7 @@ export async function detectStalledDeals(
       },
       {
         deal_id: "deal-017",
-        title: "GreenEnergy Solutions - Starter Package",
+        title: "Maria Garcia - Real Estate Mastery Program",
         status: "active",
         value: 2200,
         currency: "USD",
@@ -423,7 +423,7 @@ export async function detectStalledDeals(
       },
       {
         deal_id: "deal-018",
-        title: "Logistics Pro - Enterprise",
+        title: "Kevin Nguyen - Real Estate Mastery Program",
         status: "active",
         value: 16000,
         currency: "USD",
@@ -491,7 +491,7 @@ export async function detectStalledDeals(
     const mockDeals: StalledDeal[] = [
       {
         deal_id: "deal-001",
-        title: "Acme Corp - Enterprise Package",
+        title: "Sarah Johnson - Real Estate Mastery Program",
         status: "active",
         value: 5000,
         currency: "USD",
@@ -502,7 +502,7 @@ export async function detectStalledDeals(
       },
       {
         deal_id: "deal-002",
-        title: "TechStart Inc - Starter Package",
+        title: "Mike Chen - Real Estate Mastery Program",
         status: "active",
         value: 2000,
         currency: "USD",
@@ -527,33 +527,134 @@ export async function generateMessage(dealId: string): Promise<{
 }> {
   // Return mock messages based on deal
   if (!hasApiKey()) {
-    const messages: Record<string, string> = {
-      "deal-001": "Hi Sarah! I noticed we haven't connected in a while about the Enterprise Package. I wanted to check in and see if you're still interested in moving forward. We've had some great success with similar companies, and I'd love to show you how this could work for Acme Corp. Are you available for a quick call this week?",
-      "deal-002": "Hey Mike! Hope you're doing well. I saw we started discussing the Starter Package a few weeks back but haven't finalized things yet. I wanted to reach out and see if there are any questions I can answer or if you'd like to revisit the proposal. What works best for you?",
-      "deal-003": "Hi Jennifer! I wanted to follow up on our Premium package discussion. I know timing is everything, and I wanted to make sure we're aligned on next steps. We've added some new features that might be perfect for Global Solutions. Would you be open to a brief conversation?",
-      "deal-004": "Hey David! Quick check-in on the Growth Package. I know you were evaluating options, and I wanted to see where things stand. Happy to answer any questions or adjust the proposal to better fit your needs.",
-      "deal-005": "Hi Lisa! Following up on our Enterprise package discussion. I wanted to see if you've had a chance to review the proposal and if there's anything else I can provide to help with your decision.",
-      "deal-006": "Hi Tom! I noticed we haven't touched base on the Pro Package in a bit. I wanted to reach out and see if you're still considering it or if there's anything I can clarify. Let me know what you think!",
-      "deal-007": "Hi Rachel! I wanted to follow up on our discussion about the Enterprise solution for CloudSync. We covered a lot about multi-cloud support and Kubernetes. Are you ready to move forward?",
-      "deal-008": "Hey James! Quick check-in on the Premium package onboarding discussion. I know you were reviewing the training materials with your team. How's that going?",
-      "deal-009": "Hi Amanda! Following up on the Growth Package pricing discussion. I sent over the scaling guide and pricing sheet. Have you had a chance to review it?",
-      "deal-010": "Hi Robert! I wanted to check in on the custom integrations discussion for PrimeTech. We covered Salesforce, HubSpot, and your ERP. What's the status on your end?",
-      "deal-011": "Hey Chris! How's the trial going? I wanted to check in and see if you have any questions or if you'd like to discuss moving forward with the Starter Package.",
-      "deal-012": "Hi Patricia! Following up on the Professional package API documentation. I know you were reviewing the rate limits and API capabilities. Any questions?",
-      "deal-013": "Hi Dr. Watson! I wanted to follow up on our HIPAA compliance and HL7 integration discussion. We covered a lot in our call. Are you ready to move forward with implementation?",
-      "deal-014": "Hi Michael! Following up on the security review for FinTech Innovations. I know security is critical for you. Have you had a chance to review everything with your team?",
-      "deal-015": "Hi Jessica! Quick check-in on the EduTech Academy Growth Package quote. I sent over pricing based on your 5,000 students. Have you had a chance to review it?",
-      "deal-016": "Hi Daniel! Following up on the Square POS integration demo for RetailMax. The integration looked great! Have you discussed it with your team?",
-      "deal-017": "Hi Maria! Your trial is ending soon. How's everything going? I wanted to check in and see if you'd like to continue with the Starter Package or if you have any questions.",
-      "deal-018": "Hi Kevin! Following up on the FedEx and UPS carrier integration demo for Logistics Pro. The demo went well! Are you ready to move forward?",
+    const messageSequences: Record<string, string[]> = {
+      "deal-001": [
+        "Hey Sarah! 👋",
+        "I noticed we haven't connected in a while about the Real Estate Mastery Program.",
+        "I wanted to check in and see if you're still interested in getting started. I know you were curious about finding deals without a ton of cash upfront - we actually just added a whole new module on creative financing strategies that I think you'd love!",
+        "Want to hop on a quick call this week?"
+      ],
+      "deal-002": [
+        "Hey Mike! Hope you're doing well.",
+        "I saw we started talking about the program a few weeks back but haven't connected since.",
+        "I wanted to reach out and see if you and your wife had a chance to talk about it, or if there are any questions I can answer.",
+        "What works best for you?"
+      ],
+      "deal-003": [
+        "Hi Jennifer! 👋",
+        "I wanted to follow up on our conversation about the program.",
+        "I know you and your husband were thinking it over - I wanted to check in and see if you have any questions.",
+        "We actually just added some new content on managing real estate investing around a full-time job that I think would be perfect for you. Would you be open to a quick chat?"
+      ],
+      "deal-004": [
+        "Hey David!",
+        "Quick check-in on the program.",
+        "I know you were thinking about the payment plan option - I wanted to see where things stand.",
+        "Happy to answer any questions or help you figure out what works best for your situation!"
+      ],
+      "deal-005": [
+        "Hi Lisa!",
+        "Following up on our conversation about scaling your portfolio.",
+        "I wanted to see if you and your husband had a chance to talk about the program, and if there's anything else I can share to help with your decision."
+      ],
+      "deal-006": [
+        "Hey Tom!",
+        "I noticed we haven't connected in a bit.",
+        "I wanted to reach out and see if you're still thinking about the program, or if there's anything I can clarify.",
+        "I know you were feeling overwhelmed with all the info out there - I'd love to show you how we make it simple and step-by-step. Let me know what you think!"
+      ],
+      "deal-007": [
+        "Hey Rachel! Hope you're doing well.",
+        "I wanted to check in and see if you've had a chance to think about the program.",
+        "I know you were worried about fitting it around your nursing schedule - I'd love to show you how other students with demanding jobs make it work.",
+        "Interested in learning more?"
+      ],
+      "deal-008": [
+        "Hi James!",
+        "Quick follow-up on the program.",
+        "I know you were thinking it over and wanted to talk to your wife about it.",
+        "I wanted to make sure we're still in the running! We just added some new content on getting started with a smaller budget that I think would be perfect for you. Would love to show you!"
+      ],
+      "deal-009": [
+        "Hey Amanda!",
+        "I wanted to circle back on the program we discussed.",
+        "I know you're a stay-at-home mom and want to build something for your family - I think this could be perfect for you!",
+        "Are you still interested in exploring this? Happy to jump on a call whenever works for you (nap time, evenings, whatever!)."
+      ],
+      "deal-010": [
+        "Hi Robert!",
+        "Following up on our conversation about building passive income.",
+        "I wanted to see if you've had a chance to think about the program and if there are any questions I can answer.",
+        "I'm here to help you figure out if it's the right fit. What's the best way to move forward?"
+      ],
+      "deal-011": [
+        "Hey Chris!",
+        "Hope all is well.",
+        "I noticed we started talking about the program but haven't connected in a bit.",
+        "I wanted to reach out and see if you're still interested or if there's anything holding you back. Happy to answer any questions!"
+      ],
+      "deal-012": [
+        "Hi Patricia!",
+        "I wanted to follow up on our conversation about the program.",
+        "I know you were evaluating different options, and I wanted to make sure we address any concerns you might have.",
+        "We're here to help make this work for you. What do you think?"
+      ],
+      "deal-013": [
+        "Hi Emily!",
+        "I wanted to follow up on our conversation about the program.",
+        "I know you were thinking it over - I wanted to check in and see if you have any questions.",
+        "Would you be open to a quick chat?"
+      ],
+      "deal-014": [
+        "Hi Michael!",
+        "Following up on our conversation about the program.",
+        "I know you were evaluating different options - I wanted to make sure we're still in the running!",
+        "Would love to show you how this could work for you."
+      ],
+      "deal-015": [
+        "Hi Jessica!",
+        "Quick check-in on the program.",
+        "I sent over some information about how it works for people with busy schedules.",
+        "Have you had a chance to review it?"
+      ],
+      "deal-016": [
+        "Hi Daniel!",
+        "Following up on our conversation.",
+        "I wanted to see if you're still interested in the program or if there are any questions I can answer.",
+        "Let me know what you think!"
+      ],
+      "deal-017": [
+        "Hi Maria!",
+        "Your trial is ending soon. How's everything going?",
+        "I wanted to check in and see if you'd like to continue with the program or if you have any questions."
+      ],
+      "deal-018": [
+        "Hi Kevin!",
+        "Following up on our conversation about the program.",
+        "I wanted to see if you're still interested or if there are any questions I can answer.",
+        "Let me know what you think!"
+      ],
     }
 
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 800))
 
+    const sequence = messageSequences[dealId] || [
+      "Hey! 👋",
+      "I wanted to follow up on our previous conversation about the Real Estate Mastery Program.",
+      "Are you still interested in getting started?"
+    ]
+
+    // Return message sequence
     return {
-      message: messages[dealId] || "Hi! I wanted to follow up on our previous conversation. Are you still interested in moving forward?",
+      message: sequence[0],
       approval_id: `approval-${dealId}-${Date.now()}`,
+      generated_messages: sequence,
+      message_sequence: sequence.map((msg, i) => ({
+        message: msg,
+        order: i + 1,
+        delay_seconds: i === 0 ? 0 : i === 1 ? 30 : i === 2 ? 120 : 300
+      }))
     }
   }
 
