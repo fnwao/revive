@@ -483,11 +483,18 @@ export default function SettingsPage() {
   return (
     <div className="flex flex-col h-full min-h-0 bg-white">
       {/* Header */}
-      <div className="border-b border-[#E5E7EB] bg-white px-6 py-6 flex-shrink-0">
-        <div className="flex items-center justify-between mb-4">
+      <div className="border-b border-[#E5E7EB] bg-white px-4 sm:px-6 py-5 sm:py-6 flex-shrink-0">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4 sm:mb-6">
           <div>
-            <h1 className="text-h2 text-[#111827] mb-1">Settings</h1>
-            <p className="text-body text-[#6B7280]">Manage your account settings and preferences</p>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="h-10 w-10 rounded-lg bg-[#4F8CFF]/10 flex items-center justify-center">
+                <Settings2 className="h-5 w-5 text-[#4F8CFF]" />
+              </div>
+              <div>
+                <h1 className="text-xl sm:text-2xl font-bold text-[#111827]">Settings</h1>
+                <p className="text-xs sm:text-sm text-[#6B7280] mt-0.5">Manage your account settings and preferences</p>
+              </div>
+            </div>
           </div>
         </div>
         
@@ -499,14 +506,22 @@ export default function SettingsPage() {
             placeholder="Search settings... (⌘K)"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
+            className="pl-10 h-10"
           />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6B7280] hover:text-[#111827] transition-colors"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-y-auto p-6 min-h-0">
-        <div className="max-w-2xl mx-auto space-y-4 px-4 sm:px-0">
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6 min-h-0">
+        <div className="max-w-3xl mx-auto space-y-4 sm:space-y-6">
           {filteredSections.length === 0 ? (
             <Card className="p-12 text-center bg-white border-[#E5E7EB]">
               <Search className="mx-auto h-12 w-12 text-[#6B7280] mb-4" />
@@ -527,55 +542,70 @@ export default function SettingsPage() {
           {/* Account Settings */}
           {filteredSections.some(s => s.id === "account") && (
           <Card className={cn(
-            "bg-white border-[#E5E7EB] transition-all",
-            expandedSections.has("account") ? "border-[#4F8CFF]/30 shadow-sm" : ""
+            "bg-white border-[#E5E7EB] transition-all shadow-sm hover:shadow-md",
+            expandedSections.has("account") ? "border-[#4F8CFF]/40 shadow-md" : ""
           )}>
             <button
               onClick={() => toggleSection("account")}
-              className="w-full p-6 flex items-center justify-between hover:bg-[#F9FAFB] transition-colors"
+              className="w-full p-5 sm:p-6 flex items-center justify-between hover:bg-[#F9FAFB] transition-colors rounded-t-lg"
             >
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-lg bg-[#4F8CFF]/10 flex items-center justify-center">
-                  <User className="h-5 w-5 text-[#4F8CFF]" />
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-gradient-to-br from-[#4F8CFF]/10 to-[#4F8CFF]/5 flex items-center justify-center flex-shrink-0">
+                  <User className="h-5 w-5 sm:h-6 sm:w-6 text-[#4F8CFF]" />
                 </div>
                 <div className="text-left">
-                  <CardTitle className="text-base font-semibold text-[#111827]">Account</CardTitle>
-                  <CardDescription className="text-sm text-[#6B7280]">Update your account information</CardDescription>
+                  <CardTitle className="text-base sm:text-lg font-semibold text-[#111827]">Account</CardTitle>
+                  <CardDescription className="text-xs sm:text-sm text-[#6B7280] mt-0.5">Update your account information</CardDescription>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 {savedSection === "account" && (
-                  <CheckCircle2 className="h-5 w-5 text-[#3CCB7F]" />
+                  <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-[#3CCB7F]/10">
+                    <CheckCircle2 className="h-4 w-4 text-[#3CCB7F]" />
+                    <span className="text-xs font-medium text-[#3CCB7F] hidden sm:inline">Saved</span>
+                  </div>
                 )}
-                <Settings2 className={cn(
-                  "h-4 w-4 text-[#6B7280] transition-transform",
+                <ChevronRight className={cn(
+                  "h-5 w-5 text-[#6B7280] transition-transform",
                   expandedSections.has("account") && "rotate-90"
                 )} />
               </div>
             </button>
             
             {expandedSections.has("account") && (
-              <div className="px-4 sm:px-6 pb-4 sm:pb-6 space-y-4 sm:space-y-5 border-t border-[#E5E7EB] pt-4 sm:pt-6">
+              <div className="px-5 sm:px-6 pb-5 sm:pb-6 space-y-5 sm:space-y-6 border-t border-[#E5E7EB] pt-5 sm:pt-6">
                 <div className="space-y-2">
-                <Label htmlFor="email" className="text-[#111827]">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={settings.email}
-                  onChange={(e) => updateSetting("email", e.target.value)}
-                  className={errors.email ? "border-[#E06C75]" : ""}
-                />
-                {errors.email && <p className="text-xs text-[#E06C75]">{errors.email}</p>}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="name" className="text-[#111827]">Name</Label>
-                <Input
-                  id="name"
-                  value={settings.name}
-                  onChange={(e) => updateSetting("name", e.target.value)}
-                />
-              </div>
-              <button
+                  <Label htmlFor="email" className="text-sm font-medium text-[#111827]">Email Address</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={settings.email}
+                    onChange={(e) => updateSetting("email", e.target.value)}
+                    className={cn(
+                      "h-10",
+                      errors.email ? "border-[#E06C75] focus:border-[#E06C75] focus:ring-[#E06C75]/20" : ""
+                    )}
+                    placeholder="your@email.com"
+                  />
+                  {errors.email && (
+                    <div className="flex items-center gap-1.5 text-xs text-[#E06C75]">
+                      <AlertCircle className="h-3.5 w-3.5" />
+                      <span>{errors.email}</span>
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="name" className="text-sm font-medium text-[#111827]">Full Name</Label>
+                  <Input
+                    id="name"
+                    value={settings.name}
+                    onChange={(e) => updateSetting("name", e.target.value)}
+                    className="h-10"
+                    placeholder="John Doe"
+                  />
+                </div>
+                <div className="pt-2">
+                  <button
                 onClick={(e) => {
                   e.preventDefault()
                   e.stopPropagation()
@@ -585,30 +615,30 @@ export default function SettingsPage() {
                 }}
                 disabled={loadingSection === "account"}
                 type="button"
-                className={cn(
-                  "w-full inline-flex items-center justify-center whitespace-nowrap rounded-lg text-sm font-medium h-10 px-4 bg-[#4F8CFF] text-white hover:bg-[#6EA0FF] transition-all duration-150",
-                  savedSection === "account" && "!bg-[#3CCB7F] hover:!bg-[#3CCB7F]/90 !text-white",
-                  loadingSection === "account" && "opacity-50 cursor-not-allowed"
-                )}
-                style={savedSection === "account" ? { backgroundColor: "#3CCB7F", color: "#FFFFFF" } : undefined}
-              >
-                {loadingSection === "account" ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Saving...
-                  </>
-                ) : savedSection === "account" ? (
-                  <>
-                    <Check className="h-4 w-4 mr-2" />
-                    Saved
-                  </>
-                ) : (
-                  <>
-                    <Save className="h-4 w-4 mr-2" />
-                    Save Changes
-                  </>
-                )}
-              </button>
+                    className={cn(
+                      "w-full inline-flex items-center justify-center whitespace-nowrap rounded-lg text-sm font-semibold h-11 px-6 bg-gradient-to-r from-[#4F8CFF] to-[#6EA0FF] text-white hover:from-[#6EA0FF] hover:to-[#4F8CFF] transition-all duration-200 shadow-sm hover:shadow-md",
+                      savedSection === "account" && "!bg-gradient-to-r !from-[#3CCB7F] !to-[#3CCB7F] hover:!from-[#3CCB7F] hover:!to-[#3CCB7F]",
+                      loadingSection === "account" && "opacity-50 cursor-not-allowed"
+                    )}
+                  >
+                    {loadingSection === "account" ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Saving...
+                      </>
+                    ) : savedSection === "account" ? (
+                      <>
+                        <CheckCircle2 className="h-4 w-4 mr-2" />
+                        Saved Successfully
+                      </>
+                    ) : (
+                      <>
+                        <Save className="h-4 w-4 mr-2" />
+                        Save Changes
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             )}
           </Card>
@@ -617,79 +647,83 @@ export default function SettingsPage() {
           {/* API Configuration */}
           {filteredSections.some(s => s.id === "api") && (
           <Card className={cn(
-            "bg-white border-[#E5E7EB] transition-all",
-            expandedSections.has("api") ? "border-[#4F8CFF]/30 shadow-sm" : "",
-            apiKeyStatus === "connected" && "border-[#3CCB7F]/30"
+            "bg-white border-[#E5E7EB] transition-all shadow-sm hover:shadow-md",
+            expandedSections.has("api") ? "border-[#4F8CFF]/40 shadow-md" : "",
+            apiKeyStatus === "connected" && "border-[#3CCB7F]/40"
           )}>
             <button
               onClick={() => toggleSection("api")}
-              className="w-full p-6 flex items-center justify-between hover:bg-[#F9FAFB] transition-colors"
+              className="w-full p-5 sm:p-6 flex items-center justify-between hover:bg-[#F9FAFB] transition-colors rounded-t-lg"
             >
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 sm:gap-4">
                 <div className={cn(
-                  "h-10 w-10 rounded-lg flex items-center justify-center",
-                  apiKeyStatus === "connected" ? "bg-[#3CCB7F]/10" : "bg-[#4F8CFF]/10"
+                  "h-10 w-10 sm:h-12 sm:w-12 rounded-xl flex items-center justify-center flex-shrink-0",
+                  apiKeyStatus === "connected" ? "bg-gradient-to-br from-[#3CCB7F]/10 to-[#3CCB7F]/5" : "bg-gradient-to-br from-[#4F8CFF]/10 to-[#4F8CFF]/5"
                 )}>
                   <Key className={cn(
-                    "h-5 w-5",
+                    "h-5 w-5 sm:h-6 sm:w-6",
                     apiKeyStatus === "connected" ? "text-[#3CCB7F]" : "text-[#4F8CFF]"
                   )} />
                 </div>
                 <div className="text-left">
-                  <div className="flex items-center gap-2">
-                    <CardTitle className="text-base font-semibold text-[#111827]">API Configuration</CardTitle>
+                  <div className="flex flex-wrap items-center gap-2 mb-0.5">
+                    <CardTitle className="text-base sm:text-lg font-semibold text-[#111827]">API Configuration</CardTitle>
                     {apiKeyStatus === "connected" && (
-                      <span className="px-2 py-0.5 rounded-full bg-[#3CCB7F]/10 text-[10px] font-medium text-[#3CCB7F]">
-                        Connected
+                      <span className="px-2 py-0.5 rounded-full bg-[#3CCB7F]/10 text-[10px] font-medium text-[#3CCB7F] border border-[#3CCB7F]/20">
+                        ✓ Connected
                       </span>
                     )}
                     {apiKeyStatus === "saved" && (
-                      <span className="px-2 py-0.5 rounded-full bg-[#6B7280]/10 text-[10px] font-medium text-[#6B7280]">
+                      <span className="px-2 py-0.5 rounded-full bg-[#6B7280]/10 text-[10px] font-medium text-[#6B7280] border border-[#6B7280]/20">
                         Saved
                       </span>
                     )}
                     {apiKeyStatus === "error" && (
-                      <span className="px-2 py-0.5 rounded-full bg-[#E06C75]/10 text-[10px] font-medium text-[#E06C75]">
+                      <span className="px-2 py-0.5 rounded-full bg-[#E06C75]/10 text-[10px] font-medium text-[#E06C75] border border-[#E06C75]/20">
                         Error
                       </span>
                     )}
                   </div>
-                  <CardDescription className="text-sm text-[#6B7280]">Configure your backend API connection</CardDescription>
+                  <CardDescription className="text-xs sm:text-sm text-[#6B7280]">Configure your backend API connection</CardDescription>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 {savedSection === "api" && (
-                  <CheckCircle2 className="h-5 w-5 text-[#3CCB7F]" />
+                  <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-[#3CCB7F]/10">
+                    <CheckCircle2 className="h-4 w-4 text-[#3CCB7F]" />
+                    <span className="text-xs font-medium text-[#3CCB7F] hidden sm:inline">Saved</span>
+                  </div>
                 )}
-                <Settings2 className={cn(
-                  "h-4 w-4 text-[#6B7280] transition-transform",
+                <ChevronRight className={cn(
+                  "h-5 w-5 text-[#6B7280] transition-transform",
                   expandedSections.has("api") && "rotate-90"
                 )} />
               </div>
             </button>
             
             {expandedSections.has("api") && (
-              <div className="px-4 sm:px-6 pb-4 sm:pb-6 space-y-4 sm:space-y-5 border-t border-[#E5E7EB] pt-4 sm:pt-6">
+              <div className="px-5 sm:px-6 pb-5 sm:pb-6 space-y-5 sm:space-y-6 border-t border-[#E5E7EB] pt-5 sm:pt-6">
                 <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Label htmlFor="api-url" className="text-[#111827]">API URL</Label>
-                  <div className="group relative">
-                    <HelpCircle className="h-3.5 w-3.5 text-[#6B7280] cursor-help" />
-                    <div className="absolute left-0 top-6 w-64 p-2 bg-[#111827] text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
-                      The URL where your backend API is running. Default is http://localhost:8000
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="api-url" className="text-sm font-medium text-[#111827]">API URL</Label>
+                    <div className="group relative">
+                      <HelpCircle className="h-4 w-4 text-[#6B7280] cursor-help hover:text-[#4F8CFF] transition-colors" />
+                      <div className="absolute left-0 top-6 w-64 p-3 bg-[#111827] text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10 shadow-lg">
+                        The URL where your backend API is running. Default is http://localhost:8000
+                      </div>
                     </div>
                   </div>
+                  <Input
+                    id="api-url"
+                    value={settings.apiUrl}
+                    onChange={(e) => updateSetting("apiUrl", e.target.value)}
+                    placeholder="http://localhost:8000"
+                    className="h-10 font-mono text-sm"
+                  />
+                  <p className="text-xs text-[#6B7280]">Backend API endpoint URL</p>
                 </div>
-                <Input
-                  id="api-url"
-                  value={settings.apiUrl}
-                  onChange={(e) => updateSetting("apiUrl", e.target.value)}
-                  placeholder="http://localhost:8000"
-                />
-                <p className="text-xs text-[#6B7280]">Backend API endpoint URL</p>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="api-key" className="text-[#111827]">API Key</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="api-key" className="text-sm font-medium text-[#111827]">API Key</Label>
                 <div className="flex gap-2">
                   <div className="relative flex-1">
                     <Input
@@ -750,59 +784,59 @@ export default function SettingsPage() {
                   </div>
                 )}
               </div>
-              <div className="flex gap-2">
-                <Button
-                  onClick={(e) => {
-                    e.preventDefault()
-                    e.stopPropagation()
-                    console.log("🖱️ API button clicked")
-                    saveSection("api")
-                  }}
-                  disabled={loadingSection === "api"}
-                  type="button"
-                  className={cn(
-                    "w-full",
-                    savedSection === "api" && "!bg-[#3CCB7F] hover:!bg-[#3CCB7F]/90 !text-white"
-                  )}
-                  style={savedSection === "api" ? { backgroundColor: "#3CCB7F", color: "#FFFFFF" } : undefined}
-                >
-                  {loadingSection === "api" ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Saving...
-                    </>
-                  ) : savedSection === "api" ? (
-                    <>
-                      <Check className="h-4 w-4 mr-2" />
-                      Saved
-                    </>
-                  ) : (
-                    <>
-                      <Save className="h-4 w-4 mr-2" />
-                      Save API Key
-                    </>
-                  )}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleTestConnection}
-                  disabled={loadingSection === "api" || apiKeyStatus === "testing" || !hasApiKey()}
-                  className="flex-1"
-                >
-                  {apiKeyStatus === "testing" ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Testing...
-                    </>
-                  ) : (
-                    <>
-                      <ExternalLink className="h-4 w-4 mr-2" />
-                      Test Connection
-                    </>
-                  )}
-                </Button>
-              </div>
+                <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                  <Button
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      saveSection("api")
+                    }}
+                    disabled={loadingSection === "api"}
+                    type="button"
+                    className={cn(
+                      "w-full sm:flex-1 h-11 font-semibold",
+                      savedSection === "api" 
+                        ? "bg-gradient-to-r from-[#3CCB7F] to-[#3CCB7F] hover:from-[#3CCB7F] hover:to-[#3CCB7F] text-white shadow-sm hover:shadow-md" 
+                        : "bg-gradient-to-r from-[#4F8CFF] to-[#6EA0FF] hover:from-[#6EA0FF] hover:to-[#4F8CFF] text-white shadow-sm hover:shadow-md"
+                    )}
+                  >
+                    {loadingSection === "api" ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Saving...
+                      </>
+                    ) : savedSection === "api" ? (
+                      <>
+                        <CheckCircle2 className="h-4 w-4 mr-2" />
+                        Saved Successfully
+                      </>
+                    ) : (
+                      <>
+                        <Save className="h-4 w-4 mr-2" />
+                        Save API Key
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleTestConnection}
+                    disabled={loadingSection === "api" || apiKeyStatus === "testing" || !hasApiKey()}
+                    className="w-full sm:flex-1 h-11 border-2 hover:bg-[#F9FAFB]"
+                  >
+                    {apiKeyStatus === "testing" ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Testing...
+                      </>
+                    ) : (
+                      <>
+                        <ExternalLink className="h-4 w-4 mr-2" />
+                        Test Connection
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
             )}
           </Card>
@@ -811,49 +845,54 @@ export default function SettingsPage() {
           {/* GoHighLevel Integration */}
           {filteredSections.some(s => s.id === "ghl") && (
           <Card className={cn(
-            "bg-white border-[#E5E7EB] transition-all",
-            expandedSections.has("ghl") ? "border-[#4F8CFF]/30 shadow-sm" : "",
-            settings.ghlConnected && "border-[#3CCB7F]/30"
+            "bg-white border-[#E5E7EB] transition-all shadow-sm hover:shadow-md",
+            expandedSections.has("ghl") ? "border-[#4F8CFF]/40 shadow-md" : "",
+            settings.ghlConnected && "border-[#3CCB7F]/40"
           )}>
             <button
               onClick={() => toggleSection("ghl")}
-              className="w-full p-6 flex items-center justify-between hover:bg-[#F9FAFB] transition-colors"
+              className="w-full p-5 sm:p-6 flex items-center justify-between hover:bg-[#F9FAFB] transition-colors rounded-t-lg"
             >
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 sm:gap-4">
                 <div className={cn(
-                  "h-10 w-10 rounded-lg flex items-center justify-center",
-                  settings.ghlConnected ? "bg-[#3CCB7F]/10" : "bg-[#4F8CFF]/10"
+                  "h-10 w-10 sm:h-12 sm:w-12 rounded-xl flex items-center justify-center flex-shrink-0",
+                  settings.ghlConnected 
+                    ? "bg-gradient-to-br from-[#3CCB7F]/10 to-[#3CCB7F]/5" 
+                    : "bg-gradient-to-br from-[#4F8CFF]/10 to-[#4F8CFF]/5"
                 )}>
                   <Building2 className={cn(
-                    "h-5 w-5",
+                    "h-5 w-5 sm:h-6 sm:w-6",
                     settings.ghlConnected ? "text-[#3CCB7F]" : "text-[#4F8CFF]"
                   )} />
                 </div>
                 <div className="text-left">
-                  <div className="flex items-center gap-2">
-                    <CardTitle className="text-base font-semibold text-[#111827]">GoHighLevel Integration</CardTitle>
+                  <div className="flex flex-wrap items-center gap-2 mb-0.5">
+                    <CardTitle className="text-base sm:text-lg font-semibold text-[#111827]">GoHighLevel Integration</CardTitle>
                     {settings.ghlConnected && (
-                      <span className="px-2 py-0.5 rounded-full bg-[#3CCB7F]/10 text-[10px] font-medium text-[#3CCB7F]">
-                        Connected
+                      <span className="px-2 py-0.5 rounded-full bg-[#3CCB7F]/10 text-[10px] font-medium text-[#3CCB7F] border border-[#3CCB7F]/20">
+                        ✓ Connected
                       </span>
                     )}
                   </div>
-                  <CardDescription className="text-sm text-[#6B7280]">Connect your GoHighLevel account</CardDescription>
+                  <CardDescription className="text-xs sm:text-sm text-[#6B7280]">Connect your GoHighLevel account</CardDescription>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 {savedSection === "ghl" && (
-                  <CheckCircle2 className="h-5 w-5 text-[#3CCB7F]" />
+                  <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-[#3CCB7F]/10">
+                    <CheckCircle2 className="h-4 w-4 text-[#3CCB7F]" />
+                    <span className="text-xs font-medium text-[#3CCB7F] hidden sm:inline">Saved</span>
+                  </div>
                 )}
-                <Settings2 className={cn(
-                  "h-4 w-4 text-[#6B7280] transition-transform",
+                <ChevronRight className={cn(
+                  "h-5 w-5 text-[#6B7280] transition-transform",
                   expandedSections.has("ghl") && "rotate-90"
                 )} />
               </div>
             </button>
             
             {expandedSections.has("ghl") && (
-              <div className="px-4 sm:px-6 pb-4 sm:pb-6 space-y-4 sm:space-y-5 border-t border-[#E5E7EB] pt-4 sm:pt-6">
+              <div className="px-5 sm:px-6 pb-5 sm:pb-6 space-y-5 sm:space-y-6 border-t border-[#E5E7EB] pt-5 sm:pt-6">
                 {settings.ghlConnected ? (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between p-4 bg-white border border-[#E5E7EB] rounded-lg">
@@ -929,35 +968,38 @@ export default function SettingsPage() {
           {/* Revival Settings */}
           {filteredSections.some(s => s.id === "revival") && (
           <Card className={cn(
-            "bg-white border-[#E5E7EB] transition-all",
-            expandedSections.has("revival") ? "border-[#4F8CFF]/30 shadow-sm" : ""
+            "bg-white border-[#E5E7EB] transition-all shadow-sm hover:shadow-md",
+            expandedSections.has("revival") ? "border-[#4F8CFF]/40 shadow-md" : ""
           )}>
             <button
               onClick={() => toggleSection("revival")}
-              className="w-full p-6 flex items-center justify-between hover:bg-[#F9FAFB] transition-colors"
+              className="w-full p-5 sm:p-6 flex items-center justify-between hover:bg-[#F9FAFB] transition-colors rounded-t-lg"
             >
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-lg bg-[#4F8CFF]/10 flex items-center justify-center">
-                  <Zap className="h-5 w-5 text-[#4F8CFF]" />
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-gradient-to-br from-[#4F8CFF]/10 to-[#4F8CFF]/5 flex items-center justify-center flex-shrink-0">
+                  <Zap className="h-5 w-5 sm:h-6 sm:w-6 text-[#4F8CFF]" />
                 </div>
                 <div className="text-left">
-                  <CardTitle className="text-base font-semibold text-[#111827]">Revival Settings</CardTitle>
-                  <CardDescription className="text-sm text-[#6B7280]">Configure how Revive.ai detects and handles stalled deals</CardDescription>
+                  <CardTitle className="text-base sm:text-lg font-semibold text-[#111827]">Revival Settings</CardTitle>
+                  <CardDescription className="text-xs sm:text-sm text-[#6B7280] mt-0.5">Configure how Revive.ai detects and handles stalled deals</CardDescription>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 {savedSection === "revival" && (
-                  <CheckCircle2 className="h-5 w-5 text-[#3CCB7F]" />
+                  <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-[#3CCB7F]/10">
+                    <CheckCircle2 className="h-4 w-4 text-[#3CCB7F]" />
+                    <span className="text-xs font-medium text-[#3CCB7F] hidden sm:inline">Saved</span>
+                  </div>
                 )}
-                <Settings2 className={cn(
-                  "h-4 w-4 text-[#6B7280] transition-transform",
+                <ChevronRight className={cn(
+                  "h-5 w-5 text-[#6B7280] transition-transform",
                   expandedSections.has("revival") && "rotate-90"
                 )} />
               </div>
             </button>
             
             {expandedSections.has("revival") && (
-              <div className="px-6 pb-6 space-y-6 border-t border-[#E5E7EB] pt-6">
+              <div className="px-5 sm:px-6 pb-5 sm:pb-6 space-y-5 sm:space-y-6 border-t border-[#E5E7EB] pt-5 sm:pt-6">
                 <div className="flex items-center justify-between py-2">
                 <div className="space-y-0.5 flex-1">
                   <Label className="text-[#111827]">Auto-Detect Stalled Deals</Label>
@@ -1632,38 +1674,40 @@ export default function SettingsPage() {
                 )}
               </div>
               
-              <Button
-                onClick={(e) => {
-                  e.preventDefault()
-                  e.stopPropagation()
-                  console.log("🖱️ Revival button clicked")
-                  saveSection("revival")
-                }}
-                disabled={loadingSection === "revival"}
-                type="button"
-                className={cn(
-                  "w-full",
-                  savedSection === "revival" && "!bg-[#3CCB7F] hover:!bg-[#3CCB7F]/90 !text-white"
-                )}
-                style={savedSection === "revival" ? { backgroundColor: "#3CCB7F", color: "#FFFFFF" } : undefined}
-              >
-                {loadingSection === "revival" ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Saving...
-                  </>
-                ) : savedSection === "revival" ? (
-                  <>
-                    <Check className="h-4 w-4 mr-2" />
-                    Saved
-                  </>
-                ) : (
-                  <>
-                    <Save className="h-4 w-4 mr-2" />
-                    Save Revival Settings
-                  </>
-                )}
-              </Button>
+              <div className="pt-2">
+                <Button
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    saveSection("revival")
+                  }}
+                  disabled={loadingSection === "revival"}
+                  type="button"
+                  className={cn(
+                    "w-full h-11 font-semibold",
+                    savedSection === "revival" 
+                      ? "bg-gradient-to-r from-[#3CCB7F] to-[#3CCB7F] hover:from-[#3CCB7F] hover:to-[#3CCB7F] text-white shadow-sm hover:shadow-md" 
+                      : "bg-gradient-to-r from-[#4F8CFF] to-[#6EA0FF] hover:from-[#6EA0FF] hover:to-[#4F8CFF] text-white shadow-sm hover:shadow-md"
+                  )}
+                >
+                  {loadingSection === "revival" ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Saving...
+                    </>
+                  ) : savedSection === "revival" ? (
+                    <>
+                      <CheckCircle2 className="h-4 w-4 mr-2" />
+                      Saved Successfully
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4 mr-2" />
+                      Save Revival Settings
+                    </>
+                  )}
+                </Button>
+              </div>
               </div>
             )}
           </Card>
@@ -1672,35 +1716,38 @@ export default function SettingsPage() {
           {/* Notifications */}
           {filteredSections.some(s => s.id === "notifications") && (
           <Card className={cn(
-            "bg-white border-[#E5E7EB] transition-all",
-            expandedSections.has("notifications") ? "border-[#4F8CFF]/30 shadow-sm" : ""
+            "bg-white border-[#E5E7EB] transition-all shadow-sm hover:shadow-md",
+            expandedSections.has("notifications") ? "border-[#4F8CFF]/40 shadow-md" : ""
           )}>
             <button
               onClick={() => toggleSection("notifications")}
-              className="w-full p-6 flex items-center justify-between hover:bg-[#F9FAFB] transition-colors"
+              className="w-full p-5 sm:p-6 flex items-center justify-between hover:bg-[#F9FAFB] transition-colors rounded-t-lg"
             >
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-lg bg-[#4F8CFF]/10 flex items-center justify-center">
-                  <Bell className="h-5 w-5 text-[#4F8CFF]" />
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-gradient-to-br from-[#4F8CFF]/10 to-[#4F8CFF]/5 flex items-center justify-center flex-shrink-0">
+                  <Bell className="h-5 w-5 sm:h-6 sm:w-6 text-[#4F8CFF]" />
                 </div>
                 <div className="text-left">
-                  <CardTitle className="text-base font-semibold text-[#111827]">Notifications</CardTitle>
-                  <CardDescription className="text-sm text-[#6B7280]">Configure how you receive notifications</CardDescription>
+                  <CardTitle className="text-base sm:text-lg font-semibold text-[#111827]">Notifications</CardTitle>
+                  <CardDescription className="text-xs sm:text-sm text-[#6B7280] mt-0.5">Configure how you receive notifications</CardDescription>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 {savedSection === "notifications" && (
-                  <CheckCircle2 className="h-5 w-5 text-[#3CCB7F]" />
+                  <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-[#3CCB7F]/10">
+                    <CheckCircle2 className="h-4 w-4 text-[#3CCB7F]" />
+                    <span className="text-xs font-medium text-[#3CCB7F] hidden sm:inline">Saved</span>
+                  </div>
                 )}
-                <Settings2 className={cn(
-                  "h-4 w-4 text-[#6B7280] transition-transform",
+                <ChevronRight className={cn(
+                  "h-5 w-5 text-[#6B7280] transition-transform",
                   expandedSections.has("notifications") && "rotate-90"
                 )} />
               </div>
             </button>
             
             {expandedSections.has("notifications") && (
-              <div className="px-6 pb-6 space-y-6 border-t border-[#E5E7EB] pt-6">
+              <div className="px-5 sm:px-6 pb-5 sm:pb-6 space-y-5 sm:space-y-6 border-t border-[#E5E7EB] pt-5 sm:pt-6">
                 <div className="flex items-center justify-between py-2">
                 <div className="space-y-0.5 flex-1">
                   <Label className="text-[#111827]">Email Notifications</Label>
@@ -1756,38 +1803,40 @@ export default function SettingsPage() {
                   }}
                 />
               </div>
-              <Button
-                onClick={(e) => {
-                  e.preventDefault()
-                  e.stopPropagation()
-                  console.log("🖱️ Notifications button clicked")
-                  saveSection("notifications")
-                }}
-                disabled={loadingSection === "notifications"}
-                type="button"
-                className={cn(
-                  "w-full",
-                  savedSection === "notifications" && "!bg-[#3CCB7F] hover:!bg-[#3CCB7F]/90 !text-white"
-                )}
-                style={savedSection === "notifications" ? { backgroundColor: "#3CCB7F", color: "#FFFFFF" } : undefined}
-              >
-                {loadingSection === "notifications" ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Saving...
-                  </>
-                ) : savedSection === "notifications" ? (
-                  <>
-                    <Check className="h-4 w-4 mr-2" />
-                    Saved
-                  </>
-                ) : (
-                  <>
-                    <Save className="h-4 w-4 mr-2" />
-                    Save Notification Settings
-                  </>
-                )}
-              </Button>
+              <div className="pt-2">
+                <Button
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    saveSection("notifications")
+                  }}
+                  disabled={loadingSection === "notifications"}
+                  type="button"
+                  className={cn(
+                    "w-full h-11 font-semibold",
+                    savedSection === "notifications" 
+                      ? "bg-gradient-to-r from-[#3CCB7F] to-[#3CCB7F] hover:from-[#3CCB7F] hover:to-[#3CCB7F] text-white shadow-sm hover:shadow-md" 
+                      : "bg-gradient-to-r from-[#4F8CFF] to-[#6EA0FF] hover:from-[#6EA0FF] hover:to-[#4F8CFF] text-white shadow-sm hover:shadow-md"
+                  )}
+                >
+                  {loadingSection === "notifications" ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Saving...
+                    </>
+                  ) : savedSection === "notifications" ? (
+                    <>
+                      <CheckCircle2 className="h-4 w-4 mr-2" />
+                      Saved Successfully
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4 mr-2" />
+                      Save Notification Settings
+                    </>
+                  )}
+                </Button>
+              </div>
               </div>
             )}
           </Card>
@@ -1796,30 +1845,30 @@ export default function SettingsPage() {
           {/* Webhooks Section */}
           {filteredSections.some(s => s.id === "webhooks") && (
           <Card className={cn(
-            "bg-white border-[#E5E7EB] transition-all",
-            expandedSections.has("webhooks") ? "border-[#4F8CFF]/30 shadow-sm" : ""
+            "bg-white border-[#E5E7EB] transition-all shadow-sm hover:shadow-md",
+            expandedSections.has("webhooks") ? "border-[#4F8CFF]/40 shadow-md" : ""
           )}>
             <button
               onClick={() => toggleSection("webhooks")}
-              className="w-full p-6 flex items-center justify-between hover:bg-[#F9FAFB] transition-colors"
+              className="w-full p-5 sm:p-6 flex items-center justify-between hover:bg-[#F9FAFB] transition-colors rounded-t-lg"
             >
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-lg bg-[#4F8CFF]/10 flex items-center justify-center">
-                  <WebhookIcon className="h-5 w-5 text-[#4F8CFF]" />
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-gradient-to-br from-[#4F8CFF]/10 to-[#4F8CFF]/5 flex items-center justify-center flex-shrink-0">
+                  <WebhookIcon className="h-5 w-5 sm:h-6 sm:w-6 text-[#4F8CFF]" />
                 </div>
                 <div className="text-left">
-                  <CardTitle className="text-base font-semibold text-[#111827]">Webhooks</CardTitle>
-                  <CardDescription className="text-sm text-[#6B7280]">Configure webhooks for integrations</CardDescription>
+                  <CardTitle className="text-base sm:text-lg font-semibold text-[#111827]">Webhooks</CardTitle>
+                  <CardDescription className="text-xs sm:text-sm text-[#6B7280] mt-0.5">Configure webhooks for integrations</CardDescription>
                 </div>
               </div>
-              <Settings2 className={cn(
-                "h-4 w-4 text-[#6B7280] transition-transform",
+              <ChevronRight className={cn(
+                "h-5 w-5 text-[#6B7280] transition-transform",
                 expandedSections.has("webhooks") && "rotate-90"
               )} />
             </button>
             
             {expandedSections.has("webhooks") && (
-              <div className="px-6 pb-6 space-y-4 border-t border-[#E5E7EB] pt-6">
+              <div className="px-5 sm:px-6 pb-5 sm:pb-6 space-y-4 sm:space-y-5 border-t border-[#E5E7EB] pt-5 sm:pt-6">
                 <p className="text-sm text-[#6B7280]">
                   Manage webhooks to receive real-time events from Revive.ai. Visit the <Link href="/webhooks" className="text-[#4F8CFF] hover:underline">Webhooks page</Link> for full configuration.
                 </p>
@@ -1861,30 +1910,30 @@ export default function SettingsPage() {
           {/* Teams Section */}
           {filteredSections.some(s => s.id === "teams") && (
           <Card className={cn(
-            "bg-white border-[#E5E7EB] transition-all",
-            expandedSections.has("teams") ? "border-[#4F8CFF]/30 shadow-sm" : ""
+            "bg-white border-[#E5E7EB] transition-all shadow-sm hover:shadow-md",
+            expandedSections.has("teams") ? "border-[#4F8CFF]/40 shadow-md" : ""
           )}>
             <button
               onClick={() => toggleSection("teams")}
-              className="w-full p-6 flex items-center justify-between hover:bg-[#F9FAFB] transition-colors"
+              className="w-full p-5 sm:p-6 flex items-center justify-between hover:bg-[#F9FAFB] transition-colors rounded-t-lg"
             >
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-lg bg-[#4F8CFF]/10 flex items-center justify-center">
-                  <Users className="h-5 w-5 text-[#4F8CFF]" />
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-gradient-to-br from-[#4F8CFF]/10 to-[#4F8CFF]/5 flex items-center justify-center flex-shrink-0">
+                  <Users className="h-5 w-5 sm:h-6 sm:w-6 text-[#4F8CFF]" />
                 </div>
                 <div className="text-left">
-                  <CardTitle className="text-base font-semibold text-[#111827]">Teams</CardTitle>
-                  <CardDescription className="text-sm text-[#6B7280]">Manage team members and permissions</CardDescription>
+                  <CardTitle className="text-base sm:text-lg font-semibold text-[#111827]">Teams</CardTitle>
+                  <CardDescription className="text-xs sm:text-sm text-[#6B7280] mt-0.5">Manage team members and permissions</CardDescription>
                 </div>
               </div>
-              <Settings2 className={cn(
-                "h-4 w-4 text-[#6B7280] transition-transform",
+              <ChevronRight className={cn(
+                "h-5 w-5 text-[#6B7280] transition-transform",
                 expandedSections.has("teams") && "rotate-90"
               )} />
             </button>
             
             {expandedSections.has("teams") && (
-              <div className="px-6 pb-6 space-y-4 border-t border-[#E5E7EB] pt-6">
+              <div className="px-5 sm:px-6 pb-5 sm:pb-6 space-y-4 sm:space-y-5 border-t border-[#E5E7EB] pt-5 sm:pt-6">
                 <p className="text-sm text-[#6B7280]">
                   Manage your teams and collaborate with others. Visit the <Link href="/teams" className="text-[#4F8CFF] hover:underline">Teams page</Link> for full management.
                 </p>
@@ -1927,30 +1976,30 @@ export default function SettingsPage() {
           {/* Billing */}
           {filteredSections.some(s => s.id === "billing") && (
           <Card className={cn(
-            "bg-white border-[#E5E7EB] transition-all",
-            expandedSections.has("billing") ? "border-[#4F8CFF]/30 shadow-sm" : ""
+            "bg-white border-[#E5E7EB] transition-all shadow-sm hover:shadow-md",
+            expandedSections.has("billing") ? "border-[#4F8CFF]/40 shadow-md" : ""
           )}>
             <button
               onClick={() => toggleSection("billing")}
-              className="w-full p-6 flex items-center justify-between hover:bg-[#F9FAFB] transition-colors"
+              className="w-full p-5 sm:p-6 flex items-center justify-between hover:bg-[#F9FAFB] transition-colors rounded-t-lg"
             >
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-lg bg-[#4F8CFF]/10 flex items-center justify-center">
-                  <CreditCard className="h-5 w-5 text-[#4F8CFF]" />
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-gradient-to-br from-[#4F8CFF]/10 to-[#4F8CFF]/5 flex items-center justify-center flex-shrink-0">
+                  <CreditCard className="h-5 w-5 sm:h-6 sm:w-6 text-[#4F8CFF]" />
                 </div>
                 <div className="text-left">
-                  <CardTitle className="text-base font-semibold text-[#111827]">Billing</CardTitle>
-                  <CardDescription className="text-sm text-[#6B7280]">Manage your subscription and billing</CardDescription>
+                  <CardTitle className="text-base sm:text-lg font-semibold text-[#111827]">Billing</CardTitle>
+                  <CardDescription className="text-xs sm:text-sm text-[#6B7280] mt-0.5">Manage your subscription and billing</CardDescription>
                 </div>
               </div>
-              <Settings2 className={cn(
-                "h-4 w-4 text-[#6B7280] transition-transform",
+              <ChevronRight className={cn(
+                "h-5 w-5 text-[#6B7280] transition-transform",
                 expandedSections.has("billing") && "rotate-90"
               )} />
             </button>
             
             {expandedSections.has("billing") && (
-              <div className="px-6 pb-6 space-y-4 border-t border-[#E5E7EB] pt-6">
+              <div className="px-5 sm:px-6 pb-5 sm:pb-6 space-y-4 sm:space-y-5 border-t border-[#E5E7EB] pt-5 sm:pt-6">
                 <div className="flex items-center justify-between p-4 bg-white border border-[#E5E7EB] rounded-lg">
                 <div>
                   <p className="text-sm font-medium text-[#111827] capitalize">{subscription?.plan || "pro"} Plan</p>
