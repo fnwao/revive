@@ -465,7 +465,20 @@ Generate a short SMS message (max {max_length} characters) that:
                 
                 message = response.choices[0].message.content.strip()
                 
-                # Ensure message is within max length
+                # Handle long messages: split or add line breaks
+                if len(message) > max_length * 2:  # If message is more than 2x max_length, split it
+                    logger.info(f"Message is very long ({len(message)} chars), splitting into multiple messages")
+                    split_messages = self._split_long_message(message, max_length)
+                    if split_messages:
+                        logger.info(f"Split into {len(split_messages)} messages")
+                        return split_messages
+                
+                # If message is moderately long (> max_length but < 2x max_length), add line breaks
+                if len(message) > max_length:
+                    logger.info(f"Message is long ({len(message)} chars), adding line breaks for readability")
+                    message = self._add_line_breaks(message, max_length)
+                
+                # Final check: ensure message is within max length (after line breaks)
                 if len(message) > max_length:
                     logger.warning(f"Generated message ({len(message)} chars) exceeds max length ({max_length})")
                     message = message[:max_length-3] + "..."
@@ -656,6 +669,196 @@ Respond in JSON format:
             "last_interaction_tone": sentiment,
             "specific_details": []
         }
+    
+    def _split_long_message(self, message: str, max_length: int) -> List[str]:
+        """
+        Split a long message into multiple shorter messages at natural break points.
+        
+        Args:
+            message: The long message to split
+            max_length: Maximum length per message
+        
+        Returns:
+            List of split messages, or empty list if splitting fails
+        """
+        import re
+        
+        # Try to split at sentence boundaries first
+        sentences = re.split(r'([.!?]\s+)', message)
+        
+        # Reconstruct sentences (split includes delimiters)
+        reconstructed = []
+        for i in range(0, len(sentences), 2):
+            if i + 1 < len(sentences):
+                reconstructed.append(sentences[i] + sentences[i + 1])
+            else:
+                reconstructed.append(sentences[i])
+        
+        messages = []
+        current_message = ""
+        
+        for sentence in reconstructed:
+            sentence = sentence.strip()
+            if not sentence:
+                continue
+            
+            # If adding this sentence would exceed max_length, start a new message
+            if current_message and len(current_message) + len(sentence) + 1 > max_length:
+                if current_message:
+                    messages.append(current_message.strip())
+                current_message = sentence
+            else:
+                if current_message:
+                    current_message += " " + sentence
+                else:
+                    current_message = sentence
+        
+        # Add the last message
+        if current_message:
+            messages.append(current_message.strip())
+        
+        # If we couldn't split at sentences, try splitting at commas
+        if len(messages) == 1 and len(messages[0]) > max_length:
+            messages = []
+            parts = re.split(r'(,\s+)', message)
+            reconstructed = []
+            for i in range(0, len(parts), 2):
+                if i + 1 < len(parts):
+                    reconstructed.append(parts[i] + parts[i + 1])
+                else:
+                    reconstructed.append(parts[i])
+            
+            current_message = ""
+            for part in reconstructed:
+                part = part.strip()
+                if not part:
+                    continue
+                
+                if current_message and len(current_message) + len(part) + 1 > max_length:
+                    if current_message:
+                        messages.append(current_message.strip())
+                    current_message = part
+                else:
+                    if current_message:
+                        current_message += " " + part
+                    else:
+                        current_message = part
+            
+            if current_message:
+                messages.append(current_message.strip())
+        
+        # If still too long, split at word boundaries
+        if len(messages) == 1 and len(messages[0]) > max_length:
+            messages = []
+            words = message.split()
+            current_message = ""
+            
+            for word in words:
+                if current_message and len(current_message) + len(word) + 1 > max_length:
+                    if current_message:
+                        messages.append(current_message.strip())
+                    current_message = word
+                else:
+                    if current_message:
+                        current_message += " " + word
+                    else:
+                        current_message = word
+            
+            if current_message:
+                messages.append(current_message.strip())
+        
+        # Ensure all messages are within max_length
+        final_messages = []
+        for msg in messages:
+            if len(msg) > max_length:
+                # Truncate if still too long
+                msg = msg[:max_length-3] + "..."
+            if len(msg) >= 20:  # Minimum reasonable length
+                final_messages.append(msg)
+        
+        return final_messages if len(final_messages) >= 2 else []
+    
+    def _add_line_breaks(self, message: str, max_length: int) -> str:
+        """
+        Add line breaks to a long message at natural points for better readability.
+        
+        Args:
+            message: The message to add line breaks to
+            max_length: Target line length
+        
+        Returns:
+            Message with line breaks added
+        """
+        import re
+        
+        # If message already has line breaks, return as-is
+        if '\n' in message:
+            return message
+        
+        # Try to add line breaks at sentence boundaries
+        sentences = re.split(r'([.!?]\s+)', message)
+        reconstructed = []
+        for i in range(0, len(sentences), 2):
+            if i + 1 < len(sentences):
+                reconstructed.append(sentences[i] + sentences[i + 1])
+            else:
+                reconstructed.append(sentences[i])
+        
+        lines = []
+        current_line = ""
+        
+        for sentence in reconstructed:
+            sentence = sentence.strip()
+            if not sentence:
+                continue
+            
+            # If adding this sentence would exceed target length, start a new line
+            if current_line and len(current_line) + len(sentence) + 1 > max_length:
+                if current_line:
+                    lines.append(current_line.strip())
+                current_line = sentence
+            else:
+                if current_line:
+                    current_line += " " + sentence
+                else:
+                    current_line = sentence
+        
+        # Add the last line
+        if current_line:
+            lines.append(current_line.strip())
+        
+        # If we only have one line, try splitting at commas
+        if len(lines) == 1 and len(lines[0]) > max_length:
+            parts = re.split(r'(,\s+)', message)
+            reconstructed = []
+            for i in range(0, len(parts), 2):
+                if i + 1 < len(parts):
+                    reconstructed.append(parts[i] + parts[i + 1])
+                else:
+                    reconstructed.append(parts[i])
+            
+            lines = []
+            current_line = ""
+            
+            for part in reconstructed:
+                part = part.strip()
+                if not part:
+                    continue
+                
+                if current_line and len(current_line) + len(part) + 1 > max_length:
+                    if current_line:
+                        lines.append(current_line.strip())
+                    current_line = part
+                else:
+                    if current_line:
+                        current_line += " " + part
+                    else:
+                        current_line = part
+            
+            if current_line:
+                lines.append(current_line.strip())
+        
+        return '\n'.join(lines)
     
     def _generate_fallback_message(self, deal_title: str, days_since_activity: int) -> str:
         """Generate a simple fallback message if AI fails."""
