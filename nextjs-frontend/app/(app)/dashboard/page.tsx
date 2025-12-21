@@ -201,12 +201,13 @@ export default function DashboardPage() {
 
   // Auto-refresh when enabled
   useEffect(() => {
+    if (typeof window === "undefined") return
     if (autoRefresh) {
-      const interval = setInterval(() => {
+      const interval = window.setInterval(() => {
         loadData()
         setLastRefresh(new Date())
       }, 30000) // Refresh every 30 seconds
-      return () => clearInterval(interval)
+      return () => window.clearInterval(interval)
     }
   }, [autoRefresh]) // eslint-disable-line react-hooks/exhaustive-deps
 
