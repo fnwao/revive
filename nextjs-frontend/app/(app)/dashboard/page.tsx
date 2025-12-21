@@ -48,6 +48,8 @@ export default function DashboardPage() {
 
   // Reload user data when component mounts or user updates
   useEffect(() => {
+    if (typeof window === "undefined") return
+    
     const refreshUser = () => {
       const currentUser = getUser()
       if (currentUser) {
