@@ -32,7 +32,7 @@ export default function OnboardingPage() {
       illustration: "welcome",
       content: (
         <div className="space-y-6 mt-6">
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="p-6 bg-gradient-to-br from-[#4F8CFF]/10 to-[#4F8CFF]/5 rounded-xl border border-[#4F8CFF]/20 text-center hover:border-[#4F8CFF]/40 transition-all group">
               <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-[#4F8CFF] to-[#6EA0FF] flex items-center justify-center mx-auto mb-3 shadow-lg group-hover:scale-110 transition-transform">
                 <Zap className="h-6 w-6 text-white" />
@@ -70,7 +70,7 @@ export default function OnboardingPage() {
       illustration: "dashboard",
       content: (
         <div className="space-y-4 mt-6">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="p-5 bg-gradient-to-br from-[#4F8CFF]/10 to-transparent rounded-xl border border-[#4F8CFF]/20 hover:border-[#4F8CFF]/40 transition-all">
               <div className="flex items-center justify-between mb-3">
                 <span className="text-xs font-medium text-[#6B7280] uppercase tracking-wide">Active Revivals</span>
@@ -450,36 +450,36 @@ export default function OnboardingPage() {
     const Icon = currentStep.icon
 
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-white via-[#F9FAFB] to-[#F3F4F6] p-4">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-white via-[#F9FAFB] to-[#F3F4F6] p-2 sm:p-4">
         <div className="w-full max-w-4xl">
           <Card className="bg-white border-[#E5E7EB] shadow-xl overflow-hidden">
-            <div className="p-8 md:p-10">
+            <div className="p-4 sm:p-6 md:p-8 lg:p-10">
               {/* Header with Progress */}
-              <div className="mb-8">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-4">
-                    <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-[#4F8CFF] to-[#6EA0FF] flex items-center justify-center shadow-lg">
+              <div className="mb-6 sm:mb-8">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4 sm:mb-6">
+                  <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+                    <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-gradient-to-br from-[#4F8CFF] to-[#6EA0FF] flex items-center justify-center shadow-lg flex-shrink-0">
                       {currentStep.icon === Sparkles ? (
-                        <AcquiriLogo className="h-6 w-6 text-white" />
+                        <AcquiriLogo className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                       ) : (
-                        <Icon className="h-6 w-6 text-white" />
+                        <Icon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                       )}
                     </div>
-                    <div>
+                    <div className="min-w-0 flex-1">
                       <div className="text-xs font-semibold text-[#4F8CFF] mb-1 uppercase tracking-wide">
                         Step {tutorialStep + 1} of {tutorialSteps.length}
                       </div>
-                      <h2 className="text-3xl font-bold text-[#111827]">{currentStep.title}</h2>
+                      <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-[#111827] break-words">{currentStep.title}</h2>
                     </div>
                   </div>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={handleSkip}
-                    className="text-[#6B7280] hover:text-[#111827]"
+                    className="text-[#6B7280] hover:text-[#111827] flex-shrink-0"
                   >
-                    <X className="h-4 w-4 mr-2" />
-                    Skip
+                    <X className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Skip</span>
                   </Button>
                 </div>
 
@@ -497,28 +497,28 @@ export default function OnboardingPage() {
                 "transition-all duration-500",
                 isAnimating ? "opacity-0 translate-y-4" : "opacity-100 translate-y-0"
               )}>
-                <p className="text-[#6B7280] text-lg mb-8 leading-relaxed">{currentStep.description}</p>
+                <p className="text-[#6B7280] text-base sm:text-lg mb-6 sm:mb-8 leading-relaxed">{currentStep.description}</p>
                 
                 {/* Illustration/Visual Content */}
-                <div className="mb-8 min-h-[300px]">
+                <div className="mb-6 sm:mb-8 min-h-[200px] sm:min-h-[300px]">
                   {currentStep.content}
                 </div>
               </div>
 
               {/* Navigation */}
-              <div className="flex items-center justify-between gap-4 pt-8 border-t border-[#E5E7EB]">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 pt-6 sm:pt-8 border-t border-[#E5E7EB]">
                 <Button
                   variant="outline"
                   onClick={handlePrevious}
                   disabled={tutorialStep === 0 || isAnimating}
-                  className="flex items-center gap-2"
+                  className="flex items-center justify-center gap-2 order-2 sm:order-1"
                 >
                   <ChevronLeft className="h-4 w-4" />
                   Previous
                 </Button>
                 
                 {/* Step Indicators */}
-                <div className="flex gap-2">
+                <div className="flex gap-2 justify-center order-1 sm:order-2">
                   {tutorialSteps.map((_, idx) => (
                     <button
                       key={idx}
@@ -532,12 +532,12 @@ export default function OnboardingPage() {
                         }
                       }}
                       className={cn(
-                        "h-2 rounded-full transition-all duration-300",
+                        "h-2.5 sm:h-2 rounded-full transition-all duration-300 touch-manipulation",
                         idx === tutorialStep
-                          ? "w-8 bg-[#4F8CFF]"
+                          ? "w-8 sm:w-8 bg-[#4F8CFF]"
                           : idx < tutorialStep
-                          ? "w-2 bg-[#4F8CFF]/50 hover:bg-[#4F8CFF]/70"
-                          : "w-2 bg-[#E5E7EB] hover:bg-[#D1D5DB]"
+                          ? "w-2.5 sm:w-2 bg-[#4F8CFF]/50 hover:bg-[#4F8CFF]/70 active:bg-[#4F8CFF]/70"
+                          : "w-2.5 sm:w-2 bg-[#E5E7EB] hover:bg-[#D1D5DB] active:bg-[#D1D5DB]"
                       )}
                       aria-label={`Go to step ${idx + 1}`}
                     />
@@ -547,7 +547,7 @@ export default function OnboardingPage() {
                 <Button
                   onClick={handleNext}
                   disabled={isAnimating}
-                  className="flex items-center gap-2 bg-gradient-to-r from-[#4F8CFF] to-[#6EA0FF] hover:from-[#6EA0FF] hover:to-[#4F8CFF] shadow-md hover:shadow-lg transition-all"
+                  className="flex items-center justify-center gap-2 bg-gradient-to-r from-[#4F8CFF] to-[#6EA0FF] hover:from-[#6EA0FF] hover:to-[#4F8CFF] shadow-md hover:shadow-lg transition-all order-3"
                 >
                   {tutorialStep === tutorialSteps.length - 1 ? (
                     <>
@@ -564,16 +564,16 @@ export default function OnboardingPage() {
               </div>
 
               {/* Keyboard Shortcuts Hint */}
-              <div className="mt-6 pt-6 border-t border-[#E5E7EB]">
-                <div className="flex items-center justify-center gap-4 text-xs text-[#6B7280]">
+              <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-[#E5E7EB]">
+                <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 text-xs text-[#6B7280]">
                   <span className="flex items-center gap-1">
-                    <kbd className="px-2 py-1 bg-[#F9FAFB] border border-[#E5E7EB] rounded text-[#6B7280]">←</kbd>
-                    <kbd className="px-2 py-1 bg-[#F9FAFB] border border-[#E5E7EB] rounded text-[#6B7280]">→</kbd>
-                    <span>Navigate</span>
+                    <kbd className="px-1.5 sm:px-2 py-0.5 sm:py-1 bg-[#F9FAFB] border border-[#E5E7EB] rounded text-[#6B7280] text-[10px] sm:text-xs">←</kbd>
+                    <kbd className="px-1.5 sm:px-2 py-0.5 sm:py-1 bg-[#F9FAFB] border border-[#E5E7EB] rounded text-[#6B7280] text-[10px] sm:text-xs">→</kbd>
+                    <span className="hidden sm:inline">Navigate</span>
                   </span>
                   <span className="flex items-center gap-1">
-                    <kbd className="px-2 py-1 bg-[#F9FAFB] border border-[#E5E7EB] rounded text-[#6B7280]">Esc</kbd>
-                    <span>Skip</span>
+                    <kbd className="px-1.5 sm:px-2 py-0.5 sm:py-1 bg-[#F9FAFB] border border-[#E5E7EB] rounded text-[#6B7280] text-[10px] sm:text-xs">Esc</kbd>
+                    <span className="hidden sm:inline">Skip</span>
                   </span>
                 </div>
               </div>
