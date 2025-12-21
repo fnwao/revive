@@ -95,21 +95,23 @@ export default function TemplatesPage() {
   const hasActiveFilters = categoryFilter !== "all" || typeFilter !== "all" || searchQuery.length > 0
 
   return (
-    <div className="space-y-6 sm:space-y-8 px-4 sm:px-0">
+    <div className="space-y-6 sm:space-y-8 px-4 sm:px-6 py-4 sm:py-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
-            <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg bg-[#4F8CFF]/10 flex items-center justify-center flex-shrink-0">
-              <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-[#4F8CFF]" />
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-6">
+        <div className="flex-1">
+          <div className="flex items-center gap-3 sm:gap-4 mb-2 sm:mb-3">
+            <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-gradient-to-br from-[#4F8CFF]/10 to-[#4F8CFF]/5 flex items-center justify-center flex-shrink-0">
+              <FileText className="h-5 w-5 sm:h-6 sm:w-6 text-[#4F8CFF]" />
             </div>
-            <h1 className="text-xl sm:text-2xl font-bold text-[#111827]">Message Templates</h1>
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-[#111827]">Message Templates</h1>
+              <p className="text-sm sm:text-base text-[#6B7280] mt-1">Create and manage reusable message templates</p>
+            </div>
           </div>
-          <p className="text-sm sm:text-base text-muted-foreground">Create and manage reusable message templates</p>
         </div>
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-[#4F8CFF] hover:bg-[#6EA0FF] w-full sm:w-auto">
+            <Button className="bg-gradient-to-r from-[#4F8CFF] to-[#6EA0FF] hover:from-[#6EA0FF] hover:to-[#4F8CFF] text-white shadow-sm hover:shadow-md w-full sm:w-auto h-10 sm:h-11 font-semibold">
               <Plus className="h-4 w-4 mr-2" />
               Create Template
             </Button>
@@ -128,36 +130,36 @@ export default function TemplatesPage() {
       {/* Stats */}
       {!loading && totalTemplates > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-          <Card className="p-4 bg-gradient-to-br from-[#4F8CFF]/5 to-transparent border-[#4F8CFF]/20">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-[#4F8CFF]/10 flex items-center justify-center">
-                <FileText className="h-5 w-5 text-[#4F8CFF]" />
+          <Card className="p-5 sm:p-6 bg-gradient-to-br from-[#4F8CFF]/5 to-transparent border-[#4F8CFF]/20 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center gap-4">
+              <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-[#4F8CFF]/10 to-[#4F8CFF]/5 flex items-center justify-center flex-shrink-0">
+                <FileText className="h-6 w-6 text-[#4F8CFF]" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Total Templates</p>
-                <p className="text-2xl font-bold text-[#111827]">{totalTemplates}</p>
+                <p className="text-xs sm:text-sm text-[#6B7280] font-medium mb-1">Total Templates</p>
+                <p className="text-2xl sm:text-3xl font-bold text-[#111827]">{totalTemplates}</p>
               </div>
             </div>
           </Card>
-          <Card className="p-4 bg-gradient-to-br from-[#3CCB7F]/5 to-transparent border-[#3CCB7F]/20">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-[#3CCB7F]/10 flex items-center justify-center">
-                <TrendingUp className="h-5 w-5 text-[#3CCB7F]" />
+          <Card className="p-5 sm:p-6 bg-gradient-to-br from-[#3CCB7F]/5 to-transparent border-[#3CCB7F]/20 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center gap-4">
+              <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-[#3CCB7F]/10 to-[#3CCB7F]/5 flex items-center justify-center flex-shrink-0">
+                <TrendingUp className="h-6 w-6 text-[#3CCB7F]" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Total Usage</p>
-                <p className="text-2xl font-bold text-[#111827]">{totalUsage.toLocaleString()}</p>
+                <p className="text-xs sm:text-sm text-[#6B7280] font-medium mb-1">Total Usage</p>
+                <p className="text-2xl sm:text-3xl font-bold text-[#111827]">{totalUsage.toLocaleString()}</p>
               </div>
             </div>
           </Card>
-          <Card className="p-4 bg-gradient-to-br from-[#F6C177]/5 to-transparent border-[#F6C177]/20">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-[#F6C177]/10 flex items-center justify-center">
-                <Sparkles className="h-5 w-5 text-[#F6C177]" />
+          <Card className="p-5 sm:p-6 bg-gradient-to-br from-[#F6C177]/5 to-transparent border-[#F6C177]/20 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center gap-4">
+              <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-[#F6C177]/10 to-[#F6C177]/5 flex items-center justify-center flex-shrink-0">
+                <Sparkles className="h-6 w-6 text-[#F6C177]" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Avg Success Rate</p>
-                <p className="text-2xl font-bold text-[#111827]">{avgSuccessRate}%</p>
+                <p className="text-xs sm:text-sm text-[#6B7280] font-medium mb-1">Avg Success Rate</p>
+                <p className="text-2xl sm:text-3xl font-bold text-[#111827]">{avgSuccessRate}%</p>
               </div>
             </div>
           </Card>
@@ -165,32 +167,32 @@ export default function TemplatesPage() {
       )}
 
       {/* Search and Filters */}
-      <Card className="p-5">
-        <div className="flex flex-col md:flex-row gap-4">
+      <Card className="p-5 sm:p-6 border-[#E5E7EB] shadow-sm">
+        <div className="flex flex-col md:flex-row gap-4 md:gap-5">
           <div className="flex-1">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[#6B7280]" />
               <Input
                 placeholder="Search templates by name or content..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
+                className="pl-10 h-10 border-[#E5E7EB] focus:border-[#4F8CFF] focus:ring-[#4F8CFF]/20"
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery("")}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[#6B7280] hover:text-[#111827] transition-colors"
                 >
                   <X className="h-4 w-4" />
                 </button>
               )}
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-3">
             <Select 
               value={categoryFilter} 
               onChange={(e) => setCategoryFilter(e.target.value)} 
-              className="w-[160px]"
+              className="w-[160px] h-10 border-[#E5E7EB] focus:border-[#4F8CFF] focus:ring-[#4F8CFF]/20"
             >
               <option value="all">All Categories</option>
               <option value="reactivation">Reactivation</option>
@@ -203,7 +205,7 @@ export default function TemplatesPage() {
             <Select 
               value={typeFilter} 
               onChange={(e) => setTypeFilter(e.target.value)} 
-              className="w-[140px]"
+              className="w-[140px] h-10 border-[#E5E7EB] focus:border-[#4F8CFF] focus:ring-[#4F8CFF]/20"
             >
               <option value="all">All Types</option>
               <option value="sms">SMS</option>
@@ -219,9 +221,9 @@ export default function TemplatesPage() {
                   setCategoryFilter("all")
                   setTypeFilter("all")
                 }}
-                className="px-3"
+                className="h-10 px-4 border-[#E5E7EB] hover:bg-[#F9FAFB]"
               >
-                <X className="h-4 w-4 mr-1" />
+                <X className="h-4 w-4 mr-1.5" />
                 Clear
               </Button>
             )}
@@ -273,40 +275,40 @@ export default function TemplatesPage() {
           </div>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
           {filteredTemplates.map((template) => (
             <Card 
               key={template.id} 
-              className="p-6 hover:shadow-lg transition-all border-[#E5E7EB] hover:border-[#4F8CFF]/30 group"
+              className="p-5 sm:p-6 hover:shadow-lg transition-all border-[#E5E7EB] hover:border-[#4F8CFF]/40 group shadow-sm"
             >
               {/* Header */}
-              <div className="flex items-start justify-between mb-4">
+              <div className="flex items-start justify-between mb-5">
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-3">
+                  <div className="flex items-center gap-3 mb-3">
                     <div className={cn(
-                      "h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0",
-                      template.type === "email" && "bg-blue-100",
-                      template.type === "sms" && "bg-green-100",
-                      template.type === "both" && "bg-purple-100"
+                      "h-10 w-10 rounded-xl flex items-center justify-center flex-shrink-0",
+                      template.type === "email" && "bg-gradient-to-br from-blue-100 to-blue-50",
+                      template.type === "sms" && "bg-gradient-to-br from-green-100 to-green-50",
+                      template.type === "both" && "bg-gradient-to-br from-purple-100 to-purple-50"
                     )}>
                       {template.type === "email" ? (
-                        <Mail className="h-4 w-4 text-blue-600" />
+                        <Mail className="h-5 w-5 text-blue-600" />
                       ) : template.type === "sms" ? (
-                        <MessageSquare className="h-4 w-4 text-green-600" />
+                        <MessageSquare className="h-5 w-5 text-green-600" />
                       ) : (
-                        <Copy className="h-4 w-4 text-purple-600" />
+                        <Copy className="h-5 w-5 text-purple-600" />
                       )}
                     </div>
-                    <h3 className="font-semibold text-base text-[#111827] line-clamp-1">{template.name}</h3>
+                    <h3 className="font-semibold text-base sm:text-lg text-[#111827] line-clamp-1 flex-1">{template.name}</h3>
                   </div>
-                  <div className="flex flex-wrap gap-1.5 mb-4">
+                  <div className="flex flex-wrap gap-2 mb-4">
                     {template.category && (
-                      <Badge variant="outline" className="text-[10px] px-2 py-0.5 capitalize">
+                      <Badge variant="outline" className="text-xs px-2.5 py-1 capitalize border-[#E5E7EB] bg-[#F9FAFB]">
                         {template.category.replace("_", " ")}
                       </Badge>
                     )}
                     {template.is_public && (
-                      <Badge variant="outline" className="text-[10px] px-2 py-0.5 bg-[#4F8CFF]/10 text-[#4F8CFF] border-[#4F8CFF]/20">
+                      <Badge variant="outline" className="text-xs px-2.5 py-1 bg-[#4F8CFF]/10 text-[#4F8CFF] border-[#4F8CFF]/20">
                         Public
                       </Badge>
                     )}
@@ -316,41 +318,41 @@ export default function TemplatesPage() {
 
               {/* Description */}
               {template.description && (
-                <p className="text-xs text-muted-foreground mb-4 line-clamp-2">{template.description}</p>
+                <p className="text-xs sm:text-sm text-[#6B7280] mb-4 line-clamp-2 leading-relaxed">{template.description}</p>
               )}
 
               {/* Message Preview */}
-              <div className="mb-4 p-4 bg-muted/50 rounded-lg border border-muted">
+              <div className="mb-5 p-4 bg-[#F9FAFB] rounded-lg border border-[#E5E7EB]">
                 {template.subject && (
-                  <div className="mb-2 pb-2 border-b border-muted">
-                    <p className="text-[10px] font-medium text-muted-foreground mb-1">Subject:</p>
-                    <p className="text-xs text-[#111827] line-clamp-1">{template.subject}</p>
+                  <div className="mb-3 pb-3 border-b border-[#E5E7EB]">
+                    <p className="text-[10px] font-semibold text-[#6B7280] mb-1.5 uppercase tracking-wide">Subject:</p>
+                    <p className="text-xs sm:text-sm text-[#111827] line-clamp-1 font-medium">{template.subject}</p>
                   </div>
                 )}
-                <p className="text-xs text-[#111827] line-clamp-3 leading-relaxed">{template.body}</p>
+                <p className="text-xs sm:text-sm text-[#111827] line-clamp-3 leading-relaxed">{template.body}</p>
               </div>
 
               {/* Stats */}
-              <div className="flex items-center justify-between text-xs text-muted-foreground mb-5 pb-4 border-b border-muted">
-                <div className="flex items-center gap-1.5">
-                  <TrendingUp className="h-3.5 w-3.5" />
-                  <span className="font-medium">{template.usage_count || 0} uses</span>
+              <div className="flex items-center justify-between text-xs text-[#6B7280] mb-5 pb-5 border-b border-[#E5E7EB]">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-[#6B7280]" />
+                  <span className="font-semibold text-[#111827]">{template.usage_count || 0} uses</span>
                 </div>
                 {template.success_rate !== null && template.success_rate !== undefined && template.success_rate > 0 && (
-                  <div className="flex items-center gap-1.5">
-                    <Sparkles className="h-3.5 w-3.5 text-[#F6C177]" />
-                    <span className="font-medium text-[#F6C177]">{template.success_rate}% success</span>
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-[#F6C177]" />
+                    <span className="font-semibold text-[#F6C177]">{template.success_rate}% success</span>
                   </div>
                 )}
               </div>
 
               {/* Actions */}
-              <div className="flex gap-2">
+              <div className="flex gap-2.5">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => handleCopy(template)}
-                  className="flex-1 hover:bg-[#4F8CFF]/10 hover:border-[#4F8CFF]/30"
+                  className="flex-1 h-9 hover:bg-[#4F8CFF]/10 hover:border-[#4F8CFF]/30 hover:text-[#4F8CFF] transition-colors"
                 >
                   <Copy className="h-3.5 w-3.5 mr-1.5" />
                   Copy
@@ -361,7 +363,7 @@ export default function TemplatesPage() {
                       variant="outline"
                       size="sm"
                       onClick={() => setEditingTemplate(template)}
-                      className="hover:bg-[#4F8CFF]/10 hover:border-[#4F8CFF]/30"
+                      className="h-9 w-9 p-0 hover:bg-[#4F8CFF]/10 hover:border-[#4F8CFF]/30 hover:text-[#4F8CFF] transition-colors"
                     >
                       <Edit className="h-3.5 w-3.5" />
                     </Button>
@@ -380,7 +382,7 @@ export default function TemplatesPage() {
                   variant="outline"
                   size="sm"
                   onClick={() => handleDelete(template.id)}
-                  className="hover:bg-[#E06C75]/10 hover:border-[#E06C75]/30 hover:text-[#E06C75]"
+                  className="h-9 w-9 p-0 hover:bg-[#E06C75]/10 hover:border-[#E06C75]/30 hover:text-[#E06C75] transition-colors"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>
@@ -471,44 +473,49 @@ function TemplateForm({ template, onSuccess }: { template?: MessageTemplate; onS
   return (
     <form onSubmit={handleSubmit}>
       <DialogHeader>
-        <div className="flex items-center gap-2 mb-2">
-          <div className="h-8 w-8 rounded-lg bg-[#4F8CFF]/10 flex items-center justify-center">
-            <FileText className="h-4 w-4 text-[#4F8CFF]" />
+        <div className="flex items-center gap-3 mb-3">
+          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-[#4F8CFF]/10 to-[#4F8CFF]/5 flex items-center justify-center">
+            <FileText className="h-5 w-5 text-[#4F8CFF]" />
           </div>
-          <DialogTitle className="text-xl">{template ? "Edit Template" : "Create Template"}</DialogTitle>
+          <div>
+            <DialogTitle className="text-xl sm:text-2xl">{template ? "Edit Template" : "Create Template"}</DialogTitle>
+            <DialogDescription className="mt-1 text-sm">
+              {template ? "Update your message template" : "Create a reusable message template for reactivation messages"}
+            </DialogDescription>
+          </div>
         </div>
-        <DialogDescription>
-          {template ? "Update your message template" : "Create a reusable message template for reactivation messages"}
-        </DialogDescription>
       </DialogHeader>
-      <div className="space-y-5 py-4">
+      <div className="space-y-5 sm:space-y-6 py-4 sm:py-6">
         <div className="space-y-2">
-          <Label htmlFor="name">Template Name *</Label>
+          <Label htmlFor="name" className="text-sm font-semibold text-[#111827]">Template Name *</Label>
           <Input
             id="name"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g., Casual Follow-up"
             required
+            className="h-10 border-[#E5E7EB] focus:border-[#4F8CFF] focus:ring-[#4F8CFF]/20"
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="description">Description</Label>
+          <Label htmlFor="description" className="text-sm font-semibold text-[#111827]">Description</Label>
           <Input
             id="description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Optional description"
+            className="h-10 border-[#E5E7EB] focus:border-[#4F8CFF] focus:ring-[#4F8CFF]/20"
           />
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
           <div className="space-y-2">
-            <Label htmlFor="type">Type *</Label>
+            <Label htmlFor="type" className="text-sm font-semibold text-[#111827]">Type *</Label>
             <Select 
               id="type"
               value={type} 
               onChange={(e) => setType(e.target.value as "sms" | "email" | "both")}
               required
+              className="h-10 border-[#E5E7EB] focus:border-[#4F8CFF] focus:ring-[#4F8CFF]/20"
             >
               <option value="sms">SMS</option>
               <option value="email">Email</option>
@@ -516,11 +523,12 @@ function TemplateForm({ template, onSuccess }: { template?: MessageTemplate; onS
             </Select>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="category">Category</Label>
+            <Label htmlFor="category" className="text-sm font-semibold text-[#111827]">Category</Label>
             <Select 
               id="category"
               value={category} 
               onChange={(e) => setCategory(e.target.value)}
+              className="h-10 border-[#E5E7EB] focus:border-[#4F8CFF] focus:ring-[#4F8CFF]/20"
             >
               <option value="">None</option>
               <option value="reactivation">Reactivation</option>
@@ -534,18 +542,19 @@ function TemplateForm({ template, onSuccess }: { template?: MessageTemplate; onS
         </div>
         {(type === "email" || type === "both") && (
           <div className="space-y-2">
-            <Label htmlFor="subject">Email Subject *</Label>
+            <Label htmlFor="subject" className="text-sm font-semibold text-[#111827]">Email Subject *</Label>
             <Input
               id="subject"
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
               placeholder="e.g., Following up on your interest"
               required={type === "email"}
+              className="h-10 border-[#E5E7EB] focus:border-[#4F8CFF] focus:ring-[#4F8CFF]/20"
             />
           </div>
         )}
         <div className="space-y-2">
-          <Label htmlFor="body">Message Body *</Label>
+          <Label htmlFor="body" className="text-sm font-semibold text-[#111827]">Message Body *</Label>
           <Textarea
             id="body"
             value={body}
@@ -553,15 +562,15 @@ function TemplateForm({ template, onSuccess }: { template?: MessageTemplate; onS
             placeholder="Enter your message template. Use variables like {{deal_title}}, {{deal_value}}, {{contact_name}}"
             rows={6}
             required
-            className="font-mono text-sm"
+            className="font-mono text-sm border-[#E5E7EB] focus:border-[#4F8CFF] focus:ring-[#4F8CFF]/20"
           />
-          <div className="mt-2 p-3 bg-muted/50 rounded-lg border border-muted">
-            <p className="text-xs font-medium text-muted-foreground mb-1.5">Available variables:</p>
-            <div className="flex flex-wrap gap-1.5">
+          <div className="mt-3 p-4 bg-[#F9FAFB] rounded-lg border border-[#E5E7EB]">
+            <p className="text-xs font-semibold text-[#111827] mb-2.5">Available variables:</p>
+            <div className="flex flex-wrap gap-2">
               {["deal_title", "deal_value", "contact_name", "days_since_activity"].map((varName) => (
                 <code
                   key={varName}
-                  className="text-[10px] px-2 py-1 bg-white rounded border border-muted text-[#4F8CFF] cursor-pointer hover:bg-[#4F8CFF]/10"
+                  className="text-xs px-3 py-1.5 bg-white rounded-lg border border-[#E5E7EB] text-[#4F8CFF] cursor-pointer hover:bg-[#4F8CFF]/10 hover:border-[#4F8CFF]/30 transition-colors font-medium"
                   onClick={() => {
                     const textarea = document.getElementById("body") as HTMLTextAreaElement
                     if (textarea) {
@@ -583,30 +592,39 @@ function TemplateForm({ template, onSuccess }: { template?: MessageTemplate; onS
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg border border-muted">
+        <div className="flex items-start gap-3 p-4 bg-[#F9FAFB] rounded-lg border border-[#E5E7EB]">
           <input
             type="checkbox"
             id="isPublic"
             checked={isPublic}
             onChange={(e) => setIsPublic(e.target.checked)}
-            className="rounded w-4 h-4 text-[#4F8CFF] focus:ring-[#4F8CFF]"
+            className="rounded w-4 h-4 mt-0.5 text-[#4F8CFF] focus:ring-[#4F8CFF] border-[#E5E7EB]"
           />
           <div className="flex-1">
-            <Label htmlFor="isPublic" className="cursor-pointer font-medium text-sm">
+            <Label htmlFor="isPublic" className="cursor-pointer font-semibold text-sm text-[#111827]">
               Make this template public
             </Label>
-            <p className="text-xs text-muted-foreground mt-0.5">
+            <p className="text-xs text-[#6B7280] mt-1">
               Visible to all team members
             </p>
           </div>
         </div>
       </div>
-      <DialogFooter>
-        <Button type="button" variant="outline" onClick={() => onSuccess()}>
+      <DialogFooter className="gap-3 sm:gap-4 pt-4">
+        <Button 
+          type="button" 
+          variant="outline" 
+          onClick={() => onSuccess()}
+          className="h-10 px-6 border-[#E5E7EB] hover:bg-[#F9FAFB]"
+        >
           Cancel
         </Button>
-        <Button type="submit" disabled={loading}>
-          {loading ? "Saving..." : template ? "Update" : "Create"}
+        <Button 
+          type="submit" 
+          disabled={loading}
+          className="h-10 px-6 bg-gradient-to-r from-[#4F8CFF] to-[#6EA0FF] hover:from-[#6EA0FF] hover:to-[#4F8CFF] text-white shadow-sm hover:shadow-md font-semibold"
+        >
+          {loading ? "Saving..." : template ? "Update Template" : "Create Template"}
         </Button>
       </DialogFooter>
     </form>
