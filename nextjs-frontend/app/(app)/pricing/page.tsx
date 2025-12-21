@@ -189,6 +189,7 @@ export default function PricingPage() {
   }
 
   const getButtonText = (planId: PlanName) => {
+    if (!subscription) return "Loading..."
     if (isCurrentPlan(planId)) {
       return subscription.cancelAtPeriodEnd ? "Cancelling" : "Current Plan"
     }
