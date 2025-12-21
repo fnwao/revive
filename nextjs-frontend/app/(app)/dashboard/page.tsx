@@ -313,12 +313,30 @@ export default function DashboardPage() {
   const pendingApprovals = approvals.filter(a => a.status === "pending").slice(0, 3)
   const isActive = stats.active_revivals > 0 || stats.pending_approvals > 0
 
-  // Show loading state
-  if (loading && typeof window !== "undefined") {
+  // Show loading state only on client-side
+  if (typeof window !== "undefined" && loading) {
     return (
       <div className="flex flex-col h-full min-h-0 items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-[#4F8CFF]" />
         <p className="mt-4 text-sm text-[#6B7280]">Loading dashboard...</p>
+      </div>
+    )
+  }
+
+  // Show error state if there's an error
+  if (error) {
+    return (
+      <div className="flex flex-col h-full min-h-0 items-center justify-center p-6">
+        <AlertCircle className="h-8 w-8 text-red-500 mb-4" />
+        <h2 className="text-lg font-semibold text-[#111827] mb-2">Error loading dashboard</h2>
+        <p className="text-sm text-[#6B7280] mb-4">{error}</p>
+        <Button onClick={() => {
+          setError(null)
+          loadData()
+        }}>
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Retry
+        </Button>
       </div>
     )
   }
