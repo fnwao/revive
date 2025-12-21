@@ -49,6 +49,8 @@ export default function DashboardPage() {
   const [recentActivity, setRecentActivity] = useState<Array<{ action: string; time: string; icon: string }>>([])
   const [stalledDeals, setStalledDeals] = useState<StalledDeal[]>([])
   const [reactivationRules, setReactivationRules] = useState<ReactivationRule[]>([])
+  const [greeting, setGreeting] = useState("Hello")
+  const [firstName, setFirstName] = useState("there")
 
   // Set mounted state on client-side
   useEffect(() => {
@@ -63,7 +65,10 @@ export default function DashboardPage() {
       const currentUser = getUser()
       if (currentUser) {
         setUser(currentUser)
+        setFirstName(getFirstName(currentUser.name))
       }
+      // Update greeting based on current time
+      setGreeting(getGreeting())
     }
 
     refreshUser()
@@ -88,10 +93,6 @@ export default function DashboardPage() {
       window.removeEventListener("storage", handleStorageChange)
     }
   }, [mounted])
-
-  // Calculate greeting and firstName only when user is available (client-side)
-  const greeting = mounted ? getGreeting() : "Hello"
-  const firstName = user ? getFirstName(user.name) : "there"
 
   const loadReactivationRules = async () => {
     try {
