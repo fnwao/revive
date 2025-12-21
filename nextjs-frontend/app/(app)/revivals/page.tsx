@@ -402,21 +402,22 @@ export default function RevivalsPage() {
       }
       
       // Check if scheduling is enabled
-      let scheduledAt: Date | undefined = undefined
+      let scheduledAtISO: string | undefined = undefined
       if (scheduleEnabled && scheduledDateTime) {
-        scheduledAt = new Date(scheduledDateTime)
+        const scheduledAt = new Date(scheduledDateTime)
         // Validate scheduled time is in the future
         if (scheduledAt <= new Date()) {
           showToast.error("Invalid time", "Scheduled time must be in the future.")
           setActionLoading(null)
           return
         }
+        scheduledAtISO = scheduledAt.toISOString()
       }
       
       const result = await sendMessage(
         currentApprovalId,
         messageToSend,
-        scheduledAt,
+        scheduledAtISO,
         messageChannel,
         messageChannel === "email" || messageChannel === "both" ? emailSubject : undefined
       )
@@ -424,10 +425,11 @@ export default function RevivalsPage() {
       // Count valid messages (filter out empty ones)
       const validMessages = editedMessages.filter(msg => msg && msg.trim().length > 0)
       const messageCount = validMessages.length > 1 ? validMessages.length : 1
-      if (scheduledAt) {
+      if (scheduledAtISO) {
+        const scheduledDate = new Date(scheduledAtISO)
         showToast.success(
           "Message sequence scheduled", 
-          `${messageCount} message${messageCount > 1 ? 's' : ''} scheduled for ${scheduledAt.toLocaleString()}.`
+          `${messageCount} message${messageCount > 1 ? 's' : ''} scheduled for ${scheduledDate.toLocaleString()}.`
         )
       } else {
         showToast.success(
@@ -481,19 +483,65 @@ export default function RevivalsPage() {
   useEffect(() => {
     if (selectedDeal) {
       const approval = getDealApproval(selectedDeal.deal_id)
-      if (approval && approval.status === "pending") {
-        setGeneratedMessage(approval.generated_message)
-        setEditedMessage(approval.edited_message || approval.generated_message)
+      if (approval && (approval.status === "pending" || approval.status === "approved")) {
+        // Parse generated_message - could be string or JSON array
+        let parsedMessages: string[] = []
+        try {
+          if (approval.generated_message && approval.generated_message.trim().startsWith('[')) {
+            const parsed = JSON.parse(approval.generated_message)
+            if (Array.isArray(parsed)) {
+              parsedMessages = parsed.filter((msg: any) => msg && typeof msg === 'string' && msg.trim().length > 0)
+            } else {
+              parsedMessages = [approval.generated_message]
+            }
+          } else {
+            parsedMessages = approval.generated_message ? [approval.generated_message] : []
+          }
+        } catch {
+          parsedMessages = approval.generated_message ? [approval.generated_message] : []
+        }
+        
+        // Parse edited_message similarly
+        let parsedEditedMessages: string[] = []
+        try {
+          const editedMsg = approval.edited_message || approval.generated_message || ""
+          if (editedMsg.trim().startsWith('[')) {
+            const parsed = JSON.parse(editedMsg)
+            if (Array.isArray(parsed)) {
+              parsedEditedMessages = parsed.filter((msg: any) => msg && typeof msg === 'string' && msg.trim().length > 0)
+            } else {
+              parsedEditedMessages = [editedMsg]
+            }
+          } else {
+            parsedEditedMessages = editedMsg ? [editedMsg] : []
+          }
+        } catch {
+          parsedEditedMessages = approval.edited_message || approval.generated_message ? [approval.edited_message || approval.generated_message] : []
+        }
+        
+        const firstMessage = parsedMessages[0] || approval.generated_message || ""
+        const firstEdited = parsedEditedMessages[0] || approval.edited_message || approval.generated_message || ""
+        
+        setGeneratedMessage(firstMessage)
+        setGeneratedMessages(parsedMessages.length > 0 ? parsedMessages : [firstMessage])
+        setEditedMessage(firstEdited)
+        setEditedMessages(parsedEditedMessages.length > 0 ? parsedEditedMessages : [firstEdited])
+        
+        // Create message sequence if multiple messages
+        if (parsedMessages.length > 1) {
+          const sequence = parsedMessages.map((msg, i) => ({
+            message: msg,
+            order: i + 1,
+            delay_seconds: i === 0 ? 0 : i === 1 ? 30 : i === 2 ? 120 : 300
+          }))
+          setMessageSequence(sequence)
+        } else {
+          setMessageSequence([])
+        }
+        
         setCurrentApprovalId(approval.id)
         setIsEditing(false)
-        setScheduleEnabled(false)
-        setScheduledDateTime("")
-      } else if (approval && approval.status === "approved") {
-        const message = approval.edited_message || approval.generated_message || ""
-        setGeneratedMessage(message)
-        setEditedMessage(message)
-        setCurrentApprovalId(approval.id)
-        setIsEditing(false)
+        
         // Show scheduled time if available
         if (approval.scheduled_at) {
           setScheduleEnabled(true)
