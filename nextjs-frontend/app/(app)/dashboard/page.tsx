@@ -197,7 +197,16 @@ export default function DashboardPage() {
   }
 
   useEffect(() => {
-    loadData()
+    // Only load data on client-side
+    if (typeof window !== "undefined") {
+      loadData().catch((error) => {
+        console.error("Failed to load dashboard data:", error)
+        setError("Failed to load dashboard. Please refresh the page.")
+        setLoading(false)
+      })
+    } else {
+      setLoading(false)
+    }
   }, [])
 
   // Auto-refresh when enabled
@@ -303,6 +312,16 @@ export default function DashboardPage() {
 
   const pendingApprovals = approvals.filter(a => a.status === "pending").slice(0, 3)
   const isActive = stats.active_revivals > 0 || stats.pending_approvals > 0
+
+  // Show loading state
+  if (loading && typeof window !== "undefined") {
+    return (
+      <div className="flex flex-col h-full min-h-0 items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-[#4F8CFF]" />
+        <p className="mt-4 text-sm text-[#6B7280]">Loading dashboard...</p>
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col h-full min-h-0">
