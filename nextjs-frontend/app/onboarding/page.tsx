@@ -40,16 +40,16 @@ export default function OnboardingPage() {
               <p className="text-sm font-semibold text-[#111827] mb-1">Auto-Detect</p>
               <p className="text-xs text-[#6B7280]">Stalled deals</p>
             </div>
-            <div className="p-6 bg-gradient-to-br from-[#4F8CFF]/10 to-[#4F8CFF]/5 rounded-xl border border-[#4F8CFF]/20 text-center hover:border-[#4F8CFF]/40 transition-all group">
-              <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-[#4F8CFF] to-[#6EA0FF] flex items-center justify-center mx-auto mb-3 shadow-lg group-hover:scale-110 transition-transform">
-                <MessageSquare className="h-6 w-6 text-white" />
+            <div className="p-4 sm:p-6 bg-gradient-to-br from-[#4F8CFF]/10 to-[#4F8CFF]/5 rounded-xl border border-[#4F8CFF]/20 text-center hover:border-[#4F8CFF]/40 transition-all group">
+              <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-gradient-to-br from-[#4F8CFF] to-[#6EA0FF] flex items-center justify-center mx-auto mb-2 sm:mb-3 shadow-lg group-hover:scale-110 transition-transform">
+                <MessageSquare className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
               </div>
               <p className="text-sm font-semibold text-[#111827] mb-1">AI Messages</p>
               <p className="text-xs text-[#6B7280]">Personalized</p>
             </div>
-            <div className="p-6 bg-gradient-to-br from-[#4F8CFF]/10 to-[#4F8CFF]/5 rounded-xl border border-[#4F8CFF]/20 text-center hover:border-[#4F8CFF]/40 transition-all group">
-              <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-[#4F8CFF] to-[#6EA0FF] flex items-center justify-center mx-auto mb-3 shadow-lg group-hover:scale-110 transition-transform">
-                <TrendingUp className="h-6 w-6 text-white" />
+            <div className="p-4 sm:p-6 bg-gradient-to-br from-[#4F8CFF]/10 to-[#4F8CFF]/5 rounded-xl border border-[#4F8CFF]/20 text-center hover:border-[#4F8CFF]/40 transition-all group">
+              <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-gradient-to-br from-[#4F8CFF] to-[#6EA0FF] flex items-center justify-center mx-auto mb-2 sm:mb-3 shadow-lg group-hover:scale-110 transition-transform">
+                <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
               </div>
               <p className="text-sm font-semibold text-[#111827] mb-1">Recover Revenue</p>
               <p className="text-xs text-[#6B7280]">Automatically</p>
@@ -110,7 +110,7 @@ export default function OnboardingPage() {
           </div>
           <div className="p-4 bg-[#F9FAFB] rounded-lg border border-[#E5E7EB]">
             <p className="text-sm font-semibold text-[#111827] mb-3">Key Metrics You'll Track:</p>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {[
                 "Active revivals in progress",
                 "Total revenue recovered",
@@ -164,7 +164,7 @@ export default function OnboardingPage() {
           </div>
           <div className="p-4 bg-[#F9FAFB] rounded-lg border border-[#E5E7EB]">
             <p className="text-sm font-semibold text-[#111827] mb-3">What You Can Do:</p>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {[
                 "View all stalled deals detected by AI",
                 "Review and edit AI-generated messages",
@@ -197,7 +197,7 @@ export default function OnboardingPage() {
           </div>
           <div className="p-4 bg-[#F9FAFB] rounded-lg border border-[#E5E7EB]">
             <p className="text-sm font-semibold text-[#111827] mb-3">Recommended Documents:</p>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {[
                 "Sales scripts and email templates",
                 "Product documentation",
@@ -250,7 +250,7 @@ export default function OnboardingPage() {
           </div>
           <div className="p-4 bg-[#F9FAFB] rounded-lg border border-[#E5E7EB]">
             <p className="text-sm font-semibold text-[#111827] mb-3">What You Can Configure:</p>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {[
                 "Deal statuses (active, closed, won, etc.)",
                 "Tags (vip, enterprise, follow-up)",
@@ -301,7 +301,7 @@ export default function OnboardingPage() {
           </div>
           <div className="p-4 bg-[#F9FAFB] rounded-lg border border-[#E5E7EB]">
             <p className="text-sm font-semibold text-[#111827] mb-3">Settings You Can Configure:</p>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {[
                 "Reactivation rules (status, tags, threshold)",
                 "Auto-approval settings",
