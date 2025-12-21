@@ -24,9 +24,11 @@ const navigation = [
 
 export function Sidebar() {
   const pathname = usePathname()
-  const [subscription, setSubscription] = useState(getSubscription())
+  const [subscription, setSubscription] = useState<ReturnType<typeof getSubscription> | null>(null)
 
   useEffect(() => {
+    setSubscription(getSubscription())
+    
     const handleSubscriptionUpdate = () => {
       setSubscription(getSubscription())
     }
@@ -37,7 +39,7 @@ export function Sidebar() {
     }
   }, [])
 
-  const limits = getPlanLimits(subscription.plan)
+  const limits = subscription ? getPlanLimits(subscription.plan) : getPlanLimits("pro")
   const revivalsText = `${limits.opportunitiesPerMonth.toLocaleString()} opportunities/month`
 
   return (
@@ -87,7 +89,7 @@ export function Sidebar() {
       </nav>
       <div className="p-3 border-t border-[#E5E7EB] flex-shrink-0">
         <div className="rounded-lg bg-[#F9FAFB] border border-[#E5E7EB] p-3">
-          <p className="text-xs font-medium text-[#111827] capitalize">{subscription.plan} Plan</p>
+          <p className="text-xs font-medium text-[#111827] capitalize">{subscription?.plan || "pro"} Plan</p>
           <p className="text-xs text-[#6B7280] mt-0.5">{revivalsText}</p>
         </div>
       </div>

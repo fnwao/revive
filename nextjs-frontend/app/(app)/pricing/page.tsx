@@ -16,6 +16,7 @@ import {
   reactivateSubscription,
   type PlanName,
   type BillingCycle,
+  type Subscription,
   getPlanPrice,
   formatPrice,
 } from "@/lib/subscription"
@@ -89,13 +90,15 @@ const plans: Array<{
 
 export default function PricingPage() {
   const router = useRouter()
-  const [subscription, setSubscription] = useState(getSubscription())
+  const [subscription, setSubscription] = useState<Subscription | null>(null)
   const [loading, setLoading] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  // Listen for subscription updates
+  // Initialize subscription on mount (client-side only)
   useEffect(() => {
+    setSubscription(getSubscription())
+    
     const handleSubscriptionUpdate = () => {
       setSubscription(getSubscription())
     }
@@ -182,7 +185,7 @@ export default function PricingPage() {
   }
 
   const isCurrentPlan = (planId: PlanName) => {
-    return subscription.plan === planId
+    return subscription?.plan === planId
   }
 
   const getButtonText = (planId: PlanName) => {
@@ -229,7 +232,7 @@ export default function PricingPage() {
             </p>
 
             {/* Current Plan Status */}
-            {subscription.plan && (
+            {subscription?.plan && (
               <div className="mb-8 p-5 bg-gradient-to-r from-[#3CCB7F]/10 to-[#4F8CFF]/10 border border-[#3CCB7F]/20 rounded-xl max-w-md mx-auto">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
@@ -239,7 +242,7 @@ export default function PricingPage() {
                     <div>
                       <p className="text-xs text-[#6B7280] font-medium">Current Plan</p>
                       <p className="text-sm font-semibold text-[#111827]">
-                        {plans.find(p => p.id === subscription.plan)?.name}
+                        {plans.find(p => p.id === subscription?.plan)?.name}
                       </p>
                     </div>
                   </div>
@@ -256,7 +259,7 @@ export default function PricingPage() {
                   </div>
                   <div className="flex items-center gap-1.5">
                     <CreditCard className="h-3.5 w-3.5" />
-                    <span className="font-semibold">{formatPrice(getPlanPrice(subscription.plan, subscription.billingCycle), subscription.billingCycle)}</span>
+                    <span className="font-semibold">{subscription && formatPrice(getPlanPrice(subscription.plan, subscription.billingCycle), subscription.billingCycle)}</span>
                   </div>
                 </div>
                 {isCancelling && (

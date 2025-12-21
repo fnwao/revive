@@ -60,7 +60,7 @@ export default function SettingsPage() {
   const [savedSection, setSavedSection] = useState<string | null>(null)
   const [loadingSection, setLoadingSection] = useState<string | null>(null)
   const [errors, setErrors] = useState<Record<string, string>>({})
-  const [subscription, setSubscription] = useState(getSubscription())
+  const [subscription, setSubscription] = useState<ReturnType<typeof getSubscription> | null>(null)
   const [apiKeyStatus, setApiKeyStatus] = useState<"none" | "saved" | "testing" | "connected" | "error">("none")
   const [connectionError, setConnectionError] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
