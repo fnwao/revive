@@ -477,7 +477,10 @@ export default function RevivalsPage() {
   return (
     <div className="flex flex-col sm:flex-row h-full min-h-0">
       {/* Left Sidebar - Deal List */}
-      <div className="w-full sm:w-80 border-r bg-background flex flex-col flex-shrink-0">
+      <div className={cn(
+        "w-full sm:w-80 border-r bg-background flex flex-col flex-shrink-0",
+        selectedDeal && "hidden sm:flex"
+      )}>
         <div className="p-4 border-b">
           <div className="relative mb-3">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -684,13 +687,23 @@ export default function RevivalsPage() {
                 return (
                   <button
                     key={deal.deal_id}
-                    onClick={() => handleGenerateMessage(deal)}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      handleGenerateMessage(deal)
+                    }}
+                    onTouchStart={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      handleGenerateMessage(deal)
+                    }}
                     className={cn(
-                      "w-full text-left p-4 hover:bg-muted/50 transition-colors border-l-2",
+                      "w-full text-left p-4 hover:bg-muted/50 active:bg-muted transition-colors border-l-2 touch-manipulation",
                       selectedDeal?.deal_id === deal.deal_id 
                         ? "bg-primary/5 border-l-primary" 
                         : "border-l-transparent"
                     )}
+                    style={{ WebkitTapHighlightColor: 'transparent' }}
                   >
                     <div className="flex items-start justify-between gap-3 mb-2">
                       <div className="flex-1 min-w-0">
@@ -728,7 +741,10 @@ export default function RevivalsPage() {
       </div>
 
       {/* Main Content - Pipeline or Conversation View */}
-      <div className="flex-1 flex flex-col bg-background min-h-0">
+      <div className={cn(
+        "flex-1 flex flex-col bg-background min-h-0",
+        !selectedDeal && "hidden sm:flex"
+      )}>
         {viewMode === "pipeline" && !selectedDeal ? (
           <RevivalsPipeline
             stalledDeals={filteredDeals}
@@ -757,7 +773,18 @@ export default function RevivalsPage() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setSelectedDeal(null)}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    setSelectedDeal(null)
+                  }}
+                  onTouchStart={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    setSelectedDeal(null)
+                  }}
+                  className="touch-manipulation"
+                  style={{ WebkitTapHighlightColor: 'transparent' }}
                 >
                   <X className="h-4 w-4" />
                 </Button>
