@@ -9,12 +9,24 @@ import { Separator } from "@/components/ui/separator"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
-import { Save, Eye, EyeOff, Copy, Check, CheckCircle2, Loader2, ExternalLink, Trash2, CreditCard, Search, Info, AlertCircle, HelpCircle, Settings2, User, Key, Bell, Zap, Building2, Shield, Webhook as WebhookIcon, Users } from "lucide-react"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Textarea } from "@/components/ui/textarea"
+import { Save, Eye, EyeOff, Copy, Check, CheckCircle2, Loader2, ExternalLink, Trash2, CreditCard, Search, Info, AlertCircle, HelpCircle, Settings2, User, Key, Bell, Zap, Building2, Shield, Webhook as WebhookIcon, Users, Plus, X, Tag, Filter } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { hasApiKey, getSettings, updateSettings, getWebhooks, createWebhook, updateWebhook, deleteWebhook, getTeams, getTeamMembers, addTeamMember, type Webhook, type Team, type TeamMember } from "@/lib/api"
 import { getUser, updateUser, saveUser } from "@/lib/user"
 import { getSubscription, formatPrice, getPlanPrice, getPlanLimits } from "@/lib/subscription"
 import { showToast } from "@/lib/toast"
+
+interface ReactivationRule {
+  id: string
+  name: string
+  enabled: boolean
+  statuses: string[]
+  tags: string[]
+  thresholdDays: number
+  priority: number
+}
 
 interface SettingsData {
   email: string
@@ -32,6 +44,7 @@ interface SettingsData {
   smsNotifications: boolean
   notifyOnStalled: boolean
   notifyOnResponse: boolean
+  reactivationRules: ReactivationRule[]
 }
 
 const defaultSettings: SettingsData = {
@@ -50,6 +63,17 @@ const defaultSettings: SettingsData = {
   smsNotifications: false,
   notifyOnStalled: true,
   notifyOnResponse: true,
+  reactivationRules: [
+    {
+      id: "default-rule",
+      name: "Default Rule",
+      enabled: true,
+      statuses: ["active"],
+      tags: [],
+      thresholdDays: 7,
+      priority: 1,
+    },
+  ],
 }
 
 export default function SettingsPage() {
@@ -68,6 +92,10 @@ export default function SettingsPage() {
   const [webhooks, setWebhooks] = useState<Webhook[]>([])
   const [teams, setTeams] = useState<Team[]>([])
   const [teamMembers, setTeamMembers] = useState<Record<string, TeamMember[]>>({})
+  const [editingRule, setEditingRule] = useState<ReactivationRule | null>(null)
+  const [showRuleDialog, setShowRuleDialog] = useState(false)
+  const [newStatus, setNewStatus] = useState("")
+  const [newTag, setNewTag] = useState("")
   const settingsRef = useRef(settings)
   
   // Keep ref in sync with state
@@ -137,6 +165,7 @@ export default function SettingsPage() {
           smsNotifications: backendSettings.sms_notifications,
           notifyOnStalled: backendSettings.notify_on_stalled,
           notifyOnResponse: backendSettings.notify_on_response,
+          reactivationRules: backendSettings.reactivation_rules || defaultSettings.reactivationRules,
           ghlConnected: backendSettings.ghl_connected,
           ghlLocationId: backendSettings.ghl_location_id || "",
           ghlApiKey: backendSettings.ghl_api_key || "",
@@ -1002,6 +1031,359 @@ export default function SettingsPage() {
                   disabled={settings.requireApproval}
                 />
               </div>
+              
+              <Separator className="bg-[#2A2F3A]" />
+              
+              {/* Reactivation Rules */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-[#111827] font-semibold">Reactivation Rules</Label>
+                    <p className="text-sm text-[#6B7280] mt-0.5">
+                      Define when deals should be reactivated based on status, tags, and inactivity
+                    </p>
+                  </div>
+                  <Dialog open={showRuleDialog} onOpenChange={setShowRuleDialog}>
+                    <DialogTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          setEditingRule(null)
+                          setShowRuleDialog(true)
+                        }}
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Rule
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                      <DialogHeader>
+                        <DialogTitle>{editingRule ? "Edit Reactivation Rule" : "Create Reactivation Rule"}</DialogTitle>
+                        <DialogDescription>
+                          Configure when deals matching specific criteria should be reactivated
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4 mt-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="rule-name">Rule Name</Label>
+                          <Input
+                            id="rule-name"
+                            placeholder="e.g., Closed deals without response"
+                            value={editingRule?.name || ""}
+                            onChange={(e) => setEditingRule(prev => prev ? { ...prev, name: e.target.value } : {
+                              id: `rule-${Date.now()}`,
+                              name: e.target.value,
+                              enabled: true,
+                              statuses: [],
+                              tags: [],
+                              thresholdDays: 7,
+                              priority: settings.reactivationRules.length + 1,
+                            })}
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label>Opportunity Statuses</Label>
+                          <p className="text-xs text-[#6B7280] mb-2">
+                            Select which deal statuses this rule applies to (leave empty to match all)
+                          </p>
+                          <div className="flex flex-wrap gap-2 mb-2">
+                            {editingRule?.statuses.map((status, idx) => (
+                              <Badge key={idx} variant="outline" className="flex items-center gap-1">
+                                {status}
+                                <X
+                                  className="h-3 w-3 cursor-pointer"
+                                  onClick={() => setEditingRule(prev => prev ? {
+                                    ...prev,
+                                    statuses: prev.statuses.filter((_, i) => i !== idx)
+                                  } : null)}
+                                />
+                              </Badge>
+                            ))}
+                          </div>
+                          <div className="flex gap-2">
+                            <Input
+                              placeholder="e.g., active, closed, won"
+                              value={newStatus}
+                              onChange={(e) => setNewStatus(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" && newStatus.trim()) {
+                                  e.preventDefault()
+                                  setEditingRule(prev => prev ? {
+                                    ...prev,
+                                    statuses: [...prev.statuses, newStatus.trim()]
+                                  } : {
+                                    id: `rule-${Date.now()}`,
+                                    name: "",
+                                    enabled: true,
+                                    statuses: [newStatus.trim()],
+                                    tags: [],
+                                    thresholdDays: 7,
+                                    priority: settings.reactivationRules.length + 1,
+                                  })
+                                  setNewStatus("")
+                                }
+                              }}
+                            />
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                if (newStatus.trim()) {
+                                  setEditingRule(prev => prev ? {
+                                    ...prev,
+                                    statuses: [...prev.statuses, newStatus.trim()]
+                                  } : {
+                                    id: `rule-${Date.now()}`,
+                                    name: "",
+                                    enabled: true,
+                                    statuses: [newStatus.trim()],
+                                    tags: [],
+                                    thresholdDays: 7,
+                                    priority: settings.reactivationRules.length + 1,
+                                  })
+                                  setNewStatus("")
+                                }
+                              }}
+                            >
+                              Add
+                            </Button>
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label>Tags</Label>
+                          <p className="text-xs text-[#6B7280] mb-2">
+                            Select which tags deals must have (leave empty to match all)
+                          </p>
+                          <div className="flex flex-wrap gap-2 mb-2">
+                            {editingRule?.tags.map((tag, idx) => (
+                              <Badge key={idx} variant="outline" className="flex items-center gap-1">
+                                {tag}
+                                <X
+                                  className="h-3 w-3 cursor-pointer"
+                                  onClick={() => setEditingRule(prev => prev ? {
+                                    ...prev,
+                                    tags: prev.tags.filter((_, i) => i !== idx)
+                                  } : null)}
+                                />
+                              </Badge>
+                            ))}
+                          </div>
+                          <div className="flex gap-2">
+                            <Input
+                              placeholder="e.g., vip, enterprise, follow-up"
+                              value={newTag}
+                              onChange={(e) => setNewTag(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" && newTag.trim()) {
+                                  e.preventDefault()
+                                  setEditingRule(prev => prev ? {
+                                    ...prev,
+                                    tags: [...prev.tags, newTag.trim()]
+                                  } : {
+                                    id: `rule-${Date.now()}`,
+                                    name: "",
+                                    enabled: true,
+                                    statuses: [],
+                                    tags: [newTag.trim()],
+                                    thresholdDays: 7,
+                                    priority: settings.reactivationRules.length + 1,
+                                  })
+                                  setNewTag("")
+                                }
+                              }}
+                            />
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                if (newTag.trim()) {
+                                  setEditingRule(prev => prev ? {
+                                    ...prev,
+                                    tags: [...prev.tags, newTag.trim()]
+                                  } : {
+                                    id: `rule-${Date.now()}`,
+                                    name: "",
+                                    enabled: true,
+                                    statuses: [],
+                                    tags: [newTag.trim()],
+                                    thresholdDays: 7,
+                                    priority: settings.reactivationRules.length + 1,
+                                  })
+                                  setNewTag("")
+                                }
+                              }}
+                            >
+                              Add
+                            </Button>
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="rule-threshold">Inactivity Threshold (days)</Label>
+                          <Input
+                            id="rule-threshold"
+                            type="number"
+                            min="1"
+                            max="90"
+                            value={editingRule?.thresholdDays || 7}
+                            onChange={(e) => setEditingRule(prev => prev ? {
+                              ...prev,
+                              thresholdDays: parseInt(e.target.value) || 7
+                            } : {
+                              id: `rule-${Date.now()}`,
+                              name: "",
+                              enabled: true,
+                              statuses: [],
+                              tags: [],
+                              thresholdDays: parseInt(e.target.value) || 7,
+                              priority: settings.reactivationRules.length + 1,
+                            })}
+                          />
+                          <p className="text-xs text-[#6B7280]">
+                            Reactivate deals that haven't had activity in this many days
+                          </p>
+                        </div>
+                        
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <Label>Enabled</Label>
+                            <p className="text-xs text-[#6B7280]">Enable this reactivation rule</p>
+                          </div>
+                          <Switch
+                            checked={editingRule?.enabled ?? true}
+                            onCheckedChange={(checked) => setEditingRule(prev => prev ? {
+                              ...prev,
+                              enabled: checked
+                            } : {
+                              id: `rule-${Date.now()}`,
+                              name: "",
+                              enabled: checked,
+                              statuses: [],
+                              tags: [],
+                              thresholdDays: 7,
+                              priority: settings.reactivationRules.length + 1,
+                            })}
+                          />
+                        </div>
+                        
+                        <div className="flex gap-2 pt-4">
+                          <Button
+                            className="flex-1"
+                            onClick={() => {
+                              if (editingRule) {
+                                const updatedRules = editingRule.id && settings.reactivationRules.find(r => r.id === editingRule.id)
+                                  ? settings.reactivationRules.map(r => r.id === editingRule.id ? editingRule : r)
+                                  : [...settings.reactivationRules, editingRule]
+                                updateSetting("reactivationRules", updatedRules)
+                                setShowRuleDialog(false)
+                                setEditingRule(null)
+                                setNewStatus("")
+                                setNewTag("")
+                                setTimeout(() => saveSection("revival"), 50)
+                              }
+                            }}
+                            disabled={!editingRule?.name?.trim()}
+                          >
+                            {editingRule?.id && settings.reactivationRules.find(r => r.id === editingRule.id) ? "Update Rule" : "Create Rule"}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              setShowRuleDialog(false)
+                              setEditingRule(null)
+                              setNewStatus("")
+                              setNewTag("")
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+                
+                {settings.reactivationRules.length === 0 ? (
+                  <Card className="p-6 border-dashed">
+                    <div className="text-center">
+                      <Filter className="h-8 w-8 text-[#6B7280] mx-auto mb-2 opacity-50" />
+                      <p className="text-sm text-[#6B7280] mb-3">No reactivation rules configured</p>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setEditingRule(null)
+                          setShowRuleDialog(true)
+                        }}
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Create First Rule
+                      </Button>
+                    </div>
+                  </Card>
+                ) : (
+                  <div className="space-y-3">
+                    {settings.reactivationRules.map((rule) => (
+                      <Card key={rule.id} className={cn("p-4", !rule.enabled && "opacity-60")}>
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h4 className="font-semibold text-sm text-[#111827]">{rule.name}</h4>
+                              {!rule.enabled && (
+                                <Badge variant="outline" className="text-xs">Disabled</Badge>
+                              )}
+                            </div>
+                            <div className="space-y-1 text-xs text-[#6B7280]">
+                              <p>
+                                <span className="font-medium">Statuses:</span>{" "}
+                                {rule.statuses.length > 0 ? rule.statuses.join(", ") : "Any"}
+                              </p>
+                              <p>
+                                <span className="font-medium">Tags:</span>{" "}
+                                {rule.tags.length > 0 ? rule.tags.join(", ") : "Any"}
+                              </p>
+                              <p>
+                                <span className="font-medium">Threshold:</span> {rule.thresholdDays} day{rule.thresholdDays !== 1 ? "s" : ""} of inactivity
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                setEditingRule(rule)
+                                setShowRuleDialog(true)
+                              }}
+                            >
+                              <Settings2 className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                const updatedRules = settings.reactivationRules.filter(r => r.id !== rule.id)
+                                updateSetting("reactivationRules", updatedRules)
+                                setTimeout(() => saveSection("revival"), 50)
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </Button>
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </div>
+              
               <Button
                 onClick={(e) => {
                   e.preventDefault()

@@ -220,6 +220,59 @@ export default function OnboardingPage() {
       ),
     },
     {
+      title: "Configure Reactivation Rules",
+      description: "Set up when deals should be reactivated based on status, tags, and inactivity.",
+      icon: Filter,
+      illustration: "rules",
+      content: (
+        <div className="space-y-4 mt-6">
+          <div className="p-5 bg-gradient-to-br from-white to-[#F9FAFB] rounded-xl border-2 border-[#4F8CFF]/20 shadow-md">
+            <div className="flex items-start gap-3 mb-4">
+              <div className="h-10 w-10 rounded-lg bg-[#4F8CFF]/10 flex items-center justify-center flex-shrink-0">
+                <Filter className="h-5 w-5 text-[#4F8CFF]" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-[#111827] mb-1">Example Rule: Closed Deals</p>
+                <p className="text-xs text-[#6B7280] mb-3">
+                  Reactivate deals with status "closed" that haven't responded in 7 days
+                </p>
+                <div className="space-y-2 text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-1 bg-[#4F8CFF]/10 text-[#4F8CFF] rounded">Status: closed</span>
+                    <span className="px-2 py-1 bg-[#3CCB7F]/10 text-[#3CCB7F] rounded">Threshold: 7 days</span>
+                  </div>
+                  <p className="text-[#6B7280] italic">
+                    "If a deal is closed and hasn't had activity in 7 days, generate a reactivation message"
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="p-4 bg-[#F9FAFB] rounded-lg border border-[#E5E7EB]">
+            <p className="text-sm font-semibold text-[#111827] mb-3">What You Can Configure:</p>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                "Deal statuses (active, closed, won, etc.)",
+                "Tags (vip, enterprise, follow-up)",
+                "Inactivity threshold (days)",
+                "Multiple rules for different scenarios"
+              ].map((item, idx) => (
+                <div key={idx} className="flex items-center gap-2">
+                  <Check className="h-3.5 w-3.5 text-[#3CCB7F] flex-shrink-0" />
+                  <span className="text-xs text-[#6B7280]">{item}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="p-3 bg-[#4F8CFF]/5 rounded-lg border border-[#4F8CFF]/20">
+            <p className="text-xs text-[#4F8CFF] font-medium text-center">
+              💡 Configure your first reactivation rule in Settings after onboarding
+            </p>
+          </div>
+        </div>
+      ),
+    },
+    {
       title: "Settings & Configuration",
       description: "Customize how Revive.ai works for your business.",
       icon: Settings,
@@ -250,7 +303,7 @@ export default function OnboardingPage() {
             <p className="text-sm font-semibold text-[#111827] mb-3">Settings You Can Configure:</p>
             <div className="grid grid-cols-2 gap-2">
               {[
-                "Stalled deal threshold",
+                "Reactivation rules (status, tags, threshold)",
                 "Auto-approval settings",
                 "GoHighLevel integration",
                 "Notification preferences"

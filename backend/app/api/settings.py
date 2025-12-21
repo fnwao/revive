@@ -48,6 +48,11 @@ async def get_settings(
     """Get current user's settings."""
     settings = get_or_create_user_settings(user, db)
     
+    # Extract reactivation rules from extra_settings JSON
+    reactivation_rules = None
+    if settings.extra_settings and "reactivation_rules" in settings.extra_settings:
+        reactivation_rules = settings.extra_settings["reactivation_rules"]
+    
     # Map to response schema
     response_data = {
         "id": settings.id,
@@ -63,6 +68,7 @@ async def get_settings(
         "ghl_connected": settings.ghl_connected,
         "ghl_api_key": settings.ghl_api_key,
         "ghl_location_id": user.ghl_location_id,  # Get from user model
+        "reactivation_rules": reactivation_rules,
         "created_at": settings.created_at.isoformat() if settings.created_at else None,
         "updated_at": settings.updated_at.isoformat() if settings.updated_at else None,
     }
@@ -82,6 +88,13 @@ async def update_settings(
     # Update fields that are provided
     update_data = settings_update.model_dump(exclude_unset=True)
     
+    # Handle reactivation_rules separately (store in extra_settings JSON)
+    reactivation_rules = update_data.pop("reactivation_rules", None)
+    if reactivation_rules is not None:
+        if settings.extra_settings is None:
+            settings.extra_settings = {}
+        settings.extra_settings["reactivation_rules"] = reactivation_rules
+    
     # Handle GHL location ID separately (it's on the User model)
     ghl_location_id = update_data.pop("ghl_location_id", None)
     if ghl_location_id is not None:
@@ -98,6 +111,11 @@ async def update_settings(
     
     logger.info(f"Updated settings for user {user.id}")
     
+    # Extract reactivation rules from extra_settings JSON
+    reactivation_rules = None
+    if settings.extra_settings and "reactivation_rules" in settings.extra_settings:
+        reactivation_rules = settings.extra_settings["reactivation_rules"]
+    
     # Return updated settings
     response_data = {
         "id": settings.id,
@@ -113,6 +131,7 @@ async def update_settings(
         "ghl_connected": settings.ghl_connected,
         "ghl_api_key": settings.ghl_api_key,
         "ghl_location_id": user.ghl_location_id,
+        "reactivation_rules": reactivation_rules,
         "created_at": settings.created_at.isoformat() if settings.created_at else None,
         "updated_at": settings.updated_at.isoformat() if settings.updated_at else None,
     }

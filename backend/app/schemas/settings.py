@@ -1,7 +1,18 @@
 """Settings schemas for request/response validation."""
 from pydantic import BaseModel, Field, field_validator
-from typing import Optional
+from typing import Optional, List
 from uuid import UUID
+
+
+class ReactivationRule(BaseModel):
+    """Schema for a reactivation rule."""
+    id: str
+    name: str
+    enabled: bool
+    statuses: List[str] = []
+    tags: List[str] = []
+    thresholdDays: int = Field(ge=1, le=90)
+    priority: int = 1
 
 
 class UserSettingsBase(BaseModel):
@@ -17,6 +28,7 @@ class UserSettingsBase(BaseModel):
     ghl_connected: bool = False
     ghl_api_key: Optional[str] = None
     ghl_location_id: Optional[str] = None
+    reactivation_rules: Optional[List[ReactivationRule]] = None
     
     @field_validator("stalled_threshold_days")
     @classmethod
@@ -44,6 +56,7 @@ class UserSettingsUpdate(BaseModel):
     ghl_connected: Optional[bool] = None
     ghl_api_key: Optional[str] = None
     ghl_location_id: Optional[str] = None
+    reactivation_rules: Optional[List[ReactivationRule]] = None
 
 
 class UserSettingsResponse(UserSettingsBase):

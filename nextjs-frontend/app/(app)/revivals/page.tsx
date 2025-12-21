@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { detectStalledDeals, generateMessage, getApprovals, approveMessage, rejectMessage, sendMessage, updateEditedMessage, submitFeedback, regenerateMessage, getTemplates, type StalledDeal, type Approval, hasApiKey, type MessageTemplate } from "@/lib/api"
+import { detectStalledDeals, generateMessage, getApprovals, approveMessage, rejectMessage, sendMessage, updateEditedMessage, submitFeedback, regenerateMessage, getTemplates, getSettings, type StalledDeal, type Approval, hasApiKey, type MessageTemplate, type ReactivationRule } from "@/lib/api"
 import { getConversationForDeal, type ConversationMessage } from "@/lib/demo-data"
 import { RevivalsPipeline } from "@/components/revivals-pipeline"
 import { Search, RefreshCw, MessageSquare, Clock, DollarSign, Send, Check, X, AlertCircle, User, Loader2, Edit2, Save, MessageCircle, Calendar, Filter, Tag, LayoutGrid, List, TrendingUp, Brain, Target, Zap, Mail, FileText, ArrowRight, Plus } from "lucide-react"
@@ -44,18 +44,49 @@ export default function RevivalsPage() {
   const [autoRefresh, setAutoRefresh] = useState(true)
   const refreshIntervalRef = useRef<number | null>(null)
   const [viewMode, setViewMode] = useState<"list" | "pipeline">("list")
+  const [reactivationRules, setReactivationRules] = useState<ReactivationRule[]>([])
+
+  const loadReactivationRules = async () => {
+    try {
+      const settings = await getSettings()
+      if (settings.reactivation_rules && settings.reactivation_rules.length > 0) {
+        setReactivationRules(settings.reactivation_rules)
+      }
+    } catch (error) {
+      console.error("Failed to load reactivation rules:", error)
+    }
+  }
 
   const loadStalledDeals = async (showError = true) => {
     setLoading(true)
     setError(null)
     try {
+      // Use reactivation rules if available, otherwise use manual filters
+      let statusFilter: string[] | undefined = undefined
+      let tagFilter: string[] | undefined = undefined
+      let thresholdDays = 7
+      
+      // If we have enabled reactivation rules, use them
+      const enabledRules = reactivationRules.filter(r => r.enabled)
+      if (enabledRules.length > 0) {
+        // For now, use the first enabled rule (can be enhanced to support multiple rules)
+        const activeRule = enabledRules[0]
+        statusFilter = activeRule.statuses.length > 0 ? activeRule.statuses : undefined
+        tagFilter = activeRule.tags.length > 0 ? activeRule.tags : undefined
+        thresholdDays = activeRule.thresholdDays
+      } else {
+        // Fall back to manual filters if no rules configured
+        statusFilter = statusFilters.length > 0 ? statusFilters : undefined
+        tagFilter = tagFilters.length > 0 ? tagFilters : undefined
+      }
+      
       // detectStalledDeals will return mock data if no API key
       const result = await detectStalledDeals(
         undefined, 
         undefined, 
-        7,
-        statusFilters.length > 0 ? statusFilters : undefined,
-        tagFilters.length > 0 ? tagFilters : undefined
+        thresholdDays,
+        statusFilter,
+        tagFilter
       )
       setStalledDeals(result.stalled_deals)
     } catch (error) {
@@ -114,6 +145,7 @@ export default function RevivalsPage() {
   }
 
   useEffect(() => {
+    loadReactivationRules()
     loadStalledDeals()
     loadApprovals()
     loadTemplates()

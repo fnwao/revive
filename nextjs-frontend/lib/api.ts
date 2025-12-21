@@ -1082,6 +1082,16 @@ export async function sendMessage(
 }
 
 // Settings API
+export interface ReactivationRule {
+  id: string
+  name: string
+  enabled: boolean
+  statuses: string[]
+  tags: string[]
+  thresholdDays: number
+  priority: number
+}
+
 export interface UserSettings {
   id: string
   user_id: string
@@ -1096,6 +1106,7 @@ export interface UserSettings {
   ghl_connected: boolean
   ghl_api_key: string | null
   ghl_location_id: string | null
+  reactivation_rules?: ReactivationRule[]
   created_at: string
   updated_at: string | null
 }
@@ -1112,6 +1123,7 @@ export interface UserSettingsUpdate {
   ghl_connected?: boolean
   ghl_api_key?: string | null
   ghl_location_id?: string | null
+  reactivation_rules?: ReactivationRule[]
 }
 
 export async function getSettings(): Promise<UserSettings> {
@@ -1143,15 +1155,26 @@ export async function getSettings(): Promise<UserSettings> {
       }
     }
     
-    // Return default settings
-    return {
-      id: "local-settings",
-      user_id: "local-user",
-      auto_detect_stalled: true,
-      stalled_threshold_days: 7,
-      require_approval: true,
-      auto_approve: false,
-      email_notifications: true,
+      // Return default settings
+      return {
+        id: "local-settings",
+        user_id: "local-user",
+        auto_detect_stalled: true,
+        stalled_threshold_days: 7,
+        require_approval: true,
+        auto_approve: false,
+        email_notifications: true,
+        reactivation_rules: [
+          {
+            id: "default-rule",
+            name: "Default Rule",
+            enabled: true,
+            statuses: ["active"],
+            tags: [],
+            thresholdDays: 7,
+            priority: 1,
+          },
+        ] as ReactivationRule[],
       sms_notifications: false,
       notify_on_stalled: true,
       notify_on_response: true,
