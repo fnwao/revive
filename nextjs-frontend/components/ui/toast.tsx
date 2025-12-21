@@ -8,11 +8,13 @@ import { cn } from "@/lib/utils"
 
 // Try to import toast primitives, with graceful fallback
 let ToastPrimitives: any = null
-try {
-  ToastPrimitives = require("@radix-ui/react-toast")
-} catch (e) {
-  // Package not installed - will use fallback components
-  console.warn("@radix-ui/react-toast not installed. Toast notifications will be disabled.")
+if (typeof window !== "undefined") {
+  try {
+    ToastPrimitives = require("@radix-ui/react-toast")
+  } catch (e) {
+    // Package not installed - will use fallback components
+    console.warn("@radix-ui/react-toast not installed. Toast notifications will be disabled.")
+  }
 }
 
 // Fallback components if ToastPrimitives is not available
