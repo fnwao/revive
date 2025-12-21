@@ -27,6 +27,8 @@ import { showToast } from "@/lib/toast"
 import Link from "next/link"
 
 export default function DashboardPage() {
+  // Ensure we're on client-side before rendering
+  const [mounted, setMounted] = useState(false)
   const [user, setUser] = useState<User | null>(null)
   const [stats, setStats] = useState({
     active_revivals: 0,
@@ -46,9 +48,14 @@ export default function DashboardPage() {
   const [unreadCount, setUnreadCount] = useState(0)
   const [recentActivity, setRecentActivity] = useState<Array<{ action: string; time: string; icon: string }>>([])
 
+  // Set mounted state on client-side
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
   // Reload user data when component mounts or user updates
   useEffect(() => {
-    if (typeof window === "undefined") return
+    if (typeof window === "undefined" || !mounted) return
     
     const refreshUser = () => {
       const currentUser = getUser()
@@ -78,10 +85,10 @@ export default function DashboardPage() {
       window.removeEventListener("userUpdated", handleUserUpdate)
       window.removeEventListener("storage", handleStorageChange)
     }
-  }, [])
+  }, [mounted])
 
   // Calculate greeting and firstName only when user is available (client-side)
-  const greeting = typeof window !== "undefined" ? getGreeting() : "Hello"
+  const greeting = mounted ? getGreeting() : "Hello"
   const firstName = user ? getFirstName(user.name) : "there"
 
   const loadData = async () => {
@@ -197,17 +204,18 @@ export default function DashboardPage() {
   }
 
   useEffect(() => {
-    // Only load data on client-side
-    if (typeof window !== "undefined") {
-      loadData().catch((error) => {
-        console.error("Failed to load dashboard data:", error)
-        setError("Failed to load dashboard. Please refresh the page.")
-        setLoading(false)
-      })
-    } else {
+    // Only load data on client-side after mount
+    if (!mounted) {
       setLoading(false)
+      return
     }
-  }, [])
+    
+    loadData().catch((error) => {
+      console.error("Failed to load dashboard data:", error)
+      setError("Failed to load dashboard. Please refresh the page.")
+      setLoading(false)
+    })
+  }, [mounted])
 
   // Auto-refresh when enabled
   useEffect(() => {
@@ -314,7 +322,7 @@ export default function DashboardPage() {
   const isActive = stats.active_revivals > 0 || stats.pending_approvals > 0
 
   // Show loading state only on client-side
-  if (typeof window !== "undefined" && loading) {
+  if (mounted && loading) {
     return (
       <div className="flex flex-col h-full min-h-0 items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-[#4F8CFF]" />
