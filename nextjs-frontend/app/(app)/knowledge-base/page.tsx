@@ -20,8 +20,8 @@ import { showToast } from "@/lib/toast"
 import { KnowledgeBaseChat } from "@/components/knowledge-base-chat"
 
 export default function KnowledgeBasePage() {
-  const [documents, setDocuments] = useState<KnowledgeBaseDocument[]>(getDocuments())
-  const [subscription, setSubscription] = useState(getSubscription())
+  const [documents, setDocuments] = useState<KnowledgeBaseDocument[]>([])
+  const [subscription, setSubscription] = useState<ReturnType<typeof getSubscription> | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedDoc, setSelectedDoc] = useState<KnowledgeBaseDocument | null>(null)
   const [isUploading, setIsUploading] = useState(false)
@@ -37,8 +37,13 @@ export default function KnowledgeBasePage() {
   const [editContent, setEditContent] = useState("")
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Listen for subscription updates
+  // Initialize client-side data
   useEffect(() => {
+    if (typeof window === "undefined") return
+    
+    setDocuments(getDocuments())
+    setSubscription(getSubscription())
+    
     const handleSubscriptionUpdate = () => {
       setSubscription(getSubscription())
     }
@@ -79,9 +84,13 @@ export default function KnowledgeBasePage() {
     return () => window.removeEventListener("keydown", handleKeyDown)
   }, [selectedDoc, editingDoc])
 
-  const limits = getPlanLimits(subscription.plan)
+  // Get limits safely
+  const limits = subscription && subscription.plan 
+    ? getPlanLimits(subscription.plan) 
+    : getPlanLimits("pro")
+  
   // Knowledge base is available for Pro and Scale plans (unlimited)
-  const hasKnowledgeBase = limits.knowledgeBase
+  const hasKnowledgeBase = limits?.knowledgeBase ?? false
   const maxDocs = hasKnowledgeBase ? Infinity : 0
   const canUpload = hasKnowledgeBase && documents.length < maxDocs
 
@@ -342,8 +351,10 @@ export default function KnowledgeBasePage() {
     }
     
     const currentDocs = getDocuments()
-    const limits = getPlanLimits(subscription.plan)
-    const hasKnowledgeBase = limits.knowledgeBase
+    const limits = subscription && subscription.plan 
+      ? getPlanLimits(subscription.plan) 
+      : getPlanLimits("pro")
+    const hasKnowledgeBase = limits?.knowledgeBase ?? false
     const maxDocs = hasKnowledgeBase ? Infinity : 0
     const canUpload = hasKnowledgeBase && currentDocs.length < maxDocs
     
