@@ -25,8 +25,12 @@ const navigation = [
 export function Sidebar() {
   const pathname = usePathname()
   const [subscription, setSubscription] = useState<ReturnType<typeof getSubscription> | null>(null)
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    setMounted(true)
+    if (typeof window === "undefined") return
+    
     setSubscription(getSubscription())
     
     const handleSubscriptionUpdate = () => {
@@ -39,8 +43,15 @@ export function Sidebar() {
     }
   }, [])
 
-  const limits = subscription ? getPlanLimits(subscription.plan) : getPlanLimits("pro")
-  const revivalsText = `${limits.opportunitiesPerMonth.toLocaleString()} opportunities/month`
+  // Get limits safely
+  const limits = subscription && subscription.plan 
+    ? getPlanLimits(subscription.plan) 
+    : getPlanLimits("pro")
+  
+  // Safely format the text
+  const revivalsText = limits && limits.opportunitiesPerMonth 
+    ? `${limits.opportunitiesPerMonth.toLocaleString()} opportunities/month`
+    : "Loading..."
 
   return (
     <div className="flex h-full w-64 flex-col border-r border-[#E5E7EB] bg-white flex-shrink-0">
