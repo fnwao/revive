@@ -134,7 +134,7 @@ async def update_settings(
         "notify_on_stalled": settings.notify_on_stalled,
         "notify_on_response": settings.notify_on_response,
         "ghl_connected": settings.ghl_connected,
-        "ghl_api_key": settings.ghl_api_key,
+        "ghl_api_key": user.ghl_access_token,  # Get from user model (used by GHL service)
         "ghl_location_id": user.ghl_location_id,
         "reactivation_rules": reactivation_rules,
         "created_at": settings.created_at.isoformat() if settings.created_at else None,
