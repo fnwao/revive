@@ -368,8 +368,13 @@ export default function SettingsPage() {
   }
 
   const handleConnectGHL = async () => {
-    if (settings.ghlLocationId?.trim() && !/^\d+$/.test(settings.ghlLocationId.trim())) {
-      setErrors({ ghlLocationId: "Location ID must be numeric" })
+    const locationId = settings.ghlLocationId?.trim() || ""
+    if (locationId && !/^[a-zA-Z0-9]+$/.test(locationId)) {
+      setErrors({ ghlLocationId: "Location ID must contain only letters and numbers" })
+      return
+    }
+    if (locationId && locationId.length < 10) {
+      setErrors({ ghlLocationId: "Location ID must be at least 10 characters" })
       return
     }
 

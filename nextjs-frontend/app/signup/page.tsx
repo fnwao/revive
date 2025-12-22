@@ -124,8 +124,10 @@ export default function SignUpPage() {
 
     if (!formData.locationId.trim()) {
       newErrors.locationId = "Location ID is required"
-    } else if (!/^\d+$/.test(formData.locationId)) {
-      newErrors.locationId = "Location ID must be numeric"
+    } else if (!/^[a-zA-Z0-9]+$/.test(formData.locationId.trim())) {
+      newErrors.locationId = "Location ID must contain only letters and numbers"
+    } else if (formData.locationId.trim().length < 10) {
+      newErrors.locationId = "Location ID must be at least 10 characters"
     }
 
     setErrors(newErrors)
