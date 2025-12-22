@@ -507,9 +507,13 @@ export async function detectStalledDeals(
       body: JSON.stringify(body),
     })
     return response
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error detecting stalled deals:", error)
-    // Fallback to mock data on error
+    // If GHL is connected but API call failed, show error instead of mock data
+    if (isGhlConnected()) {
+      throw new Error(`Failed to fetch real GHL data: ${error?.detail || error?.message || "Please check your API key and GHL credentials"}`)
+    }
+    // Fallback to mock data on error only if GHL is not connected
     const mockDeals: StalledDeal[] = [
       {
         deal_id: "deal-001",
