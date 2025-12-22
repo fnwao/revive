@@ -15,13 +15,16 @@ def get_ghl_service(user: User):
     """
     Factory function to get GHL service (real or mock).
     
-    Returns GHLService or GHLMockService based on config.
+    Returns GHLService if user has GHL credentials, otherwise GHLMockService.
+    Checks user credentials first, then falls back to global mock setting.
     """
-    if settings.use_mock_ghl:
-        from app.services.ghl_mock import GHLMockService
-        return GHLMockService(user)
-    else:
+    # Check if user has GHL credentials - if so, use real service
+    if user.ghl_access_token and user.ghl_location_id:
         return GHLService(user)
+    
+    # Otherwise, use mock service (either user doesn't have credentials or global mock is enabled)
+    from app.services.ghl_mock import GHLMockService
+    return GHLMockService(user)
 
 
 class GHLService:

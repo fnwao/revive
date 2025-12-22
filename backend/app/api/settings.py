@@ -95,10 +95,15 @@ async def update_settings(
             settings.extra_settings = {}
         settings.extra_settings["reactivation_rules"] = reactivation_rules
     
-    # Handle GHL location ID separately (it's on the User model)
+    # Handle GHL credentials separately (they're on the User model)
     ghl_location_id = update_data.pop("ghl_location_id", None)
     if ghl_location_id is not None:
         user.ghl_location_id = ghl_location_id
+    
+    # Handle GHL API key - save to user.ghl_access_token for GHL service
+    ghl_api_key = update_data.pop("ghl_api_key", None)
+    if ghl_api_key is not None:
+        user.ghl_access_token = ghl_api_key
     
     # Update settings fields
     for key, value in update_data.items():

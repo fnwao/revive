@@ -88,6 +88,27 @@ export function hasApiKey(): boolean {
   return getApiKey() !== null
 }
 
+// Check if GHL is connected (from localStorage settings)
+export function isGhlConnected(): boolean {
+  if (typeof window === "undefined") return false
+  
+  try {
+    const saved = localStorage.getItem("revive_settings")
+    if (saved) {
+      const parsed = JSON.parse(saved)
+      return parsed.ghlConnected === true && 
+             parsed.ghlApiKey && 
+             parsed.ghlApiKey.trim() && 
+             parsed.ghlLocationId && 
+             parsed.ghlLocationId.trim()
+    }
+  } catch (e) {
+    console.error("Error reading GHL connection status:", e)
+  }
+  
+  return false
+}
+
 async function fetchApi<T>(
   endpoint: string,
   options: RequestInit = {}
@@ -179,8 +200,9 @@ export async function detectStalledDeals(
   statusFilter?: string[],
   tagsFilter?: string[]
 ): Promise<{ stalled_deals: StalledDeal[]; total_found: number }> {
-  // Return mock data if no API key
-  if (!hasApiKey()) {
+  // Return mock data if no API key AND GHL is not connected
+  // If GHL is connected, we should try to use real API even without backend API key
+  if (!hasApiKey() && !isGhlConnected()) {
     const mockDeals: StalledDeal[] = [
       {
         deal_id: "deal-001",
