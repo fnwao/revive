@@ -60,20 +60,28 @@ class GHLService:
                 logger.error(f"Error fetching deal {deal_id}: {str(e)}")
                 return None
     
-    async def get_deals_by_pipeline(self, pipeline_id: str) -> List[Dict[str, Any]]:
-        """Fetch all deals in a pipeline."""
+    async def get_deals_by_pipeline(self, pipeline_id: str = None) -> List[Dict[str, Any]]:
+        """Fetch all deals in a pipeline, or all deals if no pipeline_id provided."""
         async with httpx.AsyncClient() as client:
             try:
+                params = {}
+                if pipeline_id:
+                    params["pipelineId"] = pipeline_id
+                
+                # Add location ID to filter by location
+                if self.location_id:
+                    params["locationId"] = self.location_id
+                
                 response = await client.get(
                     f"{self.BASE_URL}/opportunities",
                     headers=self._get_headers(),
-                    params={"pipelineId": pipeline_id}
+                    params=params
                 )
                 response.raise_for_status()
                 data = response.json()
                 return data.get("opportunities", [])
             except httpx.HTTPError as e:
-                logger.error(f"Error fetching deals for pipeline {pipeline_id}: {str(e)}")
+                logger.error(f"Error fetching deals for pipeline {pipeline_id or 'all'}: {str(e)}")
                 return []
     
     async def get_deal_conversations(

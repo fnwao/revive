@@ -484,10 +484,11 @@ export async function detectStalledDeals(
     body.pipeline_id = pipelineId
   } else if (dealIds && dealIds.length > 0) {
     body.deal_ids = dealIds
-  } else {
-    // Default to a pipeline ID if none provided (for testing with database deals)
+  } else if (!isGhlConnected()) {
+    // Only use default pipeline for mock data when GHL is not connected
     body.pipeline_id = "pipeline-001"
   }
+  // If GHL is connected but no pipeline_id provided, let backend handle it
   
   // Add filters
   if (statusFilter && statusFilter.length > 0) {

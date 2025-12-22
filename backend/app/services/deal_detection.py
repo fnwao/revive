@@ -114,8 +114,12 @@ async def detect_stalled_deals(
             deals_to_check = await ghl_service.get_deals_by_pipeline(pipeline_id)
         
         else:
-            logger.error("Either pipeline_id or deal_ids must be provided")
-            return []
+            # No pipeline_id or deal_ids - fetch all deals from GHL
+            logger.info("No pipeline_id provided - fetching all deals from GHL")
+            deals_to_check = await ghl_service.get_deals_by_pipeline()
+            if not deals_to_check:
+                logger.warning("No deals found in GHL. Make sure your GHL API key and location ID are correct.")
+                return []
     
     # Check each deal for stalled status
     for deal in deals_to_check:

@@ -51,12 +51,14 @@ async def detect_stalled(
     number of days.
     """
     try:
-        # Validate request
+        # Validate request - allow no pipeline_id if user has GHL connected (will fetch all deals)
         if not request.pipeline_id and not request.deal_ids:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Either pipeline_id or deal_ids must be provided"
-            )
+            # Check if user has GHL credentials - if so, allow fetching all deals
+            if not current_user.ghl_access_token or not current_user.ghl_location_id:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Either pipeline_id or deal_ids must be provided, or connect your GHL account to fetch all deals"
+                )
         
         if request.pipeline_id and request.deal_ids:
             raise HTTPException(
