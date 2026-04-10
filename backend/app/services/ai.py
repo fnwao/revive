@@ -21,7 +21,6 @@ class AIService:
         if json_mode:
             system += "\n\nIMPORTANT: Respond with valid JSON only. No additional text or explanation outside the JSON."
 
-        print(f"[CLAUDE] Calling model={self.model}, max_tokens={max_tokens}, prompt_len={len(user_prompt)}", flush=True)
         try:
             response = self.client.messages.create(
                 model=self.model,
@@ -30,11 +29,9 @@ class AIService:
                 system=system,
                 messages=[{"role": "user", "content": user_prompt}],
             )
-            result = response.content[0].text.strip()
-            print(f"[CLAUDE] Response received, length={len(result)}", flush=True)
-            return result
+            return response.content[0].text.strip()
         except Exception as e:
-            print(f"[CLAUDE] API FAILED: {type(e).__name__}: {str(e)}", flush=True)
+            logger.error(f"Claude API call failed: {type(e).__name__}: {str(e)}")
             raise
 
     def generate_reactivation_message(
@@ -432,7 +429,7 @@ NOTE: If the message is longer than {max_length} characters, use natural line br
                     max_tokens=600,
                     json_mode=True
                 )
-                print(f"[CLAUDE] Raw SMS response: {result_text[:300]}", flush=True)
+                logger.debug(f"Claude SMS response: {result_text[:200]}")
 
                 result = self._parse_json_response(result_text)
                 messages = result.get("messages", [])
@@ -488,9 +485,7 @@ NOTE: If the message is longer than {max_length} characters, use natural line br
                 return [message]
 
         except Exception as e:
-            print(f"[ANTHROPIC ERROR] {type(e).__name__}: {str(e)}", flush=True)
-            import traceback
-            print(f"[ANTHROPIC TRACEBACK] {traceback.format_exc()}", flush=True)
+            logger.error(f"Error generating message: {type(e).__name__}: {str(e)}")
             if generate_sequence:
                 return self._generate_single_message_fallback(deal_title, days_since_activity, max_length)
             else:
