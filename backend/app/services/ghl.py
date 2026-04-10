@@ -72,8 +72,10 @@ class GHLService:
                 
                 response.raise_for_status()
                 data = response.json()
-                logger.info(f"Successfully fetched deal {deal_id} from GHL: {data.get('title', 'No title')}")
-                return data
+                # GHL wraps single opportunity in {"opportunity": {...}}
+                deal = data.get("opportunity", data) if isinstance(data, dict) else data
+                logger.info(f"Successfully fetched deal {deal_id} from GHL: {deal.get('name', 'No title')}")
+                return deal
             except httpx.HTTPStatusError as e:
                 error_text = e.response.text[:500] if e.response.text else "No error text"
                 logger.error(f"HTTP error fetching deal {deal_id}: {e.response.status_code} - {error_text}")
@@ -342,10 +344,10 @@ class GHLService:
             )
             db.add(deal)
         
-        # Update deal fields
-        deal.ghl_contact_id = ghl_deal_data.get("contactId")
+        # Update deal fields (GHL uses "name" not "title", "contactId" from nested contact)
+        deal.ghl_contact_id = ghl_deal_data.get("contactId") or (ghl_deal_data.get("contact", {}) or {}).get("id")
         deal.ghl_pipeline_id = ghl_deal_data.get("pipelineId")
-        deal.title = ghl_deal_data.get("title")
+        deal.title = ghl_deal_data.get("title") or ghl_deal_data.get("name")
         deal.status = ghl_deal_data.get("status")
         deal.value = ghl_deal_data.get("monetaryValue")
         
@@ -376,7 +378,7 @@ class GHLService:
             deal.tags = None
         
         # Parse dates - handle various GHL date formats
-        last_activity_date_str = ghl_deal_data.get("lastActivityDate") or ghl_deal_data.get("lastActivity") or ghl_deal_data.get("updatedAt")
+        last_activity_date_str = ghl_deal_data.get("lastActivityDate") or ghl_deal_data.get("lastActionDate") or ghl_deal_data.get("updatedAt") or ghl_deal_data.get("createdAt")
         if last_activity_date_str:
             from datetime import datetime
             try:
