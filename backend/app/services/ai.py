@@ -21,7 +21,7 @@ class AIService:
         if json_mode:
             system += "\n\nIMPORTANT: Respond with valid JSON only. No additional text or explanation outside the JSON."
 
-        logger.info(f"Calling Claude model={self.model}, max_tokens={max_tokens}, prompt_len={len(user_prompt)}")
+        print(f"[CLAUDE] Calling model={self.model}, max_tokens={max_tokens}, prompt_len={len(user_prompt)}", flush=True)
         try:
             response = self.client.messages.create(
                 model=self.model,
@@ -31,10 +31,10 @@ class AIService:
                 messages=[{"role": "user", "content": user_prompt}],
             )
             result = response.content[0].text.strip()
-            logger.info(f"Claude response received, length={len(result)}")
+            print(f"[CLAUDE] Response received, length={len(result)}", flush=True)
             return result
         except Exception as e:
-            logger.error(f"Claude API call failed: {type(e).__name__}: {str(e)}")
+            print(f"[CLAUDE] API FAILED: {type(e).__name__}: {str(e)}", flush=True)
             raise
 
     def generate_reactivation_message(
@@ -488,9 +488,9 @@ NOTE: If the message is longer than {max_length} characters, use natural line br
                 return [message]
 
         except Exception as e:
-            logger.error(f"ANTHROPIC ERROR [{type(e).__name__}]: {str(e)}")
+            print(f"[ANTHROPIC ERROR] {type(e).__name__}: {str(e)}", flush=True)
             import traceback
-            logger.error(f"ANTHROPIC TRACEBACK: {traceback.format_exc()}")
+            print(f"[ANTHROPIC TRACEBACK] {traceback.format_exc()}", flush=True)
             if generate_sequence:
                 return self._generate_single_message_fallback(deal_title, days_since_activity, max_length)
             else:
