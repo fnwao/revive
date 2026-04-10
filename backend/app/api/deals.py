@@ -264,7 +264,7 @@ async def generate_message(
             payload={
                 "approval_id": str(approval.id),
                 "deal_id": deal_id,
-                "generated_message": generated_message,
+                "generated_message": generated_message_json,
                 "created_at": approval.created_at.isoformat()
             }
         )
