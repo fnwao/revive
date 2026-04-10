@@ -14,7 +14,7 @@ class AIService:
     def __init__(self):
         """Initialize Anthropic client."""
         self.client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
-        self.model = "claude-sonnet-4-5-20250514"
+        self.model = "claude-sonnet-4-5"
 
     def _call_claude(self, system: str, user_prompt: str, temperature: float = 0.7, max_tokens: int = 1000, json_mode: bool = False) -> str:
         """Helper to call Claude API and return text response."""
