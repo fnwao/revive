@@ -206,8 +206,10 @@ async def generate_message(
             days_since_activity = (datetime.now() - last_activity).days
         
         # Generate message using AI - different approach for email vs SMS
+        print(f"[GENERATE] Starting AI generation, channel={channel}, conversations={len(conversations)}", flush=True)
         ai_service = AIService()
         deal_title_str = deal.title or ghl_deal.get("name") or ghl_deal.get("title") or "Deal"
+        print(f"[GENERATE] deal_title={deal_title_str}, days_since={days_since_activity}", flush=True)
 
         if channel == "email":
             # Generate proper email with paragraphs and line breaks
