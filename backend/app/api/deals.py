@@ -329,12 +329,16 @@ async def test_ghl_connection(
         has_token = bool(current_user.ghl_access_token)
         has_location = bool(current_user.ghl_location_id)
         
+        from app.config import settings as app_settings
+        anthropic_key = app_settings.anthropic_api_key
         result = {
             "has_credentials": has_token and has_location,
             "has_token": has_token,
             "has_location": has_location,
             "token_length": len(current_user.ghl_access_token) if current_user.ghl_access_token else 0,
             "location_id": current_user.ghl_location_id if current_user.ghl_location_id else None,
+            "anthropic_key_set": anthropic_key != "mock" and len(anthropic_key) > 10,
+            "anthropic_key_prefix": anthropic_key[:15] + "..." if len(anthropic_key) > 15 else anthropic_key,
             "test_result": None,
             "error": None
         }
