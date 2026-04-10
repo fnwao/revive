@@ -80,7 +80,7 @@ export interface DashboardStats {
 function getApiKey(): string | null {
   if (typeof window === "undefined") return null
   const key = localStorage.getItem("api_key")
-  return key || null
+  return key || process.env.NEXT_PUBLIC_DEFAULT_API_KEY || null
 }
 
 // Check if API key is configured
