@@ -1,11 +1,13 @@
 // API client for backend integration
 
-// Get API URL from localStorage settings or fallback to env/default
+const DEFAULT_BACKEND_URL = "https://backend-fnwaos-projects.vercel.app"
+
+// Get API URL from localStorage settings or fallback to default
 function getApiUrl(): string {
   if (typeof window === "undefined") {
-    return process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+    return process.env.NEXT_PUBLIC_API_URL || DEFAULT_BACKEND_URL
   }
-  
+
   try {
     const savedSettings = localStorage.getItem("revive_settings")
     if (savedSettings) {
@@ -17,8 +19,8 @@ function getApiUrl(): string {
   } catch (e) {
     console.error("Error reading API URL from settings:", e)
   }
-  
-  return process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+
+  return process.env.NEXT_PUBLIC_API_URL || DEFAULT_BACKEND_URL
 }
 
 export interface ApiError {
