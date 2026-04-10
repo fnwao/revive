@@ -76,11 +76,13 @@ export interface DashboardStats {
   pending_approvals: number
 }
 
-// Get API key from localStorage (in real app, use proper auth)
+// Get API key from localStorage or default
+const DEFAULT_API_KEY = "revive-default-api-key-2024"
+
 function getApiKey(): string | null {
-  if (typeof window === "undefined") return null
+  if (typeof window === "undefined") return DEFAULT_API_KEY
   const key = localStorage.getItem("api_key")
-  return key || process.env.NEXT_PUBLIC_DEFAULT_API_KEY || null
+  return key || DEFAULT_API_KEY
 }
 
 // Check if API key is configured
@@ -88,24 +90,27 @@ export function hasApiKey(): boolean {
   return getApiKey() !== null
 }
 
-// Check if GHL is connected (from localStorage settings)
+// Check if GHL is connected (always true when backend is configured with default key)
 export function isGhlConnected(): boolean {
+  // Backend has GHL credentials configured, so always connected
+  if (hasApiKey()) return true
+
   if (typeof window === "undefined") return false
-  
+
   try {
     const saved = localStorage.getItem("revive_settings")
     if (saved) {
       const parsed = JSON.parse(saved)
-      return parsed.ghlConnected === true && 
-             parsed.ghlApiKey && 
-             parsed.ghlApiKey.trim() && 
-             parsed.ghlLocationId && 
+      return parsed.ghlConnected === true &&
+             parsed.ghlApiKey &&
+             parsed.ghlApiKey.trim() &&
+             parsed.ghlLocationId &&
              parsed.ghlLocationId.trim()
     }
   } catch (e) {
     console.error("Error reading GHL connection status:", e)
   }
-  
+
   return false
 }
 
