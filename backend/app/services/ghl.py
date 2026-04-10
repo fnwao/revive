@@ -33,9 +33,13 @@ def get_ghl_service(user: User):
 
 class GHLService:
     """Service for interacting with GoHighLevel API."""
-    
+
     BASE_URL = "https://services.leadconnectorhq.com"
-    
+
+    # Simple TTL cache for deals to avoid GHL rate limiting (429)
+    _deals_cache: Dict[str, Any] = {}  # key: location_id, value: {"data": [...], "ts": float}
+    _CACHE_TTL = 300  # 5 minutes
+
     def __init__(self, user: User):
         """Initialize with user's GHL credentials."""
         self.user = user
@@ -94,6 +98,14 @@ class GHLService:
             logger.error(f"Cannot fetch deals: missing credentials")
             return []
 
+        # Check cache to avoid GHL rate limiting
+        import time
+        cache_key = f"{self.location_id}:{pipeline_id or 'all'}"
+        cached = GHLService._deals_cache.get(cache_key)
+        if cached and (time.time() - cached["ts"]) < GHLService._CACHE_TTL:
+            logger.info(f"Using cached deals ({len(cached['data'])} deals, age={int(time.time() - cached['ts'])}s)")
+            return cached["data"]
+
         all_opportunities = []
         max_pages = 10  # Safety limit
 
@@ -134,11 +146,17 @@ class GHLService:
                     params["startAfterId"] = start_after_id
 
                 logger.info(f"Fetched {len(all_opportunities)} total deals from GHL")
+                # Cache successful results
+                GHLService._deals_cache[cache_key] = {"data": all_opportunities, "ts": time.time()}
                 return all_opportunities
 
             except httpx.HTTPStatusError as e:
                 error_text = e.response.text[:500] if e.response.text else "No error text"
                 logger.error(f"HTTP error fetching deals: {e.response.status_code} - {error_text}")
+                # On rate limit, return cached data if available
+                if e.response.status_code == 429 and cached:
+                    logger.info(f"Rate limited - returning stale cache ({len(cached['data'])} deals)")
+                    return cached["data"]
                 return all_opportunities  # Return what we got so far
             except httpx.HTTPError as e:
                 logger.error(f"HTTP client error fetching deals: {str(e)}", exc_info=True)

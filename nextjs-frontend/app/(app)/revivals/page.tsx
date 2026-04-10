@@ -167,7 +167,7 @@ export default function RevivalsPage() {
       const interval = window.setInterval(() => {
         loadStalledDeals(false) // Don't show errors on auto-refresh
         loadApprovals(false)
-      }, 30000) // Refresh every 30 seconds
+      }, 60000) // Refresh every 60 seconds
       refreshIntervalRef.current = interval
       return () => {
         if (interval) window.clearInterval(interval)
