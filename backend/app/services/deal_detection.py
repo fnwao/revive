@@ -200,7 +200,7 @@ async def detect_stalled_deals(
             if not any(filter_tag in tag_values for filter_tag in tags_filter):
                 continue
         
-        last_activity_str = deal.get("lastActivityDate")
+        last_activity_str = deal.get("lastActivityDate") or deal.get("lastActionDate") or deal.get("updatedAt")
         last_activity = None
         
         if last_activity_str:
@@ -222,7 +222,7 @@ async def detect_stalled_deals(
             logger.warning(f"Deal {deal.get('id')} has no lastActivityDate - considering stalled")
             stalled_deals.append({
                 "deal_id": deal.get("id") or deal.get("dealId"),
-                "title": deal.get("title"),
+                "title": deal.get("title") or deal.get("name"),
                 "status": deal.get("status"),
                 "value": deal.get("monetaryValue"),
                 "currency": "USD",
@@ -244,7 +244,7 @@ async def detect_stalled_deals(
             
             stalled_deals.append({
                 "deal_id": deal.get("id") or deal.get("dealId"),
-                "title": deal.get("title"),
+                "title": deal.get("title") or deal.get("name"),
                 "status": deal.get("status"),
                 "value": deal.get("monetaryValue"),
                 "currency": "USD",

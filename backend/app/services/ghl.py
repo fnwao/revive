@@ -91,15 +91,15 @@ class GHLService:
         if not self.access_token or not self.location_id:
             logger.error(f"Cannot fetch deals: missing credentials (token: {bool(self.access_token)}, location: {bool(self.location_id)})")
             return []
-            
+
         async with httpx.AsyncClient() as client:
             try:
-                url = f"{self.BASE_URL}/opportunities"
+                url = f"{self.BASE_URL}/opportunities/search"
                 headers = self._get_headers()
-                params = {}
-                
+                params = {"location_id": self.location_id}
+
                 if pipeline_id:
-                    params["pipelineId"] = pipeline_id
+                    params["pipeline_id"] = pipeline_id
                 
                 logger.info(f"Fetching deals from GHL: {url}, pipeline_id={pipeline_id}, location_id={self.location_id}")
                 logger.debug(f"Request params: {params}")
