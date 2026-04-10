@@ -87,10 +87,13 @@ class GHLService:
                 return None
     
     async def get_deals_by_pipeline(self, pipeline_id: str = None) -> List[Dict[str, Any]]:
-        """Fetch all deals in a pipeline, or all deals if no pipeline_id provided."""
+        """Fetch all deals in a pipeline, or all deals if no pipeline_id provided. Handles pagination."""
         if not self.access_token or not self.location_id:
-            logger.error(f"Cannot fetch deals: missing credentials (token: {bool(self.access_token)}, location: {bool(self.location_id)})")
+            logger.error(f"Cannot fetch deals: missing credentials")
             return []
+
+        all_opportunities = []
+        max_pages = 10  # Safety limit
 
         async with httpx.AsyncClient() as client:
             try:
@@ -100,77 +103,44 @@ class GHLService:
 
                 if pipeline_id:
                     params["pipeline_id"] = pipeline_id
-                
-                logger.info(f"Fetching deals from GHL: {url}, pipeline_id={pipeline_id}, location_id={self.location_id}")
-                logger.debug(f"Request params: {params}")
-                logger.debug(f"Headers include: {list(headers.keys())}")
-                
-                response = await client.get(
-                    url,
-                    headers=headers,
-                    params=params,
-                    timeout=30.0
-                )
-                logger.debug(f"GHL API response status: {response.status_code}")
-                
-                response.raise_for_status()
-                data = response.json()
-                logger.debug(f"GHL API raw response type: {type(data)}")
-                logger.debug(f"GHL API response keys: {list(data.keys()) if isinstance(data, dict) else 'Not a dict'}")
-                logger.debug(f"GHL API response preview: {str(data)[:500]}")
-                
-                # GHL API may return opportunities directly or in a nested structure
-                opportunities = []
-                
-                # Handle different response structures
-                if isinstance(data, list):
-                    # Direct array of opportunities
-                    opportunities = data
-                    logger.debug("Response is direct array of opportunities")
-                elif isinstance(data, dict):
-                    # Try various nested keys
-                    opportunities = data.get("opportunities", [])
-                    if not opportunities:
-                        opportunities = data.get("deals", [])
-                    if not opportunities:
-                        opportunities = data.get("data", [])
-                    if not opportunities:
-                        # Check if response has a 'results' or 'items' key
-                        opportunities = data.get("results", data.get("items", []))
-                    
-                    logger.debug(f"Response is dict with keys: {list(data.keys())}")
-                
-                # If still no opportunities, log the full response structure for debugging
-                if not opportunities:
-                    logger.warning(f"No opportunities found in GHL response. Full response structure: {type(data)}")
-                    if isinstance(data, dict):
-                        logger.warning(f"Available keys in response: {list(data.keys())}")
-                        # Log sample of first key's value to help debug
-                        for key in list(data.keys())[:3]:
-                            logger.warning(f"Response['{key}'] type: {type(data[key])}, value preview: {str(data[key])[:200]}")
-                    # Also check if response indicates pagination or other structures
-                    if isinstance(data, dict) and "meta" in data:
-                        logger.info(f"Response contains 'meta' key - might be paginated: {data['meta']}")
-                    if isinstance(data, dict) and "pagination" in data:
-                        logger.info(f"Response contains 'pagination' key: {data['pagination']}")
-                
-                logger.info(f"Successfully fetched {len(opportunities)} deals from GHL")
-                if len(opportunities) > 0:
-                    logger.debug(f"First deal sample keys: {list(opportunities[0].keys()) if isinstance(opportunities[0], dict) else 'Not a dict'}")
-                    logger.debug(f"First deal sample: {str(opportunities[0])[:300]}")
-                else:
-                    logger.warning("GHL API returned empty opportunities list. This might be expected if there are no deals.")
-                
-                return opportunities
+
+                for page in range(max_pages):
+                    logger.info(f"Fetching deals page {page + 1} from GHL")
+
+                    response = await client.get(url, headers=headers, params=params, timeout=30.0)
+                    response.raise_for_status()
+                    data = response.json()
+
+                    opportunities = []
+                    if isinstance(data, list):
+                        opportunities = data
+                    elif isinstance(data, dict):
+                        opportunities = data.get("opportunities", [])
+
+                    all_opportunities.extend(opportunities)
+
+                    # Check for next page
+                    meta = data.get("meta", {}) if isinstance(data, dict) else {}
+                    start_after = meta.get("startAfter")
+                    start_after_id = meta.get("startAfterId")
+
+                    if not start_after or not start_after_id or not opportunities:
+                        break
+
+                    # Set pagination params for next request
+                    params["startAfter"] = start_after
+                    params["startAfterId"] = start_after_id
+
+                logger.info(f"Fetched {len(all_opportunities)} total deals from GHL")
+                return all_opportunities
+
             except httpx.HTTPStatusError as e:
                 error_text = e.response.text[:500] if e.response.text else "No error text"
                 logger.error(f"HTTP error fetching deals: {e.response.status_code} - {error_text}")
-                logger.error(f"Response headers: {dict(e.response.headers)}")
-                logger.error(f"Request URL: {url}, Params: {params}")
-                return []
+                return all_opportunities  # Return what we got so far
             except httpx.HTTPError as e:
                 logger.error(f"HTTP client error fetching deals: {str(e)}", exc_info=True)
-                return []
+                return all_opportunities
             except Exception as e:
                 logger.error(f"Unexpected error fetching deals: {str(e)}", exc_info=True)
                 return []

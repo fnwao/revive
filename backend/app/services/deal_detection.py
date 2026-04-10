@@ -200,7 +200,7 @@ async def detect_stalled_deals(
             if not any(filter_tag in tag_values for filter_tag in tags_filter):
                 continue
         
-        last_activity_str = deal.get("lastActivityDate") or deal.get("lastActionDate") or deal.get("updatedAt")
+        last_activity_str = deal.get("lastActivityDate") or deal.get("lastActionDate") or deal.get("updatedAt") or deal.get("createdAt")
         last_activity = None
         
         if last_activity_str:
