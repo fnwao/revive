@@ -17,7 +17,10 @@ from app.models import User, Deal, Conversation, ApprovalQueue, UserSettings, Kn
 config = context.config
 
 # Override sqlalchemy.url with our database URL from settings
-config.set_main_option("sqlalchemy.url", settings.database_url)
+db_url = settings.database_url
+if db_url.startswith("postgres://"):
+    db_url = db_url.replace("postgres://", "postgresql://", 1)
+config.set_main_option("sqlalchemy.url", db_url)
 
 # Interpret the config file for Python logging
 if config.config_file_name is not None:

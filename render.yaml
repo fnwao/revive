@@ -1,0 +1,40 @@
+databases:
+  - name: revive-ai-db
+    plan: free
+    databaseName: revive_ai
+    user: revive_user
+
+services:
+  - type: web
+    name: revive-ai-backend
+    runtime: docker
+    dockerfilePath: backend/Dockerfile
+    dockerContext: backend
+    plan: free
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: revive-ai-db
+          property: connectionString
+      - key: REDIS_URL
+        value: ""
+      - key: SECRET_KEY
+        generateValue: true
+      - key: API_KEY_SALT
+        generateValue: true
+      - key: GHL_CLIENT_ID
+        value: mock
+      - key: GHL_CLIENT_SECRET
+        value: mock
+      - key: GHL_REDIRECT_URI
+        value: https://revive-ai-backend.onrender.com/api/v1/auth/ghl/callback
+      - key: OPENAI_API_KEY
+        value: mock
+      - key: ENVIRONMENT
+        value: production
+      - key: USE_MOCK_GHL
+        value: "true"
+      - key: LOG_LEVEL
+        value: INFO
+      - key: ALLOWED_ORIGINS
+        value: "*"

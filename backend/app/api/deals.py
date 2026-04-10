@@ -292,3 +292,55 @@ async def generate_message(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error generating message: {str(e)}"
         )
+
+
+@router.get("/test-ghl-connection", summary="Test GHL connection")
+async def test_ghl_connection(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Test GHL API connection and return connection status.
+    Useful for debugging GHL integration issues.
+    """
+    try:
+        # Refresh user to get latest credentials
+        db.refresh(current_user)
+        
+        has_token = bool(current_user.ghl_access_token)
+        has_location = bool(current_user.ghl_location_id)
+        
+        result = {
+            "has_credentials": has_token and has_location,
+            "has_token": has_token,
+            "has_location": has_location,
+            "token_length": len(current_user.ghl_access_token) if current_user.ghl_access_token else 0,
+            "location_id": current_user.ghl_location_id if current_user.ghl_location_id else None,
+            "test_result": None,
+            "error": None
+        }
+        
+        if not has_token or not has_location:
+            result["error"] = "Missing GHL credentials. Please connect your GHL account in settings."
+            return result
+        
+        # Try to fetch deals from GHL
+        ghl_service = get_ghl_service(current_user)
+        try:
+            deals = await ghl_service.get_deals_by_pipeline()
+            result["test_result"] = "success"
+            result["deals_found"] = len(deals)
+            result["message"] = f"Successfully connected to GHL API. Found {len(deals)} deals."
+        except Exception as e:
+            result["test_result"] = "error"
+            result["error"] = str(e)
+            result["message"] = f"Failed to connect to GHL API: {str(e)}"
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"Error testing GHL connection: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error testing GHL connection: {str(e)}"
+        )

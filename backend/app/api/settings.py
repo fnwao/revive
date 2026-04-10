@@ -53,6 +53,14 @@ async def get_settings(
     if settings.extra_settings and "reactivation_rules" in settings.extra_settings:
         reactivation_rules = settings.extra_settings["reactivation_rules"]
     
+    # Automatically sync ghl_connected flag based on actual credentials
+    # This ensures the flag is always accurate
+    actual_ghl_connected = bool(user.ghl_access_token and user.ghl_location_id)
+    if settings.ghl_connected != actual_ghl_connected:
+        settings.ghl_connected = actual_ghl_connected
+        db.commit()
+        db.refresh(settings)
+    
     # Map to response schema
     response_data = {
         "id": settings.id,
@@ -104,6 +112,14 @@ async def update_settings(
     ghl_api_key = update_data.pop("ghl_api_key", None)
     if ghl_api_key is not None:
         user.ghl_access_token = ghl_api_key
+    
+    # Automatically update ghl_connected flag based on whether credentials are present
+    # Check both the updated values and existing values
+    final_access_token = user.ghl_access_token if ghl_api_key is None else (ghl_api_key if ghl_api_key else None)
+    final_location_id = user.ghl_location_id if ghl_location_id is None else (ghl_location_id if ghl_location_id else None)
+    
+    # Set ghl_connected to True if both credentials are present, False otherwise
+    settings.ghl_connected = bool(final_access_token and final_location_id)
     
     # Update settings fields
     for key, value in update_data.items():

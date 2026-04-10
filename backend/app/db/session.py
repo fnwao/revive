@@ -4,9 +4,14 @@ from sqlalchemy.orm import sessionmaker, Session
 from app.config import settings
 from app.db.base import Base
 
+# Render provides postgres:// but SQLAlchemy requires postgresql://
+db_url = settings.database_url
+if db_url.startswith("postgres://"):
+    db_url = db_url.replace("postgres://", "postgresql://", 1)
+
 # Create engine
 engine = create_engine(
-    settings.database_url,
+    db_url,
     pool_pre_ping=True,
     echo=settings.environment == "development"
 )

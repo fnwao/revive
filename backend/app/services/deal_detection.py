@@ -11,6 +11,32 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def _extract_tags(deal: Dict[str, Any]) -> List[str]:
+    """Extract tags from deal data, handling different GHL API formats."""
+    tags = deal.get("tags", []) or deal.get("tagIds", [])
+    if not tags:
+        return []
+    
+    if not isinstance(tags, list):
+        tags = [tags]
+    
+    # GHL API may return tags as objects with 'id' and 'name', or as strings
+    # Extract tag names/ids for consistent handling
+    tag_values = []
+    for tag in tags:
+        if isinstance(tag, dict):
+            # Tag object: prefer name, fall back to id
+            tag_value = tag.get("name") or tag.get("id")
+            if tag_value:
+                tag_values.append(tag_value)
+        elif isinstance(tag, str):
+            tag_values.append(tag)
+        else:
+            tag_values.append(str(tag))
+    
+    return tag_values
+
+
 async def detect_stalled_deals(
     user: User,
     pipeline_id: str = None,
@@ -31,95 +57,135 @@ async def detect_stalled_deals(
     Returns:
         List of stalled deal dictionaries
     """
-    ghl_service = get_ghl_service(user)
     stalled_deals = []
     threshold_date = datetime.now() - timedelta(days=threshold_days)
     
     # Get deals to check
     deals_to_check = []
-    
-    # First, try to get deals from database (for mock/test data)
     db = SessionLocal()
-    try:
-        db_deals = []
-        if deal_ids:
-            # Get specific deals from database
-            for deal_id in deal_ids:
-                db_deal = db.query(Deal).filter(
+    
+    # CRITICAL: Refresh user from database to ensure we have latest credentials
+    # The user object passed in might be stale from a previous query
+    fresh_user = db.query(User).filter(User.id == user.id).first()
+    if not fresh_user:
+        logger.error(f"User {user.id} not found in database")
+        db.close()
+        return []
+    
+    user = fresh_user  # Use fresh user object with latest credentials
+    
+    # Check if user has GHL credentials - if so, ALWAYS fetch from GHL (not just when DB is empty)
+    user_has_ghl_credentials = bool(user.ghl_access_token and user.ghl_location_id)
+    
+    logger.info(f"Deal detection for user {user.id}: has_ghl_credentials={user_has_ghl_credentials}, "
+                f"token_present={bool(user.ghl_access_token)}, location_present={bool(user.ghl_location_id)}")
+    
+    if user_has_ghl_credentials:
+        logger.info(f"GHL credentials: token_length={len(user.ghl_access_token) if user.ghl_access_token else 0}, "
+                   f"location_id={user.ghl_location_id}")
+    
+    # Get GHL service - this will use real service if credentials exist
+    ghl_service = get_ghl_service(user)
+    
+    # If user has GHL credentials, fetch from GHL API (real data)
+    # Otherwise, try database first (for mock/test data)
+    if user_has_ghl_credentials:
+        logger.info("User has GHL credentials - fetching deals from GHL API")
+        try:
+            if deal_ids:
+                # Check specific deals
+                logger.info(f"Fetching {len(deal_ids)} specific deals from GHL")
+                for deal_id in deal_ids:
+                    deal = await ghl_service.get_deal(deal_id)
+                    if deal:
+                        # Sync deal to database for future reference
+                        ghl_service.sync_deal_to_db(db, deal)
+                        deals_to_check.append(deal)
+                    else:
+                        logger.warning(f"Deal not found in GHL: {deal_id}")
+            
+            elif pipeline_id:
+                # Check all deals in pipeline
+                logger.info(f"Fetching all deals in pipeline {pipeline_id} from GHL")
+                ghl_deals = await ghl_service.get_deals_by_pipeline(pipeline_id)
+                for deal in ghl_deals:
+                    # Sync each deal to database
+                    ghl_service.sync_deal_to_db(db, deal)
+                deals_to_check = ghl_deals
+            
+            else:
+                # No pipeline_id or deal_ids - fetch all deals from GHL
+                logger.info("Fetching all deals from GHL")
+                ghl_deals = await ghl_service.get_deals_by_pipeline()
+                for deal in ghl_deals:
+                    # Sync each deal to database
+                    ghl_service.sync_deal_to_db(db, deal)
+                deals_to_check = ghl_deals
+                
+            logger.info(f"Fetched {len(deals_to_check)} deals from GHL API")
+            
+        except Exception as e:
+            logger.error(f"Error fetching deals from GHL: {e}", exc_info=True)
+            # Fall back to database if GHL fetch fails
+            logger.info("Falling back to database for deals")
+            deals_to_check = []
+    
+    # If no GHL credentials or GHL fetch failed, try database (for mock/test data)
+    if not deals_to_check:
+        logger.info("No GHL credentials or fetch failed - checking database for deals")
+        try:
+            db_deals = []
+            if deal_ids:
+                # Get specific deals from database
+                for deal_id in deal_ids:
+                    db_deal = db.query(Deal).filter(
+                        and_(
+                            Deal.user_id == user.id,
+                            Deal.ghl_deal_id == deal_id
+                        )
+                    ).first()
+                    if db_deal:
+                        db_deals.append(db_deal)
+            elif pipeline_id:
+                # Get all deals in pipeline from database
+                db_deals = db.query(Deal).filter(
                     and_(
                         Deal.user_id == user.id,
-                        Deal.ghl_deal_id == deal_id
+                        Deal.ghl_pipeline_id == pipeline_id
                     )
-                ).first()
-                if db_deal:
-                    db_deals.append(db_deal)
-        elif pipeline_id:
-            # Get all deals in pipeline from database
-            db_deals = db.query(Deal).filter(
-                and_(
-                    Deal.user_id == user.id,
-                    Deal.ghl_pipeline_id == pipeline_id
-                )
-            ).all()
-        
-        # Convert database deals to dict format
-        for db_deal in db_deals:
-            # Apply status filter if provided
-            if status_filter and db_deal.status not in status_filter:
-                continue
+                ).all()
             
-            # Apply tags filter if provided
-            if tags_filter:
-                deal_tags = db_deal.tags if db_deal.tags else []
-                if not isinstance(deal_tags, list):
-                    deal_tags = []
-                # Check if deal has at least one of the required tags
-                if not any(tag in deal_tags for tag in tags_filter):
+            # Convert database deals to dict format
+            for db_deal in db_deals:
+                # Apply status filter if provided
+                if status_filter and db_deal.status not in status_filter:
                     continue
+                
+                # Apply tags filter if provided
+                if tags_filter:
+                    deal_tags = db_deal.tags if db_deal.tags else []
+                    if not isinstance(deal_tags, list):
+                        deal_tags = []
+                    # Check if deal has at least one of the required tags
+                    if not any(tag in deal_tags for tag in tags_filter):
+                        continue
+                
+                deals_to_check.append({
+                    "id": db_deal.ghl_deal_id,
+                    "dealId": db_deal.ghl_deal_id,
+                    "title": db_deal.title,
+                    "status": db_deal.status,
+                    "monetaryValue": float(db_deal.value) if db_deal.value else None,
+                    "contactId": db_deal.ghl_contact_id,
+                    "pipelineId": db_deal.ghl_pipeline_id,
+                    "lastActivityDate": db_deal.last_activity_date.isoformat() if db_deal.last_activity_date else None,
+                    "tags": db_deal.tags if db_deal.tags else [],
+                })
             
-            deals_to_check.append({
-                "id": db_deal.ghl_deal_id,
-                "dealId": db_deal.ghl_deal_id,
-                "title": db_deal.title,
-                "status": db_deal.status,
-                "monetaryValue": float(db_deal.value) if db_deal.value else None,
-                "contactId": db_deal.ghl_contact_id,
-                "pipelineId": db_deal.ghl_pipeline_id,
-                "lastActivityDate": db_deal.last_activity_date.isoformat() if db_deal.last_activity_date else None,
-                "tags": db_deal.tags if db_deal.tags else [],
-            })
-        
-        if db_deals:
-            logger.info(f"Found {len(db_deals)} deals in database")
-    except Exception as e:
-        logger.error(f"Error querying database for deals: {e}")
-    finally:
-        db.close()
-    
-    # If no database deals found, try GHL service
-    if not deals_to_check:
-        if deal_ids:
-            # Check specific deals
-            logger.info(f"Checking {len(deal_ids)} specific deals from GHL")
-            for deal_id in deal_ids:
-                deal = await ghl_service.get_deal(deal_id)
-                if deal:
-                    deals_to_check.append(deal)
-                else:
-                    logger.warning(f"Deal not found: {deal_id}")
-        
-        elif pipeline_id:
-            # Check all deals in pipeline
-            logger.info(f"Checking all deals in pipeline: {pipeline_id} from GHL")
-            deals_to_check = await ghl_service.get_deals_by_pipeline(pipeline_id)
-        
-        else:
-            # No pipeline_id or deal_ids - fetch all deals from GHL
-            logger.info("No pipeline_id provided - fetching all deals from GHL")
-            deals_to_check = await ghl_service.get_deals_by_pipeline()
-            if not deals_to_check:
-                logger.warning("No deals found in GHL. Make sure your GHL API key and location ID are correct.")
-                return []
+            if db_deals:
+                logger.info(f"Found {len(db_deals)} deals in database")
+        except Exception as e:
+            logger.error(f"Error querying database for deals: {e}")
     
     # Check each deal for stalled status
     for deal in deals_to_check:
@@ -129,11 +195,9 @@ async def detect_stalled_deals(
         
         # Apply tags filter if provided (for GHL deals)
         if tags_filter:
-            deal_tags = deal.get("tags", [])
-            if not isinstance(deal_tags, list):
-                deal_tags = []
+            tag_values = _extract_tags(deal)
             # Check if deal has at least one of the required tags
-            if not any(tag in deal_tags for tag in tags_filter):
+            if not any(filter_tag in tag_values for filter_tag in tags_filter):
                 continue
         
         last_activity_str = deal.get("lastActivityDate")
@@ -166,7 +230,7 @@ async def detect_stalled_deals(
                 "days_since_activity": 999,  # High number to indicate no activity
                 "contact_id": deal.get("contactId"),
                 "pipeline_id": deal.get("pipelineId"),
-                "tags": deal.get("tags", []),
+                "tags": _extract_tags(deal),
             })
             continue
         
@@ -188,7 +252,7 @@ async def detect_stalled_deals(
                 "days_since_activity": days_since,
                 "contact_id": deal.get("contactId"),
                 "pipeline_id": deal.get("pipelineId"),
-                "tags": deal.get("tags", []),
+                "tags": _extract_tags(deal),
             })
             
             logger.info(
@@ -197,5 +261,12 @@ async def detect_stalled_deals(
             )
     
     logger.info(f"Found {len(stalled_deals)} stalled deals out of {len(deals_to_check)} checked")
+    
+    # Close database session
+    try:
+        db.close()
+    except Exception:
+        pass
+    
     return stalled_deals
 
