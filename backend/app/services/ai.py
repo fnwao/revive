@@ -424,6 +424,7 @@ NOTE: If the message is longer than {max_length} characters, use natural line br
         try:
             if generate_sequence and not feedback:
                 # Generate message sequence
+                logger.info(f"Generating SMS sequence for deal: {deal_title}")
                 result_text = self._call_claude(
                     system=system_prompt,
                     user_prompt=user_prompt,
@@ -431,13 +432,14 @@ NOTE: If the message is longer than {max_length} characters, use natural line br
                     max_tokens=600,
                     json_mode=True
                 )
+                logger.info(f"Claude raw response: {result_text[:200]}")
 
                 result = json.loads(result_text)
                 messages = result.get("messages", [])
 
                 # Validate and clean messages
                 if not messages or len(messages) < 2:
-                    logger.warning("AI generated fewer than 2 messages, falling back to single message")
+                    logger.warning(f"AI generated fewer than 2 messages ({len(messages)}), falling back to single message")
                     return self._generate_single_message_fallback(deal_title, days_since_activity, max_length)
 
                 # Ensure each message is within max length and trim to 3-4 messages
@@ -486,7 +488,9 @@ NOTE: If the message is longer than {max_length} characters, use natural line br
                 return [message]
 
         except Exception as e:
-            logger.error(f"Error generating message with Anthropic: {str(e)}", exc_info=True)
+            logger.error(f"ANTHROPIC ERROR [{type(e).__name__}]: {str(e)}")
+            import traceback
+            logger.error(f"ANTHROPIC TRACEBACK: {traceback.format_exc()}")
             if generate_sequence:
                 return self._generate_single_message_fallback(deal_title, days_since_activity, max_length)
             else:
