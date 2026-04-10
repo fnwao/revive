@@ -148,55 +148,160 @@ class GHLService:
                 return []
     
     async def get_deal_conversations(
-        self, 
-        deal_id: str, 
-        limit: int = 20
+        self,
+        deal_id: str,
+        limit: int = 20,
+        deal_data: Optional[Dict[str, Any]] = None
     ) -> List[Dict[str, Any]]:
-        """Fetch conversation history for a deal."""
+        """Fetch conversation history for a deal using GHL conversations API."""
         async with httpx.AsyncClient() as client:
             try:
-                # Get contact ID from deal first
-                deal = await self.get_deal(deal_id)
-                if not deal or not deal.get("contactId"):
-                    logger.warning(f"Deal {deal_id} has no contactId, cannot fetch conversations")
+                # Use provided deal data or fetch it
+                deal = deal_data or await self.get_deal(deal_id)
+                if not deal:
+                    logger.warning(f"Deal {deal_id} not found")
                     return []
-                
-                contact_id = deal["contactId"]
-                
-                # Fetch messages (SMS, email, calls)
-                # GHL API endpoint for communications
-                url = f"{self.BASE_URL}/contacts/{contact_id}/communications"
+
+                contact_id = deal.get("contactId") or (deal.get("contact", {}) or {}).get("id")
+                if not contact_id:
+                    logger.warning(f"Deal {deal_id} has no contactId")
+                    return []
+
+                # Step 1: Search for conversations for this contact
                 headers = self._get_headers()
-                params = {"limit": limit}
-                
-                logger.info(f"Fetching conversations for deal {deal_id}, contact {contact_id}")
-                
-                response = await client.get(
-                    url,
-                    headers=headers,
-                    params=params,
-                    timeout=30.0
-                )
+                search_url = f"{self.BASE_URL}/conversations/search"
+                search_params = {
+                    "contactId": contact_id,
+                    "locationId": self.location_id
+                }
+
+                response = await client.get(search_url, headers=headers, params=search_params, timeout=30.0)
                 response.raise_for_status()
-                data = response.json()
-                
-                # GHL API may return communications directly or in a nested structure
-                communications = data.get("communications", [])
-                if not communications and isinstance(data, list):
-                    communications = data
-                
-                logger.info(f"Successfully fetched {len(communications)} conversations for deal {deal_id}")
-                return communications
-                
+                conv_data = response.json()
+                conversations = conv_data.get("conversations", [])
+
+                if not conversations:
+                    logger.info(f"No conversations found for contact {contact_id}")
+                    return []
+
+                # Step 2: Get messages from first conversation (most recent)
+                all_messages = []
+                for conv in conversations[:2]:  # Check up to 2 conversation threads
+                    conv_id = conv.get("id")
+                    if not conv_id:
+                        continue
+
+                    msg_url = f"{self.BASE_URL}/conversations/{conv_id}/messages"
+                    msg_response = await client.get(msg_url, headers=headers, timeout=30.0)
+                    msg_response.raise_for_status()
+                    msg_data = msg_response.json()
+
+                    # Messages are nested: {"messages": {"messages": [...]}}
+                    messages_wrapper = msg_data.get("messages", {})
+                    if isinstance(messages_wrapper, dict):
+                        messages = messages_wrapper.get("messages", [])
+                    else:
+                        messages = messages_wrapper
+
+                    for msg in messages:
+                        # Normalize message format for AI consumption
+                        direction = msg.get("direction") or msg.get("meta", {}).get("email", {}).get("direction", "unknown")
+                        msg_type = msg.get("messageType", "")
+                        body = msg.get("body") or msg.get("text") or ""
+
+                        # For emails, get subject from meta
+                        subject = ""
+                        if "email" in (msg.get("meta") or {}):
+                            subject = msg["meta"]["email"].get("subject", "")
+
+                        # Skip system/activity messages with no useful content
+                        if msg_type in ("TYPE_ACTIVITY_OPPORTUNITY", "TYPE_ACTIVITY_APPOINTMENT") and not body:
+                            body = msg.get("body", "")
+
+                        content = body
+                        if subject and not body:
+                            content = f"[Email] Subject: {subject}"
+                        elif subject and body:
+                            content = f"[Email] Subject: {subject}\n{body}"
+
+                        if content.strip():
+                            all_messages.append({
+                                "direction": direction,
+                                "content": content,
+                                "type": msg_type.replace("TYPE_", "").lower() if msg_type else "message",
+                                "sentAt": msg.get("dateAdded", ""),
+                                "createdAt": msg.get("dateAdded", ""),
+                            })
+
+                # Also get contact info (email, phone, name) for Fireflies matching
+                contact_email = (deal.get("contact", {}) or {}).get("email", "")
+                contact_name = (deal.get("contact", {}) or {}).get("name", "") or deal.get("name", "")
+
+                # Add Fireflies meeting context if available
+                fireflies_context = self._get_fireflies_context(contact_email, contact_name)
+                if fireflies_context:
+                    all_messages.insert(0, {
+                        "direction": "context",
+                        "content": fireflies_context,
+                        "type": "meeting_notes",
+                        "sentAt": "",
+                        "createdAt": "",
+                    })
+
+                logger.info(f"Fetched {len(all_messages)} messages for deal {deal_id}")
+                return all_messages[:limit]
+
             except httpx.HTTPStatusError as e:
-                logger.error(f"HTTP error fetching conversations for deal {deal_id}: {e.response.status_code} - {e.response.text}")
-                return []
-            except httpx.HTTPError as e:
-                logger.error(f"Error fetching conversations for deal {deal_id}: {str(e)}")
+                logger.error(f"HTTP error fetching conversations for deal {deal_id}: {e.response.status_code}")
                 return []
             except Exception as e:
-                logger.error(f"Unexpected error fetching conversations for deal {deal_id}: {str(e)}", exc_info=True)
+                logger.error(f"Error fetching conversations for deal {deal_id}: {str(e)}", exc_info=True)
                 return []
+
+    def _get_fireflies_context(self, contact_email: str, contact_name: str) -> str:
+        """Get Fireflies meeting context for a contact by email match."""
+        import json as _json
+        import os
+
+        cache_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "fireflies_cache.json")
+        try:
+            if not os.path.exists(cache_path):
+                return ""
+
+            with open(cache_path, "r") as f:
+                cache = _json.load(f)
+
+            meetings = cache.get(contact_email, [])
+            if not meetings:
+                # Try partial name match in meeting titles
+                name_parts = contact_name.lower().split() if contact_name else []
+                for email, email_meetings in cache.items():
+                    for m in email_meetings:
+                        title_lower = m.get("title", "").lower()
+                        if any(part in title_lower for part in name_parts if len(part) > 2):
+                            meetings = email_meetings
+                            break
+                    if meetings:
+                        break
+
+            if not meetings:
+                return ""
+
+            # Build context from most recent meeting
+            m = meetings[0]
+            parts = [f"MEETING NOTES ({m.get('date', 'recent')[:10]}): {m.get('title', '')}"]
+            if m.get("summary"):
+                parts.append(f"Summary: {m['summary']}")
+            if m.get("action_items"):
+                parts.append(f"Action Items: {m['action_items']}")
+            if m.get("keywords"):
+                parts.append(f"Key Topics: {', '.join(m['keywords'])}")
+
+            return "\n".join(parts)
+
+        except Exception as e:
+            logger.warning(f"Error loading Fireflies context: {e}")
+            return ""
     
     async def send_sms(
         self, 

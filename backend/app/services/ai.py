@@ -498,14 +498,20 @@ NOTE: If the message is longer than {max_length} characters, use natural line br
             return "No prior conversation history."
 
         recent = conversations[:limit]
+        meeting_notes = []
+        messages = []
 
-        formatted = []
-        for i, msg in enumerate(recent, 1):
+        for msg in recent:
             direction = msg.get("direction", "unknown")
             content = msg.get("content", "")
-            sent_at = msg.get("sentAt", msg.get("createdAt", ""))
             msg_type = msg.get("type", "message")
 
+            # Separate meeting notes from regular messages
+            if direction == "context" or msg_type == "meeting_notes":
+                meeting_notes.append(content)
+                continue
+
+            sent_at = msg.get("sentAt", msg.get("createdAt", ""))
             timestamp = ""
             if sent_at:
                 try:
@@ -517,7 +523,19 @@ NOTE: If the message is longer than {max_length} characters, use natural line br
 
             label = "You (Sales Rep)" if direction == "outbound" else "Prospect"
             type_label = f"[{msg_type.upper()}]" if msg_type != "message" else ""
-            formatted.append(f"{i}. {type_label} [{label}] ({timestamp}): {content}".strip())
+            messages.append(f"{len(messages)+1}. {type_label} [{label}] ({timestamp}): {content}".strip())
+
+        formatted = []
+        if meeting_notes:
+            formatted.append("=== MEETING NOTES (from Fireflies.ai call recordings) ===")
+            formatted.extend(meeting_notes)
+            formatted.append("=== END MEETING NOTES ===\n")
+
+        if messages:
+            formatted.append("MESSAGE HISTORY:")
+            formatted.extend(messages)
+        elif not meeting_notes:
+            formatted.append("No prior conversation history.")
 
         return "\n".join(formatted)
 
@@ -797,6 +815,121 @@ Respond in JSON format:
     def _generate_fallback_message(self, deal_title: str, days_since_activity: int) -> str:
         """Generate a simple fallback message if AI fails."""
         return f"Hi! Wanted to follow up on {deal_title}. It's been a while since we last connected. Are you still interested in moving forward? Happy to answer any questions!"
+
+    def generate_reactivation_email(
+        self,
+        deal_title: str,
+        deal_value: Optional[float],
+        deal_status: str,
+        days_since_activity: int,
+        conversations: List[Dict[str, Any]],
+        feedback: Optional[str] = None,
+        previous_message: Optional[str] = None
+    ) -> Dict[str, str]:
+        """
+        Generate a reactivation email for a stalled deal.
+        Returns dict with 'subject' and 'body' (with proper paragraphs/line breaks).
+        """
+        context_analysis = self._analyze_conversation_context(conversations)
+        conversation_text = self._format_conversations(conversations)
+        value_str = f"${deal_value:,.2f}" if deal_value else "Not specified"
+
+        system_prompt = f"""You are an expert sales representative writing a personalized reactivation email for a stalled deal. You deeply understand this prospect from their conversation history and meeting notes.
+
+CONTEXT ANALYSIS:
+- Relationship Stage: {context_analysis['relationship_stage']}
+- Communication Style: {context_analysis['communication_style']}
+- Key Topics: {', '.join(context_analysis['key_topics'][:5]) if context_analysis['key_topics'] else 'None identified'}
+- Pain Points: {', '.join(context_analysis['pain_points'][:3]) if context_analysis['pain_points'] else 'None identified'}
+- Interests: {', '.join(context_analysis['interests'][:3]) if context_analysis['interests'] else 'None identified'}
+- Sentiment: {context_analysis['sentiment_trend']}
+- Last Interaction Tone: {context_analysis['last_interaction_tone']}
+- Specific Details: {', '.join(context_analysis['specific_details'][:3]) if context_analysis['specific_details'] else 'None'}
+
+EMAIL WRITING RULES:
+1. Write a proper professional email with clear paragraphs separated by blank lines
+2. Use 3-5 short paragraphs (2-3 sentences each)
+3. Structure: greeting → context/callback → value proposition → soft CTA → sign-off
+4. Reference SPECIFIC details from their conversations or meetings — names, topics, numbers, dates
+5. NEVER write a generic "checking in" email — always add value
+6. Match the prospect's communication style ({context_analysis['communication_style']})
+7. Keep paragraphs SHORT — no walls of text
+8. Use a warm but professional tone
+9. Include a clear but low-pressure call to action
+10. The email must feel like it was written by a human who remembers the conversation, NOT a template"""
+
+        if feedback and previous_message:
+            user_prompt = f"""Rewrite this reactivation email based on user feedback:
+
+DEAL: {deal_title} | Value: {value_str} | Inactive: {days_since_activity} days
+
+CONVERSATION HISTORY:
+{conversation_text}
+
+PREVIOUS EMAIL:
+{previous_message}
+
+FEEDBACK: {feedback}
+
+Generate a JSON response with:
+{{"subject": "Email subject line (short, specific, no generic phrases)", "body": "Full email body with proper paragraphs separated by \\n\\n"}}"""
+        else:
+            user_prompt = f"""Write a reactivation email for this stalled deal:
+
+DEAL: {deal_title} | Value: {value_str} | Status: {deal_status} | Inactive: {days_since_activity} days
+
+CONVERSATION HISTORY:
+{conversation_text}
+
+INSTRUCTIONS:
+- Subject line: Short, specific, references something from their conversation (NOT generic like "Following up" or "Checking in")
+- Body: 3-5 short paragraphs with blank lines between them
+- Opening: Personal greeting + specific callback to their last conversation/meeting
+- Middle: Add value — share an insight, update, or resource relevant to their pain points/interests
+- Close: Soft CTA (e.g., "Would it make sense to reconnect?" or "Happy to share more if useful")
+- Sign-off: Professional but warm
+
+Generate a JSON response with:
+{{"subject": "Email subject line", "body": "Full email body with paragraphs separated by \\n\\n"}}"""
+
+        try:
+            result_text = self._call_claude(
+                system=system_prompt,
+                user_prompt=user_prompt,
+                temperature=0.7,
+                max_tokens=1000,
+                json_mode=True
+            )
+            result = json.loads(result_text)
+            subject = result.get("subject", f"Following up on {deal_title}")
+            body = result.get("body", "")
+
+            # Ensure body has proper line breaks
+            if body and "\n\n" not in body:
+                # Try to add paragraph breaks at sentence boundaries
+                import re
+                sentences = re.split(r'(?<=[.!?])\s+', body)
+                if len(sentences) >= 4:
+                    # Group sentences into paragraphs of ~2-3 sentences
+                    paragraphs = []
+                    current = []
+                    for i, s in enumerate(sentences):
+                        current.append(s)
+                        if len(current) >= 2 and i < len(sentences) - 1:
+                            paragraphs.append(" ".join(current))
+                            current = []
+                    if current:
+                        paragraphs.append(" ".join(current))
+                    body = "\n\n".join(paragraphs)
+
+            return {"subject": subject, "body": body}
+
+        except Exception as e:
+            logger.error(f"Error generating email: {e}", exc_info=True)
+            return {
+                "subject": f"Following up on {deal_title}",
+                "body": f"Hi,\n\nI wanted to reach out regarding {deal_title}. It's been a little while since we last connected, and I'd love to pick up where we left off.\n\nWould it make sense to reconnect this week?\n\nBest regards"
+            }
 
     def process_knowledge_base_chat(
         self,

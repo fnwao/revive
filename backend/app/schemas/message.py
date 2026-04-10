@@ -11,6 +11,7 @@ class GenerateMessageResponse(BaseModel):
     generated_message: str  # First message for backward compatibility
     generated_messages: Optional[List[str]] = None  # Full message sequence (3-4 messages)
     message_sequence: Optional[List[dict]] = None  # Sequence with delays
+    email_subject: Optional[str] = None  # Email subject line (when channel is email)
     status: str = "pending"
     created_at: datetime
     

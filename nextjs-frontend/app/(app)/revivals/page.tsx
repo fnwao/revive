@@ -208,12 +208,15 @@ export default function RevivalsPage() {
     }
     
     try {
-      const result = await generateMessage(deal.deal_id)
+      const result = await generateMessage(deal.deal_id, messageChannel)
       setGeneratedMessage(result.message) // First message for display
       setGeneratedMessages(result.generated_messages || [result.message])
       setMessageSequence(result.message_sequence || [])
       setEditedMessage(result.message)
       setEditedMessages(result.generated_messages || [result.message])
+      if (result.email_subject) {
+        setEmailSubject(result.email_subject)
+      }
       setIsEditing(false)
       setFeedback("")
       setShowFeedback(false)

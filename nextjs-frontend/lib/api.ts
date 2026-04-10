@@ -553,11 +553,12 @@ export async function detectStalledDeals(
   }
 }
 
-export async function generateMessage(dealId: string): Promise<{ 
+export async function generateMessage(dealId: string, channel: "sms" | "email" | "both" = "sms"): Promise<{
   message: string
   approval_id: string
   generated_messages?: string[]
   message_sequence?: Array<{ message: string; order: number; delay_seconds: number }>
+  email_subject?: string
 }> {
   // Return mock messages based on deal
   if (!hasApiKey()) {
@@ -700,9 +701,10 @@ export async function generateMessage(dealId: string): Promise<{
       generated_message: string
       generated_messages?: string[]
       message_sequence?: Array<{ message: string; order: number; delay_seconds: number }>
+      email_subject?: string
       status: string
       created_at: string
-    }>(`/api/v1/deals/${dealId}/generate-message`, {
+    }>(`/api/v1/deals/${dealId}/generate-message?channel=${channel}`, {
       method: "POST",
     })
     
@@ -760,6 +762,7 @@ export async function generateMessage(dealId: string): Promise<{
       approval_id: response.approval_id,
       generated_messages: parsedMessages.length > 1 ? parsedMessages : undefined,
       message_sequence: parsedSequence.length > 0 ? parsedSequence : undefined,
+      email_subject: response.email_subject,
     }
   } catch (error) {
     console.error("Error generating message:", error)

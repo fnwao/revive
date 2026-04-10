@@ -171,6 +171,7 @@ async def detect_stalled(
 )
 async def generate_message(
     deal_id: str,
+    channel: str = "sms",
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -192,8 +193,8 @@ async def generate_message(
         # Sync deal to database
         deal = ghl_service.sync_deal_to_db(db, ghl_deal)
         
-        # Fetch conversation history
-        conversations = await ghl_service.get_deal_conversations(deal_id, limit=20)
+        # Fetch conversation history (pass deal data to avoid re-fetching and enable Fireflies matching)
+        conversations = await ghl_service.get_deal_conversations(deal_id, limit=20, deal_data=ghl_deal)
         
         # Calculate days since activity
         days_since_activity = None
@@ -204,17 +205,34 @@ async def generate_message(
                 last_activity = last_activity.replace(tzinfo=None)
             days_since_activity = (datetime.now() - last_activity).days
         
-        # Generate message sequence using AI (3-4 shorter messages)
+        # Generate message using AI - different approach for email vs SMS
         ai_service = AIService()
-        generated_messages = ai_service.generate_reactivation_message(
-            deal_title=deal.title or ghl_deal.get("title", "Deal"),
-            deal_value=deal.value,
-            deal_status=deal.status or "active",
-            days_since_activity=days_since_activity or 0,
-            conversations=conversations,
-            max_length=160,  # SMS limit per message
-            generate_sequence=True  # Generate 3-4 messages for natural flow
-        )
+        deal_title_str = deal.title or ghl_deal.get("name") or ghl_deal.get("title") or "Deal"
+
+        if channel == "email":
+            # Generate proper email with paragraphs and line breaks
+            email_result = ai_service.generate_reactivation_email(
+                deal_title=deal_title_str,
+                deal_value=deal.value,
+                deal_status=deal.status or "active",
+                days_since_activity=days_since_activity or 0,
+                conversations=conversations,
+            )
+            # Email body is a single message with proper formatting
+            generated_messages = [email_result["body"]]
+            email_subject = email_result["subject"]
+        else:
+            # SMS: Generate 3-4 shorter messages for natural conversation flow
+            email_subject = None
+            generated_messages = ai_service.generate_reactivation_message(
+                deal_title=deal_title_str,
+                deal_value=deal.value,
+                deal_status=deal.status or "active",
+                days_since_activity=days_since_activity or 0,
+                conversations=conversations,
+                max_length=160,  # SMS limit per message
+                generate_sequence=True  # Generate 3-4 messages for natural flow
+            )
         
         # Store messages as JSON array
         import json
@@ -280,6 +298,7 @@ async def generate_message(
             generated_message=first_message,  # First message for backward compatibility
             generated_messages=generated_messages,  # Full sequence
             message_sequence=message_sequence,  # Sequence with delays
+            email_subject=email_subject if channel == "email" else None,
             status=approval.status.value,
             created_at=approval.created_at
         )
