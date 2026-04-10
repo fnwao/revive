@@ -432,9 +432,9 @@ NOTE: If the message is longer than {max_length} characters, use natural line br
                     max_tokens=600,
                     json_mode=True
                 )
-                logger.info(f"Claude raw response: {result_text[:200]}")
+                print(f"[CLAUDE] Raw SMS response: {result_text[:300]}", flush=True)
 
-                result = json.loads(result_text)
+                result = self._parse_json_response(result_text)
                 messages = result.get("messages", [])
 
                 # Validate and clean messages
@@ -502,6 +502,42 @@ NOTE: If the message is longer than {max_length} characters, use natural line br
         if len(message) > max_length:
             message = message[:max_length-3] + "..."
         return [message]
+
+    def _parse_json_response(self, text: str) -> Dict[str, Any]:
+        """Robustly parse JSON from Claude's response, handling markdown code blocks and extra text."""
+        import re
+        # Try direct parse first
+        try:
+            return json.loads(text)
+        except json.JSONDecodeError:
+            pass
+
+        # Try extracting from markdown code blocks
+        code_block = re.search(r'```(?:json)?\s*\n?(.*?)\n?```', text, re.DOTALL)
+        if code_block:
+            try:
+                return json.loads(code_block.group(1))
+            except json.JSONDecodeError:
+                pass
+
+        # Try finding JSON object in the text
+        brace_match = re.search(r'\{.*\}', text, re.DOTALL)
+        if brace_match:
+            try:
+                return json.loads(brace_match.group(0))
+            except json.JSONDecodeError:
+                pass
+
+        # Try finding JSON array in the text
+        bracket_match = re.search(r'\[.*\]', text, re.DOTALL)
+        if bracket_match:
+            try:
+                arr = json.loads(bracket_match.group(0))
+                return {"messages": arr}
+            except json.JSONDecodeError:
+                pass
+
+        raise json.JSONDecodeError("Could not extract JSON from response", text, 0)
 
     def _format_conversations(self, conversations: List[Dict[str, Any]], limit: int = 20) -> str:
         """Format conversation history for prompt with enhanced context."""
@@ -610,7 +646,7 @@ Respond in JSON format:
                 json_mode=True
             )
 
-            analysis = json.loads(result_text)
+            analysis = self._parse_json_response(result_text)
 
             return {
                 "relationship_stage": analysis.get("relationship_stage", "mid"),
@@ -936,7 +972,7 @@ Generate a JSON response with:
                 max_tokens=1000,
                 json_mode=True
             )
-            result = json.loads(result_text)
+            result = self._parse_json_response(result_text)
             subject = result.get("subject", f"Following up on {deal_title}")
             body = result.get("body", "")
 
@@ -1038,7 +1074,7 @@ Respond with JSON only."""
                 json_mode=True
             )
 
-            result = json.loads(result_text)
+            result = self._parse_json_response(result_text)
 
             return {
                 "response": result.get("response", "I've processed your message."),
