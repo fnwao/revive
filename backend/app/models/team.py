@@ -1,6 +1,6 @@
 """Team/Organization model."""
 from sqlalchemy import Column, String, DateTime, Text, ForeignKey, Boolean, Index
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from app.db.compat import CompatUUID, CompatJSONB
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import uuid
@@ -21,17 +21,17 @@ class Team(Base):
     
     __tablename__ = "teams"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(CompatUUID, primary_key=True, default=uuid.uuid4)
     name = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
     
     # Settings
-    settings = Column(JSONB, nullable=True)  # Team-level settings
+    settings = Column(CompatJSONB, nullable=True)  # Team-level settings
     
     # Metadata
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-    created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    created_by = Column(CompatUUID, ForeignKey("users.id"), nullable=False)
     
     # Relationships
     creator = relationship("User", foreign_keys=[created_by])
@@ -43,20 +43,20 @@ class TeamMember(Base):
     
     __tablename__ = "team_members"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    team_id = Column(UUID(as_uuid=True), ForeignKey("teams.id"), nullable=False, index=True)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
+    id = Column(CompatUUID, primary_key=True, default=uuid.uuid4)
+    team_id = Column(CompatUUID, ForeignKey("teams.id"), nullable=False, index=True)
+    user_id = Column(CompatUUID, ForeignKey("users.id"), nullable=False, index=True)
     
     # Role and permissions
     role = Column(String(50), default=TeamRole.MEMBER.value, index=True)
-    permissions = Column(JSONB, nullable=True)  # Custom permissions
+    permissions = Column(CompatJSONB, nullable=True)  # Custom permissions
     
     # Status
     is_active = Column(Boolean, default=True, index=True)
     
     # Metadata
     joined_at = Column(DateTime(timezone=True), server_default=func.now())
-    invited_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    invited_by = Column(CompatUUID, ForeignKey("users.id"), nullable=True)
     
     # Relationships
     team = relationship("Team", back_populates="members")

@@ -96,9 +96,13 @@ if os.path.exists(frontend_path):
 async def startup_event():
     """Initialize on startup."""
     logger.info("Starting Revive.ai API...")
-    # Database tables are managed via Alembic migrations
-    # Run: alembic upgrade head
-    logger.info("API started - ensure database migrations are up to date")
+    # Auto-create tables for serverless/SQLite deployments
+    if settings.database_url.startswith("sqlite"):
+        from app.db.session import init_db
+        init_db()
+        logger.info("SQLite tables created")
+    else:
+        logger.info("API started - ensure database migrations are up to date")
 
 
 @app.get("/health")

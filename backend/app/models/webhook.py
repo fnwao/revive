@@ -1,6 +1,6 @@
 """Webhook configuration model."""
 from sqlalchemy import Column, String, DateTime, Text, ForeignKey, Boolean, Integer, Index
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from app.db.compat import CompatUUID, CompatJSONB
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import uuid
@@ -31,9 +31,9 @@ class Webhook(Base):
     
     __tablename__ = "webhooks"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
-    team_id = Column(UUID(as_uuid=True), ForeignKey("teams.id"), nullable=True, index=True)
+    id = Column(CompatUUID, primary_key=True, default=uuid.uuid4)
+    user_id = Column(CompatUUID, ForeignKey("users.id"), nullable=False, index=True)
+    team_id = Column(CompatUUID, ForeignKey("teams.id"), nullable=True, index=True)
     
     # Webhook configuration
     name = Column(String(255), nullable=False)
@@ -41,7 +41,7 @@ class Webhook(Base):
     secret = Column(String(255), nullable=True)  # For signature verification
     
     # Events to subscribe to
-    events = Column(JSONB, nullable=False)  # Array of event types
+    events = Column(CompatJSONB, nullable=False)  # Array of event types
     
     # Settings
     status = Column(String(20), default=WebhookStatus.ACTIVE.value, index=True)
@@ -75,12 +75,12 @@ class WebhookDelivery(Base):
     
     __tablename__ = "webhook_deliveries"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    webhook_id = Column(UUID(as_uuid=True), ForeignKey("webhooks.id"), nullable=False, index=True)
+    id = Column(CompatUUID, primary_key=True, default=uuid.uuid4)
+    webhook_id = Column(CompatUUID, ForeignKey("webhooks.id"), nullable=False, index=True)
     
     # Delivery details
     event_type = Column(String(100), nullable=False, index=True)
-    payload = Column(JSONB, nullable=False)
+    payload = Column(CompatJSONB, nullable=False)
     response_status = Column(Integer, nullable=True)
     response_body = Column(Text, nullable=True)
     

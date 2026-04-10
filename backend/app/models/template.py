@@ -1,6 +1,6 @@
 """Message template model."""
 from sqlalchemy import Column, String, DateTime, Text, ForeignKey, Boolean, Integer, Index
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from app.db.compat import CompatUUID, CompatJSONB
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import uuid
@@ -31,9 +31,9 @@ class MessageTemplate(Base):
     
     __tablename__ = "message_templates"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True, index=True)  # Null for team templates
-    team_id = Column(UUID(as_uuid=True), ForeignKey("teams.id"), nullable=True, index=True)  # For team-shared templates
+    id = Column(CompatUUID, primary_key=True, default=uuid.uuid4)
+    user_id = Column(CompatUUID, ForeignKey("users.id"), nullable=True, index=True)  # Null for team templates
+    team_id = Column(CompatUUID, ForeignKey("teams.id"), nullable=True, index=True)  # For team-shared templates
     
     # Template content
     name = Column(String(255), nullable=False)
@@ -46,7 +46,7 @@ class MessageTemplate(Base):
     body = Column(Text, nullable=False)  # Template content with variables
     
     # Variables that can be used in template
-    variables = Column(JSONB, nullable=True)  # e.g., ["deal_title", "deal_value", "contact_name"]
+    variables = Column(CompatJSONB, nullable=True)  # e.g., ["deal_title", "deal_value", "contact_name"]
     
     # Usage tracking
     usage_count = Column(Integer, default=0)
@@ -59,7 +59,7 @@ class MessageTemplate(Base):
     # Metadata
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-    created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    created_by = Column(CompatUUID, ForeignKey("users.id"), nullable=True)
     
     # Relationships
     user = relationship("User", foreign_keys=[user_id], backref="templates")

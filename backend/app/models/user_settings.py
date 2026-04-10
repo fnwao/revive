@@ -1,6 +1,6 @@
 """User settings model."""
 from sqlalchemy import Column, String, DateTime, Integer, Boolean, ForeignKey, JSON
-from sqlalchemy.dialects.postgresql import UUID
+from app.db.compat import CompatUUID
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 import uuid
@@ -12,8 +12,8 @@ class UserSettings(Base):
     
     __tablename__ = "user_settings"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, unique=True, index=True)
+    id = Column(CompatUUID, primary_key=True, default=uuid.uuid4)
+    user_id = Column(CompatUUID, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, unique=True, index=True)
     
     # Revival settings
     auto_detect_stalled = Column(Boolean, default=True, nullable=False)

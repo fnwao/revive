@@ -1,7 +1,7 @@
 """User model."""
 from sqlalchemy import Column, String, DateTime, Text, Boolean, ForeignKey
 from sqlalchemy.orm import relationship
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from app.db.compat import CompatUUID, CompatJSONB
 from sqlalchemy.sql import func
 import uuid
 from app.db.base import Base
@@ -12,7 +12,7 @@ class User(Base):
     
     __tablename__ = "users"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(CompatUUID, primary_key=True, default=uuid.uuid4)
     email = Column(String(255), unique=True, nullable=False, index=True)
     api_key_hash = Column(String(255), nullable=False, unique=True, index=True)
     
@@ -22,14 +22,14 @@ class User(Base):
     ghl_location_id = Column(String(255), nullable=True)
     
     # Team/Organization
-    default_team_id = Column(UUID(as_uuid=True), ForeignKey("teams.id"), nullable=True)
+    default_team_id = Column(CompatUUID, ForeignKey("teams.id"), nullable=True)
     
     # Email settings
     email_enabled = Column(Boolean, default=True)
     email_address = Column(String(255), nullable=True)
     
     # Notification preferences
-    notification_preferences = Column(JSONB, nullable=True)  # JSON with notification settings
+    notification_preferences = Column(CompatJSONB, nullable=True)  # JSON with notification settings
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

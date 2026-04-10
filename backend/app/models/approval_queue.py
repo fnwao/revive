@@ -1,6 +1,6 @@
 """Approval queue model."""
 from sqlalchemy import Column, String, DateTime, Text, ForeignKey, Enum as SQLEnum
-from sqlalchemy.dialects.postgresql import UUID
+from app.db.compat import CompatUUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import uuid
@@ -21,9 +21,9 @@ class ApprovalQueue(Base):
     
     __tablename__ = "approval_queue"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
-    deal_id = Column(UUID(as_uuid=True), ForeignKey("deals.id"), nullable=False, index=True)
+    id = Column(CompatUUID, primary_key=True, default=uuid.uuid4)
+    user_id = Column(CompatUUID, ForeignKey("users.id"), nullable=False, index=True)
+    deal_id = Column(CompatUUID, ForeignKey("deals.id"), nullable=False, index=True)
     
     # GoHighLevel identifiers
     ghl_deal_id = Column(String(255), nullable=False, index=True)
@@ -37,7 +37,7 @@ class ApprovalQueue(Base):
     message_sequence = Column(Text, nullable=True)  # JSON array of message sequence with delays
     
     # Template and channel
-    template_id = Column(UUID(as_uuid=True), ForeignKey("message_templates.id"), nullable=True)
+    template_id = Column(CompatUUID, ForeignKey("message_templates.id"), nullable=True)
     channel = Column(String(20), default="sms", index=True)  # sms, email, both
     email_subject = Column(String(255), nullable=True)  # For email messages
     

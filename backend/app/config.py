@@ -6,23 +6,23 @@ from typing import Optional
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
     
-    # Database
-    database_url: str
+    # Database (defaults to SQLite for serverless/mock deployments)
+    database_url: str = "sqlite:///./revive.db"
     
     # Redis
     redis_url: str = "redis://localhost:6379/0"
     
     # API
-    secret_key: str
-    api_key_salt: str
-    
+    secret_key: str = "change-me-in-production"
+    api_key_salt: str = "change-me-in-production"
+
     # GoHighLevel
-    ghl_client_id: str
-    ghl_client_secret: str
-    ghl_redirect_uri: str
-    
+    ghl_client_id: str = "mock"
+    ghl_client_secret: str = "mock"
+    ghl_redirect_uri: str = "http://localhost:8000/api/v1/auth/ghl/callback"
+
     # OpenAI
-    openai_api_key: str
+    openai_api_key: str = "mock"
     
     # App
     environment: str = "development"
