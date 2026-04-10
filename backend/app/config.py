@@ -6,8 +6,8 @@ from typing import Optional
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
     
-    # Database (defaults to SQLite for serverless/mock deployments)
-    database_url: str = "sqlite:///./revive.db"
+    # Database (defaults to SQLite in /tmp for serverless deployments)
+    database_url: str = "sqlite:////tmp/revive.db"
     
     # Redis
     redis_url: str = "redis://localhost:6379/0"
