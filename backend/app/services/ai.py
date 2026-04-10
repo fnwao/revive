@@ -541,7 +541,7 @@ NOTE: If the message is longer than {max_length} characters, use natural line br
 
     def _analyze_conversation_context(self, conversations: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Deeply analyze conversation history to extract key insights about the lead."""
-        if not conversations:
+        if not conversations or len(conversations) == 0:
             return {
                 "relationship_stage": "early",
                 "communication_style": "neutral",
@@ -553,6 +553,11 @@ NOTE: If the message is longer than {max_length} characters, use natural line br
                 "last_interaction_tone": "neutral",
                 "specific_details": []
             }
+
+        # If only meeting notes (no real messages), use basic analysis to save API call
+        real_messages = [c for c in conversations if c.get("direction") not in ("context",) and c.get("type") != "meeting_notes"]
+        if len(real_messages) < 2:
+            return self._basic_conversation_analysis(conversations)
 
         conversation_text = self._format_conversations(conversations, limit=20)
 
@@ -612,7 +617,7 @@ Respond in JSON format:
             return self._basic_conversation_analysis(conversations)
 
     def _basic_conversation_analysis(self, conversations: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """Fallback basic analysis if AI analysis fails."""
+        """Fallback basic analysis if AI analysis fails. Extracts info from meeting notes if available."""
         if not conversations:
             return {
                 "relationship_stage": "early",
@@ -626,10 +631,17 @@ Respond in JSON format:
                 "specific_details": []
             }
 
-        message_count = len(conversations)
+        real_messages = [c for c in conversations if c.get("direction") not in ("context",) and c.get("type") != "meeting_notes"]
+        meeting_notes = [c for c in conversations if c.get("type") == "meeting_notes" or c.get("direction") == "context"]
+
+        message_count = len(real_messages)
         relationship_stage = "early" if message_count < 5 else "mid" if message_count < 15 else "advanced"
 
-        last_msg = conversations[0] if conversations else {}
+        # If we have meeting notes, it means there was a call — upgrade relationship stage
+        if meeting_notes and relationship_stage == "early":
+            relationship_stage = "mid"
+
+        last_msg = real_messages[0] if real_messages else {}
         last_content = last_msg.get("content", "").lower()
 
         positive_words = ["interested", "great", "yes", "sounds good", "excited", "love", "perfect"]
@@ -641,16 +653,29 @@ Respond in JSON format:
         elif any(word in last_content for word in negative_words):
             sentiment = "negative"
 
+        # Extract key topics from meeting notes
+        specific_details = []
+        key_topics = []
+        for note in meeting_notes:
+            content = note.get("content", "")
+            if "Key Topics:" in content:
+                topics_line = content.split("Key Topics:")[1].split("\n")[0]
+                key_topics = [t.strip() for t in topics_line.split(",") if t.strip()]
+            if "Summary:" in content:
+                summary = content.split("Summary:")[1].split("\n")[0].strip()
+                if summary:
+                    specific_details.append(summary[:200])
+
         return {
             "relationship_stage": relationship_stage,
             "communication_style": "neutral",
-            "key_topics": [],
+            "key_topics": key_topics,
             "pain_points": [],
             "interests": [],
             "objections": [],
             "sentiment_trend": sentiment,
             "last_interaction_tone": sentiment,
-            "specific_details": []
+            "specific_details": specific_details
         }
 
     def _split_long_message(self, message: str, max_length: int) -> List[str]:
