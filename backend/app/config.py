@@ -24,6 +24,10 @@ class Settings(BaseSettings):
     # Anthropic (Claude)
     anthropic_api_key: str = "mock"
     
+    # Default GHL credentials (seeded into default user on SQLite startup)
+    ghl_access_token: str = ""
+    ghl_location_id: str = ""
+
     # App
     environment: str = "development"
     log_level: str = "INFO"

@@ -98,11 +98,52 @@ async def startup_event():
     logger.info("Starting Revive.ai API...")
     # Auto-create tables for serverless/SQLite deployments
     if settings.database_url.startswith("sqlite"):
-        from app.db.session import init_db
+        from app.db.session import init_db, SessionLocal
         init_db()
         logger.info("SQLite tables created")
+        # Seed default user with GHL credentials from env vars
+        _seed_default_user(SessionLocal())
     else:
         logger.info("API started - ensure database migrations are up to date")
+
+
+def _seed_default_user(db):
+    """Seed a default user with GHL credentials if env vars are set."""
+    try:
+        from app.models.user import User
+        from app.core.auth import hash_api_key
+        import uuid
+
+        existing = db.query(User).filter(User.email == "admin@revive.ai").first()
+        if existing:
+            # Update GHL credentials if env vars changed
+            if settings.ghl_access_token:
+                existing.ghl_access_token = settings.ghl_access_token
+            if settings.ghl_location_id:
+                existing.ghl_location_id = settings.ghl_location_id
+            db.commit()
+            logger.info("Default user GHL credentials updated")
+            return
+
+        # Create default user with a known API key
+        default_api_key = "revive-default-api-key-2024"
+        api_key_hash = hash_api_key(default_api_key, settings.api_key_salt)
+
+        user = User(
+            id=uuid.uuid4(),
+            email="admin@revive.ai",
+            api_key_hash=api_key_hash,
+            ghl_access_token=settings.ghl_access_token or None,
+            ghl_location_id=settings.ghl_location_id or None,
+        )
+        db.add(user)
+        db.commit()
+        logger.info(f"Default user seeded: admin@revive.ai (API key: {default_api_key})")
+    except Exception as e:
+        logger.error(f"Error seeding default user: {e}")
+        db.rollback()
+    finally:
+        db.close()
 
 
 @app.get("/health")
