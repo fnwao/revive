@@ -1,20 +1,35 @@
-"""AI service for message generation using OpenAI."""
+"""AI service for message generation using Anthropic Claude."""
 from typing import List, Dict, Any, Optional
-from openai import OpenAI
+import anthropic
 from app.config import settings
 import logging
+import json
 
 logger = logging.getLogger(__name__)
 
 
 class AIService:
     """Service for AI-powered message generation."""
-    
+
     def __init__(self):
-        """Initialize OpenAI client."""
-        self.client = OpenAI(api_key=settings.openai_api_key)
-        self.model = "gpt-4"  # Use GPT-4 for best quality
-    
+        """Initialize Anthropic client."""
+        self.client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
+        self.model = "claude-sonnet-4-5-20250514"
+
+    def _call_claude(self, system: str, user_prompt: str, temperature: float = 0.7, max_tokens: int = 1000, json_mode: bool = False) -> str:
+        """Helper to call Claude API and return text response."""
+        if json_mode:
+            system += "\n\nIMPORTANT: Respond with valid JSON only. No additional text or explanation outside the JSON."
+
+        response = self.client.messages.create(
+            model=self.model,
+            max_tokens=max_tokens,
+            temperature=temperature,
+            system=system,
+            messages=[{"role": "user", "content": user_prompt}],
+        )
+        return response.content[0].text.strip()
+
     def generate_reactivation_message(
         self,
         deal_title: str,
@@ -30,28 +45,14 @@ class AIService:
         """
         Generate reactivation messages for a stalled deal. Returns 3-4 shorter messages
         to simulate natural human conversation flow.
-        
-        Args:
-            deal_title: Title/name of the deal
-            deal_value: Deal value in dollars
-            deal_status: Current deal status
-            days_since_activity: Days since last activity
-            conversations: List of recent conversation messages
-            max_length: Maximum message length per message (default: 160 for SMS)
-            feedback: Optional user feedback to incorporate into regeneration
-            previous_message: Optional previous message that received feedback
-            generate_sequence: If True, generates 3-4 messages; if False, generates single message
-        
-        Returns:
-            List of generated message texts (3-4 messages for natural flow)
         """
         # Deeply analyze conversation context first
         context_analysis = self._analyze_conversation_context(conversations)
-        
+
         # Format conversation history
         conversation_text = self._format_conversations(conversations)
-        
-        # Build comprehensive system prompt with deep context understanding + sales/copywriting best practices
+
+        # Build comprehensive system prompt
         system_prompt = f"""You are an expert sales representative and copywriter reactivating a stalled deal. You combine deep understanding of this specific prospect with proven sales, copywriting, and follow-up best practices.
 
 CONTEXT ANALYSIS:
@@ -175,13 +176,12 @@ CRITICAL RULES:
 - Keep it conversational and human
 - Make it about them, not you
 - Use proven sales/copywriting principles naturally"""
-        
+
         # Build user prompt with context
         value_str = f"${deal_value:,.2f}" if deal_value else "Not specified"
-        
+
         # If feedback is provided, this is a regeneration request
         if feedback and previous_message:
-            # Use the same context analysis for regeneration
             context_summary = f"""
 CONTEXT SUMMARY:
 - Relationship Stage: {context_analysis['relationship_stage']}
@@ -192,7 +192,7 @@ CONTEXT SUMMARY:
 - Sentiment: {context_analysis['sentiment_trend']} (last interaction: {context_analysis['last_interaction_tone']})
 - Specific Details to Reference: {', '.join(context_analysis['specific_details'][:2]) if context_analysis['specific_details'] else 'None'}
 """
-            
+
             user_prompt = f"""Regenerate a reactivation SMS message for this stalled deal based on user feedback, using deep context understanding:
 
 DEAL CONTEXT:
@@ -256,14 +256,13 @@ NOTE: If the message is longer than {max_length} characters, use natural line br
                     value_context = "HIGH-VALUE DEAL: This is a high-value opportunity. Emphasize ROI and strategic value."
                 elif deal_value >= 10000:
                     value_context = "MEDIUM-VALUE DEAL: Focus on value proposition and benefits."
-            
+
             urgency_context = ""
             if days_since_activity > 30:
                 urgency_context = "URGENT: Deal has been inactive for over a month. Acknowledge the gap but focus on forward momentum."
             elif days_since_activity > 14:
                 urgency_context = "MODERATE URGENCY: Deal inactive for 2+ weeks. Re-engage with value-focused message."
-            
-            # Build context summary for prompt
+
             context_summary = f"""
 CONTEXT SUMMARY:
 - Relationship Stage: {context_analysis['relationship_stage']}
@@ -274,10 +273,9 @@ CONTEXT SUMMARY:
 - Sentiment: {context_analysis['sentiment_trend']} (last interaction: {context_analysis['last_interaction_tone']})
 - Specific Details to Reference: {', '.join(context_analysis['specific_details'][:2]) if context_analysis['specific_details'] else 'None'}
 """
-            
+
             if generate_sequence:
-                # Generate 3-4 shorter messages for natural conversation flow
-                user_prompt = f"""Generate a sequence of 3-4 short, natural SMS messages for reactivating this stalled deal. 
+                user_prompt = f"""Generate a sequence of 3-4 short, natural SMS messages for reactivating this stalled deal.
 These messages should feel like a human sending multiple quick texts, not one long message.
 
 DEAL CONTEXT:
@@ -339,7 +337,7 @@ Generate the messages as a JSON array with this exact format:
     "First short message (40-120 chars)",
     "Second short message (40-120 chars)",
     "Third short message (40-120 chars)",
-    "Fourth short message (40-120 chars)" // Optional, only if needed
+    "Fourth short message (40-120 chars)"
   ]
 }}
 
@@ -351,7 +349,6 @@ Each message should:
 - Match prospect's communication style
 - Sound like quick texts, not formal messages"""
             else:
-                # Single message generation (for backward compatibility)
                 user_prompt = f"""Generate a highly personalized, context-aware reactivation SMS message for this stalled deal:
 
 DEAL CONTEXT:
@@ -370,14 +367,14 @@ FULL CONVERSATION HISTORY (most recent first):
 CRITICAL INSTRUCTIONS (Following Sales, Copywriting & Follow-up Best Practices):
 1. OPENING (Attention): Start with a personalized hook - reference a specific detail (topic, pain point, interest, or conversation detail)
 
-2. MIDDLE (Interest + Desire): 
+2. MIDDLE (Interest + Desire):
    - Show value relevant to their specific context
    - If pain points identified: Show how you can help solve them
    - If interests shown: Reference those with a benefit
    - Use benefit-focused language ("you'll save", "you'll increase", not "we offer")
    - Be specific, not vague
 
-3. CLOSING (Action): 
+3. CLOSING (Action):
    - Soft, low-pressure CTA ("Would love your thoughts", "Happy to discuss", "Let me know if helpful")
    - Make it easy to respond
    - No high-pressure language
@@ -416,30 +413,26 @@ Generate a short SMS message (max {max_length} characters) that:
 - Sounds natural and human, not templated or salesy
 
 NOTE: If the message is longer than {max_length} characters, use natural line breaks (\\n) at sentence boundaries or after commas for better readability. The system will automatically split very long messages into multiple messages."""
-        
+
         try:
             if generate_sequence and not feedback:
                 # Generate message sequence
-                response = self.client.chat.completions.create(
-                    model=self.model,
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": user_prompt}
-                    ],
-                    temperature=0.7,  # Slightly creative but professional
-                    max_tokens=600,  # Enough for 3-4 short messages
-                    response_format={"type": "json_object"}
+                result_text = self._call_claude(
+                    system=system_prompt,
+                    user_prompt=user_prompt,
+                    temperature=0.7,
+                    max_tokens=600,
+                    json_mode=True
                 )
-                
-                import json
-                result = json.loads(response.choices[0].message.content.strip())
+
+                result = json.loads(result_text)
                 messages = result.get("messages", [])
-                
+
                 # Validate and clean messages
                 if not messages or len(messages) < 2:
                     logger.warning("AI generated fewer than 2 messages, falling back to single message")
                     return self._generate_single_message_fallback(deal_title, days_since_activity, max_length)
-                
+
                 # Ensure each message is within max length and trim to 3-4 messages
                 cleaned_messages = []
                 for msg in messages[:4]:  # Max 4 messages
@@ -448,79 +441,71 @@ NOTE: If the message is longer than {max_length} characters, use natural line br
                         msg_clean = msg_clean[:max_length-3] + "..."
                     if len(msg_clean) >= 20:  # Minimum reasonable length
                         cleaned_messages.append(msg_clean)
-                
+
                 if len(cleaned_messages) < 2:
                     logger.warning("Not enough valid messages, falling back to single message")
                     return self._generate_single_message_fallback(deal_title, days_since_activity, max_length)
-                
+
                 logger.info(f"Generated {len(cleaned_messages)} messages for natural conversation flow")
                 return cleaned_messages
             else:
                 # Single message generation (for feedback/regeneration or when sequence disabled)
-                response = self.client.chat.completions.create(
-                    model=self.model,
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": user_prompt}
-                    ],
-                    temperature=0.7,  # Slightly creative but professional
-                    max_tokens=200,  # Enough for SMS length
+                message = self._call_claude(
+                    system=system_prompt,
+                    user_prompt=user_prompt,
+                    temperature=0.7,
+                    max_tokens=200,
                 )
-                
-                message = response.choices[0].message.content.strip()
-                
+
                 # Handle long messages: split or add line breaks
-                if len(message) > max_length * 2:  # If message is more than 2x max_length, split it
+                if len(message) > max_length * 2:
                     logger.info(f"Message is very long ({len(message)} chars), splitting into multiple messages")
                     split_messages = self._split_long_message(message, max_length)
                     if split_messages:
                         logger.info(f"Split into {len(split_messages)} messages")
                         return split_messages
-                
-                # If message is moderately long (> max_length but < 2x max_length), add line breaks
+
+                # If message is moderately long, add line breaks
                 if len(message) > max_length:
                     logger.info(f"Message is long ({len(message)} chars), adding line breaks for readability")
                     message = self._add_line_breaks(message, max_length)
-                
-                # Final check: ensure message is within max length (after line breaks)
+
+                # Final check
                 if len(message) > max_length:
                     logger.warning(f"Generated message ({len(message)} chars) exceeds max length ({max_length})")
                     message = message[:max_length-3] + "..."
-                
+
                 logger.info(f"Generated message ({len(message)} chars): {message[:50]}...")
-                return [message]  # Return as list for consistency
-            
+                return [message]
+
         except Exception as e:
-            logger.error(f"Error generating message with OpenAI: {str(e)}", exc_info=True)
-            # Fallback to a simple template message
+            logger.error(f"Error generating message with Anthropic: {str(e)}", exc_info=True)
             if generate_sequence:
                 return self._generate_single_message_fallback(deal_title, days_since_activity, max_length)
             else:
                 return [self._generate_fallback_message(deal_title, days_since_activity)]
-    
+
     def _generate_single_message_fallback(self, deal_title: str, days_since_activity: int, max_length: int) -> List[str]:
         """Generate a fallback single message if sequence generation fails."""
         message = self._generate_fallback_message(deal_title, days_since_activity)
         if len(message) > max_length:
             message = message[:max_length-3] + "..."
         return [message]
-    
+
     def _format_conversations(self, conversations: List[Dict[str, Any]], limit: int = 20) -> str:
         """Format conversation history for prompt with enhanced context."""
         if not conversations:
             return "No prior conversation history."
-        
-        # Take most recent conversations (increased limit for better context)
+
         recent = conversations[:limit]
-        
+
         formatted = []
         for i, msg in enumerate(recent, 1):
             direction = msg.get("direction", "unknown")
             content = msg.get("content", "")
             sent_at = msg.get("sentAt", msg.get("createdAt", ""))
             msg_type = msg.get("type", "message")
-            
-            # Format timestamp if available
+
             timestamp = ""
             if sent_at:
                 try:
@@ -529,28 +514,15 @@ NOTE: If the message is longer than {max_length} characters, use natural line br
                     timestamp = dt.strftime("%m/%d/%Y")
                 except:
                     pass
-            
+
             label = "You (Sales Rep)" if direction == "outbound" else "Prospect"
             type_label = f"[{msg_type.upper()}]" if msg_type != "message" else ""
             formatted.append(f"{i}. {type_label} [{label}] ({timestamp}): {content}".strip())
-        
+
         return "\n".join(formatted)
-    
+
     def _analyze_conversation_context(self, conversations: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """
-        Deeply analyze conversation history to extract key insights about the lead.
-        
-        Returns a dictionary with:
-        - relationship_stage: early, mid, advanced
-        - communication_style: formal, casual, technical, friendly
-        - key_topics: list of main topics discussed
-        - pain_points: identified pain points or concerns
-        - interests: what the prospect is interested in
-        - objections: any objections raised
-        - sentiment_trend: positive, neutral, negative, mixed
-        - last_interaction_tone: tone of the last message
-        - specific_details: important specific details to reference
-        """
+        """Deeply analyze conversation history to extract key insights about the lead."""
         if not conversations:
             return {
                 "relationship_stage": "early",
@@ -563,10 +535,9 @@ NOTE: If the message is longer than {max_length} characters, use natural line br
                 "last_interaction_tone": "neutral",
                 "specific_details": []
             }
-        
-        # Analyze conversations using AI for deep understanding
+
         conversation_text = self._format_conversations(conversations, limit=20)
-        
+
         analysis_prompt = f"""Analyze this conversation history between a sales rep and a prospect. Extract deep insights about the relationship and context.
 
 Conversation History:
@@ -595,23 +566,18 @@ Respond in JSON format:
   "last_interaction_tone": "positive|neutral|negative|questioning|interested",
   "specific_details": ["detail 1", "detail 2", ...]
 }}"""
-        
+
         try:
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=[
-                    {"role": "system", "content": "You are an expert at analyzing sales conversations and extracting key insights. Respond only with valid JSON."},
-                    {"role": "user", "content": analysis_prompt}
-                ],
-                temperature=0.3,  # Lower temperature for more consistent analysis
+            result_text = self._call_claude(
+                system="You are an expert at analyzing sales conversations and extracting key insights. Respond only with valid JSON.",
+                user_prompt=analysis_prompt,
+                temperature=0.3,
                 max_tokens=1000,
-                response_format={"type": "json_object"}
+                json_mode=True
             )
-            
-            import json
-            analysis = json.loads(response.choices[0].message.content.strip())
-            
-            # Ensure all fields exist with defaults
+
+            analysis = json.loads(result_text)
+
             return {
                 "relationship_stage": analysis.get("relationship_stage", "mid"),
                 "communication_style": analysis.get("communication_style", "neutral"),
@@ -625,9 +591,8 @@ Respond in JSON format:
             }
         except Exception as e:
             logger.warning(f"Error analyzing conversation context: {str(e)}. Using fallback analysis.")
-            # Fallback: basic analysis from conversation text
             return self._basic_conversation_analysis(conversations)
-    
+
     def _basic_conversation_analysis(self, conversations: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Fallback basic analysis if AI analysis fails."""
         if not conversations:
@@ -642,26 +607,22 @@ Respond in JSON format:
                 "last_interaction_tone": "neutral",
                 "specific_details": []
             }
-        
-        # Basic heuristics
+
         message_count = len(conversations)
         relationship_stage = "early" if message_count < 5 else "mid" if message_count < 15 else "advanced"
-        
-        # Check last message direction
+
         last_msg = conversations[0] if conversations else {}
-        last_direction = last_msg.get("direction", "unknown")
         last_content = last_msg.get("content", "").lower()
-        
-        # Simple sentiment detection
+
         positive_words = ["interested", "great", "yes", "sounds good", "excited", "love", "perfect"]
         negative_words = ["not interested", "no", "busy", "later", "maybe", "concerned", "worried"]
-        
+
         sentiment = "neutral"
         if any(word in last_content for word in positive_words):
             sentiment = "positive"
         elif any(word in last_content for word in negative_words):
             sentiment = "negative"
-        
+
         return {
             "relationship_stage": relationship_stage,
             "communication_style": "neutral",
@@ -673,40 +634,28 @@ Respond in JSON format:
             "last_interaction_tone": sentiment,
             "specific_details": []
         }
-    
+
     def _split_long_message(self, message: str, max_length: int) -> List[str]:
-        """
-        Split a long message into multiple shorter messages at natural break points.
-        
-        Args:
-            message: The long message to split
-            max_length: Maximum length per message
-        
-        Returns:
-            List of split messages, or empty list if splitting fails
-        """
+        """Split a long message into multiple shorter messages at natural break points."""
         import re
-        
-        # Try to split at sentence boundaries first
+
         sentences = re.split(r'([.!?]\s+)', message)
-        
-        # Reconstruct sentences (split includes delimiters)
+
         reconstructed = []
         for i in range(0, len(sentences), 2):
             if i + 1 < len(sentences):
                 reconstructed.append(sentences[i] + sentences[i + 1])
             else:
                 reconstructed.append(sentences[i])
-        
+
         messages = []
         current_message = ""
-        
+
         for sentence in reconstructed:
             sentence = sentence.strip()
             if not sentence:
                 continue
-            
-            # If adding this sentence would exceed max_length, start a new message
+
             if current_message and len(current_message) + len(sentence) + 1 > max_length:
                 if current_message:
                     messages.append(current_message.strip())
@@ -716,12 +665,10 @@ Respond in JSON format:
                     current_message += " " + sentence
                 else:
                     current_message = sentence
-        
-        # Add the last message
+
         if current_message:
             messages.append(current_message.strip())
-        
-        # If we couldn't split at sentences, try splitting at commas
+
         if len(messages) == 1 and len(messages[0]) > max_length:
             messages = []
             parts = re.split(r'(,\s+)', message)
@@ -731,13 +678,13 @@ Respond in JSON format:
                     reconstructed.append(parts[i] + parts[i + 1])
                 else:
                     reconstructed.append(parts[i])
-            
+
             current_message = ""
             for part in reconstructed:
                 part = part.strip()
                 if not part:
                     continue
-                
+
                 if current_message and len(current_message) + len(part) + 1 > max_length:
                     if current_message:
                         messages.append(current_message.strip())
@@ -747,16 +694,15 @@ Respond in JSON format:
                         current_message += " " + part
                     else:
                         current_message = part
-            
+
             if current_message:
                 messages.append(current_message.strip())
-        
-        # If still too long, split at word boundaries
+
         if len(messages) == 1 and len(messages[0]) > max_length:
             messages = []
             words = message.split()
             current_message = ""
-            
+
             for word in words:
                 if current_message and len(current_message) + len(word) + 1 > max_length:
                     if current_message:
@@ -767,39 +713,26 @@ Respond in JSON format:
                         current_message += " " + word
                     else:
                         current_message = word
-            
+
             if current_message:
                 messages.append(current_message.strip())
-        
-        # Ensure all messages are within max_length
+
         final_messages = []
         for msg in messages:
             if len(msg) > max_length:
-                # Truncate if still too long
                 msg = msg[:max_length-3] + "..."
-            if len(msg) >= 20:  # Minimum reasonable length
+            if len(msg) >= 20:
                 final_messages.append(msg)
-        
+
         return final_messages if len(final_messages) >= 2 else []
-    
+
     def _add_line_breaks(self, message: str, max_length: int) -> str:
-        """
-        Add line breaks to a long message at natural points for better readability.
-        
-        Args:
-            message: The message to add line breaks to
-            max_length: Target line length
-        
-        Returns:
-            Message with line breaks added
-        """
+        """Add line breaks to a long message at natural points for better readability."""
         import re
-        
-        # If message already has line breaks, return as-is
+
         if '\n' in message:
             return message
-        
-        # Try to add line breaks at sentence boundaries
+
         sentences = re.split(r'([.!?]\s+)', message)
         reconstructed = []
         for i in range(0, len(sentences), 2):
@@ -807,16 +740,15 @@ Respond in JSON format:
                 reconstructed.append(sentences[i] + sentences[i + 1])
             else:
                 reconstructed.append(sentences[i])
-        
+
         lines = []
         current_line = ""
-        
+
         for sentence in reconstructed:
             sentence = sentence.strip()
             if not sentence:
                 continue
-            
-            # If adding this sentence would exceed target length, start a new line
+
             if current_line and len(current_line) + len(sentence) + 1 > max_length:
                 if current_line:
                     lines.append(current_line.strip())
@@ -826,12 +758,10 @@ Respond in JSON format:
                     current_line += " " + sentence
                 else:
                     current_line = sentence
-        
-        # Add the last line
+
         if current_line:
             lines.append(current_line.strip())
-        
-        # If we only have one line, try splitting at commas
+
         if len(lines) == 1 and len(lines[0]) > max_length:
             parts = re.split(r'(,\s+)', message)
             reconstructed = []
@@ -840,15 +770,15 @@ Respond in JSON format:
                     reconstructed.append(parts[i] + parts[i + 1])
                 else:
                     reconstructed.append(parts[i])
-            
+
             lines = []
             current_line = ""
-            
+
             for part in reconstructed:
                 part = part.strip()
                 if not part:
                     continue
-                
+
                 if current_line and len(current_line) + len(part) + 1 > max_length:
                     if current_line:
                         lines.append(current_line.strip())
@@ -858,45 +788,29 @@ Respond in JSON format:
                         current_line += " " + part
                     else:
                         current_line = part
-            
+
             if current_line:
                 lines.append(current_line.strip())
-        
+
         return '\n'.join(lines)
-    
+
     def _generate_fallback_message(self, deal_title: str, days_since_activity: int) -> str:
         """Generate a simple fallback message if AI fails."""
         return f"Hi! Wanted to follow up on {deal_title}. It's been a while since we last connected. Are you still interested in moving forward? Happy to answer any questions!"
-    
+
     def process_knowledge_base_chat(
         self,
         message: str,
         conversation_history: List[Dict[str, Any]]
     ) -> Dict[str, Any]:
-        """
-        Process a chat message to update the knowledge base.
-        
-        Args:
-            message: User's chat message
-            conversation_history: Previous messages in the conversation
-        
-        Returns:
-            Dictionary with:
-            - response: AI's response message
-            - should_create_document: Whether to create a document
-            - document_title: Title for the document (if creating)
-            - document_content: Content for the document (if creating)
-            - document_type: Type of document (FAQ, Sales Script, etc.)
-            - document_id: ID of created document (if any)
-        """
-        # Format conversation history
+        """Process a chat message to update the knowledge base."""
         history_text = ""
         if conversation_history:
             history_text = "\n".join([
                 f"{msg.get('role', 'user')}: {msg.get('content', '')}"
-                for msg in conversation_history[-5:]  # Last 5 messages for context
+                for msg in conversation_history[-5:]
             ])
-        
+
         system_prompt = """You are an AI assistant helping users update their knowledge base for a sales/CRM system called Revive.ai.
 
 Your role:
@@ -928,12 +842,12 @@ Format your response as JSON with:
   "document_content": "Full markdown content with proper structure",
   "document_type": "FAQ" | "Sales Script" | "Product Info" | "Pricing Guide" | "Objection Handling" | "Company Info" | "Other"
 }"""
-        
+
         user_prompt = f"""User message: {message}
 
 {history_text if history_text else "No previous conversation history."}
 
-Process this message and determine if a knowledge base document should be created. 
+Process this message and determine if a knowledge base document should be created.
 If the user wants to add, create, save, or update information, create a document.
 If the user is just asking questions or the intent is unclear, ask for clarification (set should_create_document to false).
 
@@ -945,23 +859,18 @@ If creating a document:
 - Format it professionally
 
 Respond with JSON only."""
-        
+
         try:
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt}
-                ],
+            result_text = self._call_claude(
+                system=system_prompt,
+                user_prompt=user_prompt,
                 temperature=0.7,
                 max_tokens=2000,
-                response_format={"type": "json_object"}
+                json_mode=True
             )
-            
-            import json
-            result = json.loads(response.choices[0].message.content.strip())
-            
-            # Ensure all required fields
+
+            result = json.loads(result_text)
+
             return {
                 "response": result.get("response", "I've processed your message."),
                 "should_create_document": result.get("should_create_document", False),
@@ -970,10 +879,9 @@ Respond with JSON only."""
                 "document_type": result.get("document_type", "Other"),
                 "document_id": None
             }
-            
+
         except Exception as e:
             logger.error(f"Error processing knowledge base chat: {str(e)}", exc_info=True)
-            # Fallback response
             return {
                 "response": "I understand you want to update the knowledge base. Could you provide more details about what information you'd like to add?",
                 "should_create_document": False,
@@ -982,4 +890,3 @@ Respond with JSON only."""
                 "document_type": None,
                 "document_id": None
             }
-

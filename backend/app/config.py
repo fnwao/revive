@@ -21,8 +21,8 @@ class Settings(BaseSettings):
     ghl_client_secret: str = "mock"
     ghl_redirect_uri: str = "http://localhost:8000/api/v1/auth/ghl/callback"
 
-    # OpenAI
-    openai_api_key: str = "mock"
+    # Anthropic (Claude)
+    anthropic_api_key: str = "mock"
     
     # App
     environment: str = "development"
