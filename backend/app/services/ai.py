@@ -21,14 +21,21 @@ class AIService:
         if json_mode:
             system += "\n\nIMPORTANT: Respond with valid JSON only. No additional text or explanation outside the JSON."
 
-        response = self.client.messages.create(
-            model=self.model,
-            max_tokens=max_tokens,
-            temperature=temperature,
-            system=system,
-            messages=[{"role": "user", "content": user_prompt}],
-        )
-        return response.content[0].text.strip()
+        logger.info(f"Calling Claude model={self.model}, max_tokens={max_tokens}, prompt_len={len(user_prompt)}")
+        try:
+            response = self.client.messages.create(
+                model=self.model,
+                max_tokens=max_tokens,
+                temperature=temperature,
+                system=system,
+                messages=[{"role": "user", "content": user_prompt}],
+            )
+            result = response.content[0].text.strip()
+            logger.info(f"Claude response received, length={len(result)}")
+            return result
+        except Exception as e:
+            logger.error(f"Claude API call failed: {type(e).__name__}: {str(e)}")
+            raise
 
     def generate_reactivation_message(
         self,
