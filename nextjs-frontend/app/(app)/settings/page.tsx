@@ -441,13 +441,9 @@ export default function SettingsPage() {
   // Filter settings based on search
   const sections = [
     { id: "account", title: "Account", icon: User, description: "Update your account information", keywords: ["account", "email", "name", "profile"] },
-    { id: "api", title: "API Configuration", icon: Key, description: "Configure your backend API connection", keywords: ["api", "key", "backend", "connection", "url"] },
     { id: "ghl", title: "GoHighLevel", icon: Building2, description: "Connect your GoHighLevel account", keywords: ["ghl", "gohighlevel", "integration", "connect"] },
     { id: "revival", title: "Revival Settings", icon: Zap, description: "Configure how Revive.ai detects and handles stalled deals", keywords: ["revival", "stalled", "deals", "detect", "threshold", "approval"] },
     { id: "notifications", title: "Notifications", icon: Bell, description: "Configure how you receive notifications", keywords: ["notification", "email", "sms", "alert", "notify"] },
-    { id: "webhooks", title: "Webhooks", icon: WebhookIcon, description: "Configure webhooks for integrations", keywords: ["webhook", "integration", "api", "events"] },
-    { id: "teams", title: "Teams", icon: Users, description: "Manage team members and permissions", keywords: ["team", "members", "collaboration", "users"] },
-    { id: "billing", title: "Billing", icon: CreditCard, description: "Manage your subscription and billing", keywords: ["billing", "subscription", "plan", "payment"] },
   ]
 
   const filteredSections = searchQuery
