@@ -76,49 +76,39 @@ async def detect_stalled(
             tags_filter=request.tags_filter
         )
         
-        # Add intelligence scoring to each deal
+        # Add lightweight intelligence scoring (no extra GHL API calls)
         intelligence_service = IntelligenceService()
-        ghl_service = get_ghl_service(current_user)
-        
+
         for deal_data in stalled_deals_data:
-            # Fetch conversation history for intelligence analysis
             try:
-                conversations = await ghl_service.get_deal_conversations(
-                    deal_data.get("deal_id"), 
-                    limit=20
-                )
-                
-                # Analyze sentiment
-                sentiment_analysis = intelligence_service.analyze_conversation_sentiment(conversations)
-                
-                # Calculate deal score
+                days = deal_data.get("days_since_activity", 0)
+                value = deal_data.get("value")
+
+                # Calculate score using available data only (no conversation fetch)
                 deal_score = intelligence_service.calculate_deal_score(
-                    deal_value=deal_data.get("value"),
-                    days_since_activity=deal_data.get("days_since_activity", 0),
-                    conversation_count=len(conversations),
-                    last_message_sentiment=sentiment_analysis.get("last_message_sentiment"),
+                    deal_value=value,
+                    days_since_activity=days,
+                    conversation_count=0,
+                    last_message_sentiment=None,
                     deal_stage=deal_data.get("status", "active")
                 )
-                
-                # Predict response probability
+
                 response_prediction = intelligence_service.predict_response_probability(
-                    days_since_activity=deal_data.get("days_since_activity", 0),
-                    conversation_count=len(conversations),
-                    last_message_sentiment=sentiment_analysis.get("last_message_sentiment"),
-                    deal_value=deal_data.get("value")
+                    days_since_activity=days,
+                    conversation_count=0,
+                    last_message_sentiment=None,
+                    deal_value=value
                 )
-                
-                # Add intelligence data to deal
+
                 deal_data["intelligence_score"] = deal_score["score"]
                 deal_data["priority"] = deal_score["priority"]
                 deal_data["insights"] = deal_score["insights"]
                 deal_data["recommended_action"] = deal_score["recommended_action"]
                 deal_data["response_probability"] = response_prediction["probability"]
                 deal_data["response_confidence"] = response_prediction["confidence"]
-                deal_data["sentiment"] = sentiment_analysis.get("overall_sentiment", "neutral")
+                deal_data["sentiment"] = "neutral"
             except Exception as e:
-                logger.warning(f"Error adding intelligence to deal {deal_data.get('deal_id')}: {e}")
-                # Add default values if intelligence analysis fails
+                logger.warning(f"Error scoring deal {deal_data.get('deal_id')}: {e}")
                 deal_data["intelligence_score"] = 50.0
                 deal_data["priority"] = "medium"
                 deal_data["insights"] = []
@@ -126,7 +116,7 @@ async def detect_stalled(
                 deal_data["response_probability"] = 50.0
                 deal_data["response_confidence"] = 50.0
                 deal_data["sentiment"] = "neutral"
-        
+
         # Sort by intelligence score (highest first)
         stalled_deals_data.sort(key=lambda x: x.get("intelligence_score", 0), reverse=True)
         
