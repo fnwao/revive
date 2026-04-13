@@ -43,7 +43,9 @@ async def detect_stalled_deals(
     deal_ids: List[str] = None,
     threshold_days: int = 7,
     status_filter: List[str] = None,
-    tags_filter: List[str] = None
+    tags_filter: List[str] = None,
+    excluded_statuses: List[str] = None,
+    excluded_tags: List[str] = None
 ) -> List[Dict[str, Any]]:
     """
     Detect stalled deals based on last activity date.
@@ -189,15 +191,27 @@ async def detect_stalled_deals(
     
     # Check each deal for stalled status
     for deal in deals_to_check:
-        # Apply status filter if provided (for GHL deals)
-        if status_filter and deal.get("status") not in status_filter:
+        deal_status = deal.get("status", "")
+
+        # Apply status inclusion filter
+        if status_filter and deal_status not in status_filter:
             continue
-        
-        # Apply tags filter if provided (for GHL deals)
+
+        # Apply status exclusion filter (e.g. exclude won, lost, abandoned)
+        if excluded_statuses and deal_status in excluded_statuses:
+            continue
+
+        # Apply tags inclusion filter
+        tag_values = _extract_tags(deal)
         if tags_filter:
-            tag_values = _extract_tags(deal)
-            # Check if deal has at least one of the required tags
             if not any(filter_tag in tag_values for filter_tag in tags_filter):
+                continue
+
+        # Apply tags exclusion filter (e.g. exclude 'converted', 'do-not-contact')
+        if excluded_tags:
+            tag_values_lower = [t.lower() for t in tag_values]
+            excluded_lower = [t.lower() for t in excluded_tags]
+            if any(et in tag_values_lower for et in excluded_lower):
                 continue
         
         last_activity_str = deal.get("lastActivityDate") or deal.get("lastActionDate") or deal.get("updatedAt") or deal.get("createdAt")

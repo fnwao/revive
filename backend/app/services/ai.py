@@ -901,36 +901,28 @@ Respond in JSON format:
         conversation_text = self._format_conversations(conversations)
         value_str = f"${deal_value:,.2f}" if deal_value else "Not specified"
 
-        system_prompt = f"""You are an expert sales representative writing a personalized reactivation email for a stalled deal. You deeply understand this prospect from their conversation history and meeting notes.
+        system_prompt = f"""You write short, sharp reactivation emails that sound like a real person typed them in 30 seconds. NOT a marketing team.
 
-CONTEXT ANALYSIS:
-- Relationship Stage: {context_analysis['relationship_stage']}
-- Communication Style: {context_analysis['communication_style']}
-- Key Topics: {', '.join(context_analysis['key_topics'][:5]) if context_analysis['key_topics'] else 'None identified'}
-- Pain Points: {', '.join(context_analysis['pain_points'][:3]) if context_analysis['pain_points'] else 'None identified'}
-- Interests: {', '.join(context_analysis['interests'][:3]) if context_analysis['interests'] else 'None identified'}
-- Sentiment: {context_analysis['sentiment_trend']}
-- Last Interaction Tone: {context_analysis['last_interaction_tone']}
-- Specific Details: {', '.join(context_analysis['specific_details'][:3]) if context_analysis['specific_details'] else 'None'}
+WHAT YOU KNOW ABOUT THIS PERSON:
+- Topics discussed: {', '.join(context_analysis['key_topics'][:3]) if context_analysis['key_topics'] else 'unknown'}
+- Pain points: {', '.join(context_analysis['pain_points'][:2]) if context_analysis['pain_points'] else 'unknown'}
+- Their vibe: {context_analysis['communication_style']}, {context_analysis['sentiment_trend']}
+- Specific details: {', '.join(context_analysis['specific_details'][:2]) if context_analysis['specific_details'] else 'none'}
 
-EMAIL WRITING RULES:
-1. Write a proper professional email with clear paragraphs separated by blank lines
-2. Use 3-5 short paragraphs (2-3 sentences each)
-3. Structure: greeting → context/callback → value proposition → soft CTA → sign-off
-4. Reference SPECIFIC details from their conversations or meetings — names, topics, numbers, dates
-5. NEVER write a generic "checking in" email — always add value
-6. Match the prospect's communication style ({context_analysis['communication_style']})
-7. Keep paragraphs SHORT — no walls of text
-8. Use a warm but professional tone
-9. Include a clear but low-pressure call to action
-10. The email must feel like it was written by a human who remembers the conversation, NOT a template"""
+RULES:
+1. MAX 4-6 sentences total. That's it. Short paragraphs (1-2 sentences each).
+2. Reference ONE specific thing from their conversation or meeting — a topic, a question they asked, something they said. This is what makes it feel human.
+3. No filler. No "I hope this email finds you well." No "I wanted to reach out." No "I trust you're doing well." Cut all of that.
+4. Sound like a colleague who remembers the conversation, not a salesperson working a list.
+5. One clear ask at the end — a question, not a pitch.
+6. Match their tone: if they're casual, be casual. If formal, be formal."""
 
         if feedback and previous_message:
-            user_prompt = f"""Rewrite this reactivation email based on user feedback:
+            user_prompt = f"""Rewrite this email based on feedback. Keep it SHORT (4-6 sentences max).
 
-DEAL: {deal_title} | Value: {value_str} | Inactive: {days_since_activity} days
+DEAL: {deal_title} (inactive {days_since_activity} days)
 
-CONVERSATION HISTORY:
+HISTORY:
 {conversation_text}
 
 PREVIOUS EMAIL:
@@ -938,33 +930,28 @@ PREVIOUS EMAIL:
 
 FEEDBACK: {feedback}
 
-Generate a JSON response with:
-{{"subject": "Email subject line (short, specific, no generic phrases)", "body": "Full email body with proper paragraphs separated by \\n\\n"}}"""
+JSON only:
+{{"subject": "...", "body": "paragraph1\\n\\nparagraph2\\n\\nparagraph3"}}"""
         else:
-            user_prompt = f"""Write a reactivation email for this stalled deal:
+            user_prompt = f"""Reactivation email for: {deal_title} (inactive {days_since_activity} days)
 
-DEAL: {deal_title} | Value: {value_str} | Status: {deal_status} | Inactive: {days_since_activity} days
-
-CONVERSATION HISTORY:
+THEIR CONVERSATION HISTORY:
 {conversation_text}
 
-INSTRUCTIONS:
-- Subject line: Short, specific, references something from their conversation (NOT generic like "Following up" or "Checking in")
-- Body: 3-5 short paragraphs with blank lines between them
-- Opening: Personal greeting + specific callback to their last conversation/meeting
-- Middle: Add value — share an insight, update, or resource relevant to their pain points/interests
-- Close: Soft CTA (e.g., "Would it make sense to reconnect?" or "Happy to share more if useful")
-- Sign-off: Professional but warm
+Write a SHORT email (4-6 sentences max). Reference something specific from the history above.
 
-Generate a JSON response with:
-{{"subject": "Email subject line", "body": "Full email body with paragraphs separated by \\n\\n"}}"""
+Subject line: 5-8 words, specific to their situation (NOT "Following up" or "Checking in" or "Quick question")
+Body: 2-3 tiny paragraphs. Get to the point fast. End with a question.
+
+JSON only:
+{{"subject": "...", "body": "paragraph1\\n\\nparagraph2\\n\\nparagraph3"}}"""
 
         try:
             result_text = self._call_claude(
                 system=system_prompt,
                 user_prompt=user_prompt,
-                temperature=0.7,
-                max_tokens=1000,
+                temperature=0.8,
+                max_tokens=400,  # Force brevity
                 json_mode=True
             )
             result = self._parse_json_response(result_text)

@@ -11,6 +11,8 @@ class DetectStalledRequest(BaseModel):
     stalled_threshold_days: int = Field(7, ge=1, le=90, description="Days of inactivity to consider stalled")
     status_filter: Optional[List[str]] = Field(None, description="Filter by opportunity status (e.g., ['active', 'won'])")
     tags_filter: Optional[List[str]] = Field(None, description="Filter by GHL tags (deals must have at least one of these tags)")
+    excluded_statuses: Optional[List[str]] = Field(None, description="Exclude deals with these statuses (e.g., ['won', 'lost', 'abandoned'])")
+    excluded_tags: Optional[List[str]] = Field(None, description="Exclude deals that have any of these tags (e.g., ['converted', 'do-not-contact'])")
     
     class Config:
         json_schema_extra = {

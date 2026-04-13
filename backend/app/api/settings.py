@@ -49,19 +49,19 @@ async def get_settings(
     """Get current user's settings."""
     settings = get_or_create_user_settings(user, db)
     
-    # Extract reactivation rules from extra_settings JSON
-    reactivation_rules = None
-    if settings.extra_settings and "reactivation_rules" in settings.extra_settings:
-        reactivation_rules = settings.extra_settings["reactivation_rules"]
-    
+    # Extract JSON settings from extra_settings
+    extra = settings.extra_settings or {}
+    reactivation_rules = extra.get("reactivation_rules")
+    excluded_statuses = extra.get("excluded_statuses", ["won", "lost", "abandoned"])
+    excluded_tags = extra.get("excluded_tags", [])
+
     # Automatically sync ghl_connected flag based on actual credentials
-    # This ensures the flag is always accurate
     actual_ghl_connected = bool(user.ghl_access_token and user.ghl_location_id)
     if settings.ghl_connected != actual_ghl_connected:
         settings.ghl_connected = actual_ghl_connected
         db.commit()
         db.refresh(settings)
-    
+
     # Map to response schema
     response_data = {
         "id": settings.id,
@@ -75,9 +75,11 @@ async def get_settings(
         "notify_on_stalled": settings.notify_on_stalled,
         "notify_on_response": settings.notify_on_response,
         "ghl_connected": settings.ghl_connected,
-        "ghl_api_key": user.ghl_access_token,  # Get from user model (used by GHL service)
-        "ghl_location_id": user.ghl_location_id,  # Get from user model
+        "ghl_api_key": user.ghl_access_token,
+        "ghl_location_id": user.ghl_location_id,
         "reactivation_rules": reactivation_rules,
+        "excluded_statuses": excluded_statuses,
+        "excluded_tags": excluded_tags,
         "fireflies_connected": bool(getattr(user, 'fireflies_api_key', None)),
         "fathom_connected": bool(getattr(user, 'fathom_api_key', None)),
         "created_at": settings.created_at.isoformat() if settings.created_at else None,
@@ -99,12 +101,18 @@ async def update_settings(
     # Update fields that are provided
     update_data = settings_update.model_dump(exclude_unset=True)
     
-    # Handle reactivation_rules separately (store in extra_settings JSON)
+    # Handle JSON fields (store in extra_settings)
+    if settings.extra_settings is None:
+        settings.extra_settings = {}
     reactivation_rules = update_data.pop("reactivation_rules", None)
     if reactivation_rules is not None:
-        if settings.extra_settings is None:
-            settings.extra_settings = {}
         settings.extra_settings["reactivation_rules"] = reactivation_rules
+    excluded_statuses = update_data.pop("excluded_statuses", None)
+    if excluded_statuses is not None:
+        settings.extra_settings["excluded_statuses"] = excluded_statuses
+    excluded_tags = update_data.pop("excluded_tags", None)
+    if excluded_tags is not None:
+        settings.extra_settings["excluded_tags"] = excluded_tags
     
     # Handle GHL credentials separately (they're on the User model)
     ghl_location_id = update_data.pop("ghl_location_id", None)
@@ -147,11 +155,9 @@ async def update_settings(
     
     logger.info(f"Updated settings for user {user.id}")
     
-    # Extract reactivation rules from extra_settings JSON
-    reactivation_rules = None
-    if settings.extra_settings and "reactivation_rules" in settings.extra_settings:
-        reactivation_rules = settings.extra_settings["reactivation_rules"]
-    
+    # Extract JSON fields from extra_settings
+    extra = settings.extra_settings or {}
+
     # Return updated settings
     response_data = {
         "id": settings.id,
@@ -165,9 +171,11 @@ async def update_settings(
         "notify_on_stalled": settings.notify_on_stalled,
         "notify_on_response": settings.notify_on_response,
         "ghl_connected": settings.ghl_connected,
-        "ghl_api_key": user.ghl_access_token,  # Get from user model (used by GHL service)
+        "ghl_api_key": user.ghl_access_token,
         "ghl_location_id": user.ghl_location_id,
-        "reactivation_rules": reactivation_rules,
+        "reactivation_rules": extra.get("reactivation_rules"),
+        "excluded_statuses": extra.get("excluded_statuses", ["won", "lost", "abandoned"]),
+        "excluded_tags": extra.get("excluded_tags", []),
         "fireflies_connected": bool(getattr(user, 'fireflies_api_key', None)),
         "fathom_connected": bool(getattr(user, 'fathom_api_key', None)),
         "created_at": settings.created_at.isoformat() if settings.created_at else None,

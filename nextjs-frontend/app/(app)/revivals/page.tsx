@@ -45,6 +45,8 @@ export default function RevivalsPage() {
   const refreshIntervalRef = useRef<number | null>(null)
   const [viewMode, setViewMode] = useState<"list" | "pipeline">("list")
   const [reactivationRules, setReactivationRules] = useState<ReactivationRule[]>([])
+  const [excludedStatuses, setExcludedStatuses] = useState<string[]>(["won", "lost", "abandoned"])
+  const [excludedTags, setExcludedTags] = useState<string[]>([])
   const prevChannelRef = useRef(messageChannel)
 
   const loadReactivationRules = async () => {
@@ -52,6 +54,13 @@ export default function RevivalsPage() {
       const settings = await getSettings()
       if (settings.reactivation_rules && settings.reactivation_rules.length > 0) {
         setReactivationRules(settings.reactivation_rules)
+      }
+      // Load exclusion settings
+      if ((settings as any).excluded_statuses) {
+        setExcludedStatuses((settings as any).excluded_statuses)
+      }
+      if ((settings as any).excluded_tags) {
+        setExcludedTags((settings as any).excluded_tags)
       }
     } catch (error) {
       console.error("Failed to load reactivation rules:", error)
@@ -83,11 +92,13 @@ export default function RevivalsPage() {
       
       // detectStalledDeals will return mock data if no API key
       const result = await detectStalledDeals(
-        undefined, 
-        undefined, 
+        undefined,
+        undefined,
         thresholdDays,
         statusFilter,
-        tagFilter
+        tagFilter,
+        excludedStatuses.length > 0 ? excludedStatuses : undefined,
+        excludedTags.length > 0 ? excludedTags : undefined
       )
       setStalledDeals(result.stalled_deals)
     } catch (error) {

@@ -73,7 +73,9 @@ async def detect_stalled(
             deal_ids=request.deal_ids,
             threshold_days=request.stalled_threshold_days,
             status_filter=request.status_filter,
-            tags_filter=request.tags_filter
+            tags_filter=request.tags_filter,
+            excluded_statuses=request.excluded_statuses,
+            excluded_tags=request.excluded_tags,
         )
         
         # Add lightweight intelligence scoring (no extra GHL API calls)

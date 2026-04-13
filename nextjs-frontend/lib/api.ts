@@ -205,7 +205,9 @@ export async function detectStalledDeals(
   dealIds?: string[],
   thresholdDays: number = 7,
   statusFilter?: string[],
-  tagsFilter?: string[]
+  tagsFilter?: string[],
+  excludedStatuses?: string[],
+  excludedTags?: string[]
 ): Promise<{ stalled_deals: StalledDeal[]; total_found: number }> {
   // Return mock data if no API key AND GHL is not connected
   // If GHL is connected, we should try to use real API even without backend API key
@@ -503,6 +505,12 @@ export async function detectStalledDeals(
   }
   if (tagsFilter && tagsFilter.length > 0) {
     body.tags_filter = tagsFilter
+  }
+  if (excludedStatuses && excludedStatuses.length > 0) {
+    body.excluded_statuses = excludedStatuses
+  }
+  if (excludedTags && excludedTags.length > 0) {
+    body.excluded_tags = excludedTags
   }
 
   try {

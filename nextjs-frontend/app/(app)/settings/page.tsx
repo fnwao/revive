@@ -101,8 +101,11 @@ export default function SettingsPage() {
   const [firefliesConnected, setFirefliesConnected] = useState(false)
   const [fathomConnected, setFathomConnected] = useState(false)
   const [testingIntegration, setTestingIntegration] = useState<string | null>(null)
+  const [excludedStatuses, setExcludedStatuses] = useState<string[]>(["won", "lost", "abandoned"])
+  const [excludedTags, setExcludedTags] = useState<string[]>([])
+  const [newExcludedTag, setNewExcludedTag] = useState("")
   const settingsRef = useRef(settings)
-  
+
   // Common statuses and tags for presets
   const commonStatuses = ["New Lead", "Open", "Working", "Hot Lead", "Follow Up", "Closed", "Won", "Lost"]
   const commonTags = ["High Value", "Engaged", "Cold", "Nurture", "VIP", "Enterprise", "Follow Up", "Qualified"]
@@ -181,6 +184,12 @@ export default function SettingsPage() {
         }))
         setFirefliesConnected(backendSettings.fireflies_connected || false)
         setFathomConnected(backendSettings.fathom_connected || false)
+        if ((backendSettings as any).excluded_statuses) {
+          setExcludedStatuses((backendSettings as any).excluded_statuses)
+        }
+        if ((backendSettings as any).excluded_tags) {
+          setExcludedTags((backendSettings as any).excluded_tags)
+        }
       } catch (error: any) {
         // getSettings() should never throw now, but just in case, fallback to localStorage
         const saved = localStorage.getItem("revive_settings")
@@ -1244,7 +1253,110 @@ export default function SettingsPage() {
               </div>
               
               <Separator className="bg-[#2A2F3A]" />
-              
+
+              {/* Excluded Statuses */}
+              <div className="space-y-3">
+                <div>
+                  <Label className="text-[#111827] font-semibold">Exclude Deal Statuses</Label>
+                  <p className="text-xs text-[#6B7280] mt-0.5">Deals with these statuses won&apos;t appear in Revivals</p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {["open", "won", "lost", "abandoned"].map((status) => (
+                    <button
+                      key={status}
+                      type="button"
+                      onClick={() => {
+                        const updated = excludedStatuses.includes(status)
+                          ? excludedStatuses.filter(s => s !== status)
+                          : [...excludedStatuses, status]
+                        setExcludedStatuses(updated)
+                        updateSettings({ excluded_statuses: updated } as any).catch(() => {})
+                      }}
+                      className={cn(
+                        "px-3 py-1.5 rounded-full text-xs font-medium border transition-all",
+                        excludedStatuses.includes(status)
+                          ? "bg-[#E06C75]/10 text-[#E06C75] border-[#E06C75]/30"
+                          : "bg-white text-[#6B7280] border-[#E5E7EB] hover:border-[#E06C75]/30"
+                      )}
+                    >
+                      {excludedStatuses.includes(status) && <span className="mr-1">✕</span>}
+                      {status.charAt(0).toUpperCase() + status.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <Separator className="bg-[#2A2F3A]" />
+
+              {/* Excluded Tags */}
+              <div className="space-y-3">
+                <div>
+                  <Label className="text-[#111827] font-semibold">Exclude Tags</Label>
+                  <p className="text-xs text-[#6B7280] mt-0.5">Deals with any of these tags will be excluded from Revivals</p>
+                </div>
+                {excludedTags.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {excludedTags.map((tag) => (
+                      <span key={tag} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-[#E06C75]/10 text-[#E06C75] border border-[#E06C75]/30">
+                        {tag}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = excludedTags.filter(t => t !== tag)
+                            setExcludedTags(updated)
+                            updateSettings({ excluded_tags: updated } as any).catch(() => {})
+                          }}
+                          className="hover:text-[#E06C75] ml-0.5"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  <Input
+                    type="text"
+                    placeholder="Add tag to exclude (e.g. converted, do-not-contact)..."
+                    value={newExcludedTag}
+                    onChange={(e) => setNewExcludedTag(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && newExcludedTag.trim()) {
+                        e.preventDefault()
+                        const tag = newExcludedTag.trim()
+                        if (!excludedTags.includes(tag)) {
+                          const updated = [...excludedTags, tag]
+                          setExcludedTags(updated)
+                          updateSettings({ excluded_tags: updated } as any).catch(() => {})
+                        }
+                        setNewExcludedTag("")
+                      }
+                    }}
+                    className="text-sm h-9"
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-9"
+                    disabled={!newExcludedTag.trim()}
+                    onClick={() => {
+                      const tag = newExcludedTag.trim()
+                      if (tag && !excludedTags.includes(tag)) {
+                        const updated = [...excludedTags, tag]
+                        setExcludedTags(updated)
+                        updateSettings({ excluded_tags: updated } as any).catch(() => {})
+                      }
+                      setNewExcludedTag("")
+                    }}
+                  >
+                    <Plus className="h-3 w-3 mr-1" />
+                    Add
+                  </Button>
+                </div>
+              </div>
+
+              <Separator className="bg-[#2A2F3A]" />
+
               {/* Reactivation Rules */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">

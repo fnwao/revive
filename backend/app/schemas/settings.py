@@ -57,6 +57,8 @@ class UserSettingsUpdate(BaseModel):
     ghl_api_key: Optional[str] = None
     ghl_location_id: Optional[str] = None
     reactivation_rules: Optional[List[ReactivationRule]] = None
+    excluded_statuses: Optional[List[str]] = None
+    excluded_tags: Optional[List[str]] = None
     fireflies_api_key: Optional[str] = None
     fathom_api_key: Optional[str] = None
 
