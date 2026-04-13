@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Textarea } from "@/components/ui/textarea"
 import { Save, Eye, EyeOff, Copy, Check, CheckCircle2, Loader2, ExternalLink, Trash2, CreditCard, Search, Info, AlertCircle, HelpCircle, Settings2, User, Key, Bell, Zap, Building2, Shield, Webhook as WebhookIcon, Users, Plus, X, Tag, Filter, Sparkles, Clock, Target, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { hasApiKey, getSettings, updateSettings, getWebhooks, createWebhook, updateWebhook, deleteWebhook, getTeams, getTeamMembers, addTeamMember, type Webhook, type Team, type TeamMember } from "@/lib/api"
+import { hasApiKey, getSettings, updateSettings, getWebhooks, createWebhook, updateWebhook, deleteWebhook, getTeams, getTeamMembers, addTeamMember, testIntegration, updateIntegration, type Webhook, type Team, type TeamMember } from "@/lib/api"
 import { getUser, updateUser, saveUser } from "@/lib/user"
 import { getSubscription, formatPrice, getPlanPrice, getPlanLimits } from "@/lib/subscription"
 import { showToast } from "@/lib/toast"
@@ -96,6 +96,11 @@ export default function SettingsPage() {
   const [showRuleDialog, setShowRuleDialog] = useState(false)
   const [newStatus, setNewStatus] = useState("")
   const [newTag, setNewTag] = useState("")
+  const [firefliesKey, setFirefliesKey] = useState("")
+  const [fathomKey, setFathomKey] = useState("")
+  const [firefliesConnected, setFirefliesConnected] = useState(false)
+  const [fathomConnected, setFathomConnected] = useState(false)
+  const [testingIntegration, setTestingIntegration] = useState<string | null>(null)
   const settingsRef = useRef(settings)
   
   // Common statuses and tags for presets
@@ -174,6 +179,8 @@ export default function SettingsPage() {
           ghlLocationId: backendSettings.ghl_location_id || "",
           ghlApiKey: backendSettings.ghl_api_key || "",
         }))
+        setFirefliesConnected(backendSettings.fireflies_connected || false)
+        setFathomConnected(backendSettings.fathom_connected || false)
       } catch (error: any) {
         // getSettings() should never throw now, but just in case, fallback to localStorage
         const saved = localStorage.getItem("revive_settings")
@@ -442,6 +449,7 @@ export default function SettingsPage() {
   const sections = [
     { id: "account", title: "Account", icon: User, description: "Update your account information", keywords: ["account", "email", "name", "profile"] },
     { id: "ghl", title: "GoHighLevel", icon: Building2, description: "Connect your GoHighLevel account", keywords: ["ghl", "gohighlevel", "integration", "connect"] },
+    { id: "integrations", title: "Meeting Notes", icon: Sparkles, description: "Connect Fireflies or Fathom for call transcript context", keywords: ["fireflies", "fathom", "meeting", "transcript", "integration", "call", "notes"] },
     { id: "revival", title: "Revival Settings", icon: Zap, description: "Configure how Revive.ai detects and handles stalled deals", keywords: ["revival", "stalled", "deals", "detect", "threshold", "approval"] },
     { id: "notifications", title: "Notifications", icon: Bell, description: "Configure how you receive notifications", keywords: ["notification", "email", "sms", "alert", "notify"] },
   ]
@@ -961,6 +969,162 @@ export default function SettingsPage() {
                   </Button>
                 </div>
               )}
+              </div>
+            )}
+          </Card>
+          )}
+
+          {/* Meeting Notes Integration */}
+          {filteredSections.some(s => s.id === "integrations") && (
+          <Card className={cn(
+            "bg-white border-[#E5E7EB] transition-all shadow-sm hover:shadow-md",
+            expandedSections.has("integrations") ? "border-[#4F8CFF]/40 shadow-md" : ""
+          )}>
+            <button
+              onClick={() => toggleSection("integrations")}
+              className="w-full p-5 sm:p-6 flex items-center justify-between hover:bg-[#F9FAFB] transition-colors rounded-t-lg"
+            >
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-gradient-to-br from-[#4F8CFF]/10 to-[#4F8CFF]/5 flex items-center justify-center flex-shrink-0">
+                  <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 text-[#4F8CFF]" />
+                </div>
+                <div className="text-left">
+                  <CardTitle className="text-base sm:text-lg font-semibold text-[#111827]">Meeting Notes</CardTitle>
+                  <CardDescription className="text-xs sm:text-sm text-[#6B7280] mt-0.5">Connect Fireflies or Fathom for call transcript context</CardDescription>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {(firefliesConnected || fathomConnected) && (
+                  <Badge className="bg-[#3CCB7F]/10 text-[#3CCB7F] border-[#3CCB7F]/20 text-xs">
+                    {firefliesConnected ? "Fireflies" : "Fathom"} Connected
+                  </Badge>
+                )}
+                <ChevronRight className={cn(
+                  "h-5 w-5 text-[#6B7280] transition-transform",
+                  expandedSections.has("integrations") && "rotate-90"
+                )} />
+              </div>
+            </button>
+
+            {expandedSections.has("integrations") && (
+              <div className="px-5 sm:px-6 pb-5 sm:pb-6 space-y-5 border-t border-[#E5E7EB] pt-5 sm:pt-6">
+                <p className="text-sm text-[#6B7280]">
+                  Connect your call recording tool so Revive.ai can reference meeting transcripts when writing messages. Only one can be active at a time.
+                </p>
+
+                {/* Fireflies */}
+                <div className={cn(
+                  "p-4 rounded-lg border-2 transition-all",
+                  firefliesConnected ? "border-[#3CCB7F]/40 bg-[#3CCB7F]/5" : "border-[#E5E7EB]"
+                )}>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-sm text-[#111827]">Fireflies.ai</span>
+                      {firefliesConnected && <Badge className="bg-[#3CCB7F]/10 text-[#3CCB7F] text-[10px]">Active</Badge>}
+                    </div>
+                    {firefliesConnected && (
+                      <Button size="sm" variant="ghost" className="text-xs text-[#E06C75] h-7"
+                        onClick={async () => {
+                          try {
+                            await updateIntegration("fireflies", "")
+                            setFirefliesConnected(false)
+                            setFirefliesKey("")
+                            showToast.success("Disconnected", "Fireflies has been disconnected.")
+                          } catch { showToast.error("Error", "Failed to disconnect") }
+                        }}>
+                        Disconnect
+                      </Button>
+                    )}
+                  </div>
+                  {!firefliesConnected && (
+                    <div className="flex gap-2">
+                      <Input
+                        type="password"
+                        placeholder="Fireflies API key..."
+                        value={firefliesKey}
+                        onChange={(e) => setFirefliesKey(e.target.value)}
+                        className="text-sm h-9"
+                      />
+                      <Button size="sm" className="h-9 px-4"
+                        disabled={!firefliesKey || testingIntegration !== null}
+                        onClick={async () => {
+                          setTestingIntegration("fireflies")
+                          try {
+                            const result = await testIntegration("fireflies", firefliesKey)
+                            if (result.connected) {
+                              await updateIntegration("fireflies", firefliesKey)
+                              setFirefliesConnected(true)
+                              setFathomConnected(false)
+                              setFathomKey("")
+                              showToast.success("Connected", "Fireflies is now connected. Messages will include call context.")
+                            } else {
+                              showToast.error("Connection failed", result.error || "Invalid API key")
+                            }
+                          } catch { showToast.error("Error", "Failed to test connection") }
+                          finally { setTestingIntegration(null) }
+                        }}>
+                        {testingIntegration === "fireflies" ? <Loader2 className="h-3 w-3 animate-spin" /> : "Connect"}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Fathom */}
+                <div className={cn(
+                  "p-4 rounded-lg border-2 transition-all",
+                  fathomConnected ? "border-[#3CCB7F]/40 bg-[#3CCB7F]/5" : "border-[#E5E7EB]"
+                )}>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-sm text-[#111827]">Fathom</span>
+                      {fathomConnected && <Badge className="bg-[#3CCB7F]/10 text-[#3CCB7F] text-[10px]">Active</Badge>}
+                    </div>
+                    {fathomConnected && (
+                      <Button size="sm" variant="ghost" className="text-xs text-[#E06C75] h-7"
+                        onClick={async () => {
+                          try {
+                            await updateIntegration("fathom", "")
+                            setFathomConnected(false)
+                            setFathomKey("")
+                            showToast.success("Disconnected", "Fathom has been disconnected.")
+                          } catch { showToast.error("Error", "Failed to disconnect") }
+                        }}>
+                        Disconnect
+                      </Button>
+                    )}
+                  </div>
+                  {!fathomConnected && (
+                    <div className="flex gap-2">
+                      <Input
+                        type="password"
+                        placeholder="Fathom API key..."
+                        value={fathomKey}
+                        onChange={(e) => setFathomKey(e.target.value)}
+                        className="text-sm h-9"
+                      />
+                      <Button size="sm" className="h-9 px-4"
+                        disabled={!fathomKey || testingIntegration !== null}
+                        onClick={async () => {
+                          setTestingIntegration("fathom")
+                          try {
+                            const result = await testIntegration("fathom", fathomKey)
+                            if (result.connected) {
+                              await updateIntegration("fathom", fathomKey)
+                              setFathomConnected(true)
+                              setFirefliesConnected(false)
+                              setFirefliesKey("")
+                              showToast.success("Connected", "Fathom is now connected. Messages will include call context.")
+                            } else {
+                              showToast.error("Connection failed", result.error || "Invalid API key")
+                            }
+                          } catch { showToast.error("Error", "Failed to test connection") }
+                          finally { setTestingIntegration(null) }
+                        }}>
+                        {testingIntegration === "fathom" ? <Loader2 className="h-3 w-3 animate-spin" /> : "Connect"}
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </Card>

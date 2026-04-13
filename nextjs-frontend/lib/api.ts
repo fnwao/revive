@@ -1244,6 +1244,8 @@ export interface UserSettings {
   ghl_connected: boolean
   ghl_api_key: string | null
   ghl_location_id: string | null
+  fireflies_connected?: boolean
+  fathom_connected?: boolean
   reactivation_rules?: ReactivationRule[]
   created_at: string
   updated_at: string | null
@@ -1261,6 +1263,8 @@ export interface UserSettingsUpdate {
   ghl_connected?: boolean
   ghl_api_key?: string | null
   ghl_location_id?: string | null
+  fireflies_connected?: boolean
+  fathom_connected?: boolean
   reactivation_rules?: ReactivationRule[]
 }
 
@@ -1833,4 +1837,38 @@ export async function getWebhookDeliveries(webhookId: string, params?: {
 }
 
 // Note: sendMessage function is already defined above with email support
+
+export async function testIntegration(type: "fireflies" | "fathom", apiKey: string): Promise<{ connected: boolean; error?: string }> {
+  const apiUrl = getApiUrl()
+  const userApiKey = getApiKey()
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  }
+  if (userApiKey) {
+    headers["Authorization"] = `Bearer ${userApiKey}`
+  }
+  const response = await fetch(`${apiUrl}/api/v1/settings/integrations/test?integration_type=${type}&api_key=${encodeURIComponent(apiKey)}`, {
+    method: "POST",
+    headers,
+  })
+  if (!response.ok) throw new Error("Test failed")
+  return response.json()
+}
+
+export async function updateIntegration(type: "fireflies" | "fathom", apiKey: string): Promise<{ fireflies_connected: boolean; fathom_connected: boolean }> {
+  const apiUrl = getApiUrl()
+  const userApiKey = getApiKey()
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  }
+  if (userApiKey) {
+    headers["Authorization"] = `Bearer ${userApiKey}`
+  }
+  const response = await fetch(`${apiUrl}/api/v1/settings/integrations?integration_type=${type}&api_key=${encodeURIComponent(apiKey)}`, {
+    method: "PUT",
+    headers,
+  })
+  if (!response.ok) throw new Error("Update failed")
+  return response.json()
+}
 
