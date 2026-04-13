@@ -45,13 +45,14 @@ class AIService:
         feedback: Optional[str] = None,
         previous_message: Optional[str] = None,
         generate_sequence: bool = True
-    ) -> List[str]:
+    ) -> tuple:
         """
-        Generate reactivation messages for a stalled deal. Returns 3-4 shorter messages
-        to simulate natural human conversation flow.
+        Generate reactivation messages for a stalled deal. Returns a tuple of
+        (List[str], Dict[str, Any]) — the messages and a context snapshot for transparency.
         """
         # Deeply analyze conversation context first
         context_analysis = self._analyze_conversation_context(conversations)
+        context_snapshot = self._build_context_snapshot(context_analysis, conversations)
 
         # Format conversation history
         conversation_text = self._format_conversations(conversations)
@@ -437,7 +438,7 @@ NOTE: If the message is longer than {max_length} characters, use natural line br
                 # Validate and clean messages
                 if not messages or len(messages) < 2:
                     logger.warning(f"AI generated fewer than 2 messages ({len(messages)}), falling back to single message")
-                    return self._generate_single_message_fallback(deal_title, days_since_activity, max_length)
+                    return (self._generate_single_message_fallback(deal_title, days_since_activity, max_length), context_snapshot)
 
                 # Ensure each message is within max length and trim to 3-4 messages
                 cleaned_messages = []
@@ -450,10 +451,10 @@ NOTE: If the message is longer than {max_length} characters, use natural line br
 
                 if len(cleaned_messages) < 2:
                     logger.warning("Not enough valid messages, falling back to single message")
-                    return self._generate_single_message_fallback(deal_title, days_since_activity, max_length)
+                    return (self._generate_single_message_fallback(deal_title, days_since_activity, max_length), context_snapshot)
 
                 logger.info(f"Generated {len(cleaned_messages)} messages for natural conversation flow")
-                return cleaned_messages
+                return (cleaned_messages, context_snapshot)
             else:
                 # Single message generation (for feedback/regeneration or when sequence disabled)
                 message = self._call_claude(
@@ -469,7 +470,7 @@ NOTE: If the message is longer than {max_length} characters, use natural line br
                     split_messages = self._split_long_message(message, max_length)
                     if split_messages:
                         logger.info(f"Split into {len(split_messages)} messages")
-                        return split_messages
+                        return (split_messages, context_snapshot)
 
                 # If message is moderately long, add line breaks
                 if len(message) > max_length:
@@ -482,14 +483,14 @@ NOTE: If the message is longer than {max_length} characters, use natural line br
                     message = message[:max_length-3] + "..."
 
                 logger.info(f"Generated message ({len(message)} chars): {message[:50]}...")
-                return [message]
+                return ([message], context_snapshot)
 
         except Exception as e:
             logger.error(f"Error generating message: {type(e).__name__}: {str(e)}")
             if generate_sequence:
-                return self._generate_single_message_fallback(deal_title, days_since_activity, max_length)
+                return (self._generate_single_message_fallback(deal_title, days_since_activity, max_length), context_snapshot)
             else:
-                return [self._generate_fallback_message(deal_title, days_since_activity)]
+                return ([self._generate_fallback_message(deal_title, days_since_activity)], context_snapshot)
 
     def _generate_single_message_fallback(self, deal_title: str, days_since_activity: int, max_length: int) -> List[str]:
         """Generate a fallback single message if sequence generation fails."""
@@ -657,6 +658,100 @@ Respond in JSON format:
         except Exception as e:
             logger.warning(f"Error analyzing conversation context: {str(e)}. Using fallback analysis.")
             return self._basic_conversation_analysis(conversations)
+
+    def _build_context_snapshot(
+        self,
+        context_analysis: Dict[str, Any],
+        conversations: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        """
+        Build a JSON-serializable snapshot of the AI context for transparency.
+        Returns the analysis + top evidence snippets + stats.
+        """
+        # Extract key topics and pain points for evidence matching
+        key_terms = set()
+        for field in ['key_topics', 'pain_points', 'interests', 'specific_details']:
+            for item in context_analysis.get(field, []):
+                key_terms.update(item.lower().split())
+
+        # Separate meeting notes from messages
+        meeting_notes = []
+        messages = []
+        for conv in conversations:
+            if conv.get("type") == "meeting_notes":
+                meeting_notes.append(conv)
+            elif conv.get("content") and conv.get("direction") in ("inbound", "outbound"):
+                messages.append(conv)
+
+        # Score messages by relevance (how many key terms they contain)
+        scored_messages = []
+        for msg in messages:
+            content_lower = (msg.get("content") or "").lower()
+            score = sum(1 for term in key_terms if term in content_lower)
+            scored_messages.append((score, msg))
+
+        # Sort by relevance score (highest first), take top 5
+        scored_messages.sort(key=lambda x: x[0], reverse=True)
+        top_messages = scored_messages[:5]
+
+        # Build evidence array
+        evidence = []
+
+        # Add all meeting notes first (max 3)
+        for note in meeting_notes[:3]:
+            content = note.get("content", "")
+            if len(content) > 300:
+                content = content[:297] + "..."
+            evidence.append({
+                "type": "meeting_notes",
+                "direction": "context",
+                "content": content,
+                "date": note.get("sentAt") or note.get("createdAt") or ""
+            })
+
+        # Add top relevant messages
+        for score, msg in top_messages:
+            content = msg.get("content", "")
+            if len(content) > 200:
+                content = content[:197] + "..."
+            evidence.append({
+                "type": "message",
+                "direction": msg.get("direction", "unknown"),
+                "content": content,
+                "date": msg.get("sentAt") or msg.get("createdAt") or ""
+            })
+
+        # Build stats
+        total_messages = len([c for c in conversations if c.get("direction") in ("inbound", "outbound")])
+        dates = []
+        for conv in conversations:
+            d = conv.get("sentAt") or conv.get("createdAt")
+            if d and isinstance(d, str) and len(d) >= 10:
+                dates.append(d[:10])
+
+        date_range = ""
+        if dates:
+            dates.sort()
+            date_range = f"{dates[0]} to {dates[-1]}" if len(dates) > 1 else dates[0]
+
+        return {
+            "analysis": {
+                "relationship_stage": context_analysis.get("relationship_stage", "unknown"),
+                "communication_style": context_analysis.get("communication_style", "unknown"),
+                "key_topics": context_analysis.get("key_topics", [])[:5],
+                "pain_points": context_analysis.get("pain_points", [])[:3],
+                "interests": context_analysis.get("interests", [])[:3],
+                "sentiment_trend": context_analysis.get("sentiment_trend", "unknown"),
+                "last_interaction_tone": context_analysis.get("last_interaction_tone", "unknown"),
+                "specific_details": context_analysis.get("specific_details", [])[:3]
+            },
+            "evidence": evidence,
+            "stats": {
+                "total_messages": total_messages,
+                "meeting_notes_count": len(meeting_notes),
+                "date_range": date_range
+            }
+        }
 
     def _basic_conversation_analysis(self, conversations: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Fallback basic analysis if AI analysis fails. Extracts info from meeting notes if available."""
@@ -895,9 +990,10 @@ Respond in JSON format:
     ) -> Dict[str, str]:
         """
         Generate a reactivation email for a stalled deal.
-        Returns dict with 'subject' and 'body' (with proper paragraphs/line breaks).
+        Returns dict with 'subject', 'body', and 'ai_context' (with proper paragraphs/line breaks).
         """
         context_analysis = self._analyze_conversation_context(conversations)
+        context_snapshot = self._build_context_snapshot(context_analysis, conversations)
         conversation_text = self._format_conversations(conversations)
         value_str = f"${deal_value:,.2f}" if deal_value else "Not specified"
 
@@ -976,13 +1072,14 @@ JSON only:
                         paragraphs.append(" ".join(current))
                     body = "\n\n".join(paragraphs)
 
-            return {"subject": subject, "body": body}
+            return {"subject": subject, "body": body, "ai_context": context_snapshot}
 
         except Exception as e:
             logger.error(f"Error generating email: {e}", exc_info=True)
             return {
                 "subject": f"Following up on {deal_title}",
-                "body": f"Hi,\n\nI wanted to reach out regarding {deal_title}. It's been a little while since we last connected, and I'd love to pick up where we left off.\n\nWould it make sense to reconnect this week?\n\nBest regards"
+                "body": f"Hi,\n\nI wanted to reach out regarding {deal_title}. It's been a little while since we last connected, and I'd love to pick up where we left off.\n\nWould it make sense to reconnect this week?\n\nBest regards",
+                "ai_context": context_snapshot
             }
 
     def process_knowledge_base_chat(
