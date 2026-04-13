@@ -49,7 +49,8 @@ class ApprovalQueue(Base):
     approved_at = Column(DateTime(timezone=True), nullable=True)
     sent_at = Column(DateTime(timezone=True), nullable=True)
     scheduled_at = Column(DateTime(timezone=True), nullable=True, index=True)  # When message should be sent
-    
+    ai_context = Column(Text, nullable=True)  # JSON snapshot of AI context used for generation
+
     # Relationships
     user = relationship("User", backref="approvals")
     deal = relationship("Deal", backref="approvals")
