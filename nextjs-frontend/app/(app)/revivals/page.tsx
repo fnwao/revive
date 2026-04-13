@@ -45,6 +45,7 @@ export default function RevivalsPage() {
   const refreshIntervalRef = useRef<number | null>(null)
   const [viewMode, setViewMode] = useState<"list" | "pipeline">("list")
   const [reactivationRules, setReactivationRules] = useState<ReactivationRule[]>([])
+  const prevChannelRef = useRef(messageChannel)
 
   const loadReactivationRules = async () => {
     try {
@@ -192,6 +193,16 @@ export default function RevivalsPage() {
       window.removeEventListener("triggerDealDetection", handleTriggerDetection as EventListener)
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Re-generate message when channel changes (if a deal is selected and message exists)
+  useEffect(() => {
+    if (messageChannel !== prevChannelRef.current && selectedDeal && generatedMessage) {
+      prevChannelRef.current = messageChannel
+      handleGenerateMessage(selectedDeal)
+    } else {
+      prevChannelRef.current = messageChannel
+    }
+  }, [messageChannel]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleGenerateMessage = async (deal: StalledDeal) => {
     setSelectedDeal(deal)
@@ -1160,9 +1171,44 @@ export default function RevivalsPage() {
                       ) : (
                         // Display mode
                         <div className="space-y-3">
-                          {editedMessages.length > 1 ? (
-                            // Display sequence
-                            editedMessages.map((msg, idx) => (
+                          {messageChannel === "email" ? (
+                            // Email preview layout
+                            <div className="border-2 border-primary/20 rounded-xl overflow-hidden shadow-sm">
+                              {emailSubject && (
+                                <div className="bg-muted/40 px-5 py-3 border-b border-primary/10">
+                                  <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                                    <Mail className="h-3 w-3" />
+                                    <span>Email Preview</span>
+                                  </div>
+                                  <p className="text-sm font-medium text-foreground">
+                                    Subject: {emailSubject}
+                                  </p>
+                                </div>
+                              )}
+                              <div className="px-5 py-4 bg-white">
+                                {(editedMessage || generatedMessage).split("\n\n").map((paragraph: string, idx: number) => (
+                                  <p key={idx} className="text-sm leading-relaxed text-foreground mb-3 last:mb-0">
+                                    {paragraph.split("\n").map((line: string, lineIdx: number) => (
+                                      <span key={lineIdx}>
+                                        {line}
+                                        {lineIdx < paragraph.split("\n").length - 1 && <br />}
+                                      </span>
+                                    ))}
+                                  </p>
+                                ))}
+                              </div>
+                              {editedMessage !== generatedMessage && (
+                                <div className="px-5 py-2 border-t border-primary/10 bg-muted/20">
+                                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                    <Edit2 className="h-3 w-3" />
+                                    <span className="italic">Email has been edited</span>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          ) : editedMessages.length > 1 ? (
+                            // SMS sequence display (unchanged)
+                            editedMessages.map((msg: string, idx: number) => (
                               <div
                                 key={idx}
                                 className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-2 border-primary/20 rounded-xl p-4 shadow-sm relative"
@@ -1183,7 +1229,7 @@ export default function RevivalsPage() {
                               </div>
                             ))
                           ) : (
-                            // Single message display
+                            // Single SMS message display (unchanged)
                             <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-2 border-primary/20 rounded-xl p-5 shadow-sm">
                               <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
                                 {editedMessage !== generatedMessage ? editedMessage : generatedMessage}
