@@ -27,6 +27,10 @@ class User(Base):
     # Email settings
     email_enabled = Column(Boolean, default=True)
     email_address = Column(String(255), nullable=True)
+
+    # Meeting notes integration (mutually exclusive - only one active at a time)
+    fireflies_api_key = Column(Text, nullable=True)
+    fathom_api_key = Column(Text, nullable=True)
     
     # Notification preferences
     notification_preferences = Column(CompatJSONB, nullable=True)  # JSON with notification settings
