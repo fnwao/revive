@@ -12,6 +12,7 @@ class GenerateMessageResponse(BaseModel):
     generated_messages: Optional[List[str]] = None  # Full message sequence (3-4 messages)
     message_sequence: Optional[List[dict]] = None  # Sequence with delays
     email_subject: Optional[str] = None  # Email subject line (when channel is email)
+    ai_context: Optional[dict] = None  # AI context snapshot for transparency panel
     status: str = "pending"
     created_at: datetime
     

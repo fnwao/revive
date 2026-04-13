@@ -213,10 +213,11 @@ async def generate_message(
             # Email body is a single message with proper formatting
             generated_messages = [email_result["body"]]
             email_subject = email_result["subject"]
+            ai_context = email_result.get("ai_context")
         else:
             # SMS: Generate 3-4 shorter messages for natural conversation flow
             email_subject = None
-            generated_messages = ai_service.generate_reactivation_message(
+            generated_messages, ai_context = ai_service.generate_reactivation_message(
                 deal_title=deal_title_str,
                 deal_value=deal.value,
                 deal_status=deal.status or "active",
@@ -249,6 +250,7 @@ async def generate_message(
             ghl_contact_id=deal.ghl_contact_id,
             generated_message=generated_message_json,
             message_sequence=json.dumps(message_sequence),
+            ai_context=json.dumps(ai_context) if ai_context else None,
             status=ApprovalStatus.PENDING
         )
         
@@ -291,6 +293,7 @@ async def generate_message(
             generated_messages=generated_messages,  # Full sequence
             message_sequence=message_sequence,  # Sequence with delays
             email_subject=email_subject if channel == "email" else None,
+            ai_context=ai_context,
             status=approval.status.value,
             created_at=approval.created_at
         )
