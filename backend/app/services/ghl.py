@@ -36,8 +36,6 @@ class GHLService:
 
     BASE_URL = "https://services.leadconnectorhq.com"
 
-    # Simple TTL cache for deals to avoid GHL rate limiting (429)
-    _deals_cache: Dict[str, Any] = {}  # key: location_id, value: {"data": [...], "ts": float}
     _CACHE_TTL = 300  # 5 minutes
 
     def __init__(self, user: User):
@@ -98,13 +96,19 @@ class GHLService:
             logger.error(f"Cannot fetch deals: missing credentials")
             return []
 
-        # Check cache to avoid GHL rate limiting
-        import time
-        cache_key = f"{self.location_id}:{pipeline_id or 'all'}"
-        cached = GHLService._deals_cache.get(cache_key)
-        if cached and (time.time() - cached["ts"]) < GHLService._CACHE_TTL:
-            logger.info(f"Using cached deals ({len(cached['data'])} deals, age={int(time.time() - cached['ts'])}s)")
-            return cached["data"]
+        # File-based cache on /tmp to survive Vercel serverless invocations
+        import time, json as _json, os
+        cache_file = f"/tmp/ghl_deals_{self.location_id}_{pipeline_id or 'all'}.json"
+        cached = None
+        try:
+            if os.path.exists(cache_file):
+                with open(cache_file, "r") as f:
+                    cached = _json.load(f)
+                if (time.time() - cached.get("ts", 0)) < GHLService._CACHE_TTL:
+                    logger.info(f"Using cached deals ({len(cached['data'])} deals, age={int(time.time() - cached['ts'])}s)")
+                    return cached["data"]
+        except Exception as e:
+            logger.warning(f"Cache read error: {e}")
 
         all_opportunities = []
         max_pages = 10  # Safety limit
@@ -146,15 +150,19 @@ class GHLService:
                     params["startAfterId"] = start_after_id
 
                 logger.info(f"Fetched {len(all_opportunities)} total deals from GHL")
-                # Cache successful results
-                GHLService._deals_cache[cache_key] = {"data": all_opportunities, "ts": time.time()}
+                # Cache to /tmp file
+                try:
+                    with open(cache_file, "w") as f:
+                        _json.dump({"data": all_opportunities, "ts": time.time()}, f)
+                except Exception as e:
+                    logger.warning(f"Cache write error: {e}")
                 return all_opportunities
 
             except httpx.HTTPStatusError as e:
                 error_text = e.response.text[:500] if e.response.text else "No error text"
                 logger.error(f"HTTP error fetching deals: {e.response.status_code} - {error_text}")
-                # On rate limit, return cached data if available
-                if e.response.status_code == 429 and cached:
+                # On rate limit, return cached data if available (even stale)
+                if e.response.status_code == 429 and cached and cached.get("data"):
                     logger.info(f"Rate limited - returning stale cache ({len(cached['data'])} deals)")
                     return cached["data"]
                 return all_opportunities  # Return what we got so far
@@ -204,7 +212,7 @@ class GHLService:
 
                 # Step 2: Get messages from first conversation (most recent)
                 all_messages = []
-                for conv in conversations[:2]:  # Check up to 2 conversation threads
+                for conv in conversations[:5]:  # Check up to 5 conversation threads
                     conv_id = conv.get("id")
                     if not conv_id:
                         continue
@@ -251,20 +259,76 @@ class GHLService:
                                 "createdAt": msg.get("dateAdded", ""),
                             })
 
-                # Also get contact info (email, phone, name) for Fireflies matching
+                # Get contact info for meeting notes matching and metadata
                 contact_email = (deal.get("contact", {}) or {}).get("email", "")
                 contact_name = (deal.get("contact", {}) or {}).get("name", "") or deal.get("name", "")
 
-                # Add Fireflies meeting context if available
-                fireflies_context = self._get_fireflies_context(contact_email, contact_name)
-                if fireflies_context:
-                    all_messages.insert(0, {
-                        "direction": "context",
-                        "content": fireflies_context,
-                        "type": "meeting_notes",
-                        "sentAt": "",
-                        "createdAt": "",
-                    })
+                # Fetch contact details for richer context (custom fields, tags, notes)
+                try:
+                    contact_url = f"{self.BASE_URL}/contacts/{contact_id}"
+                    contact_response = await client.get(contact_url, headers=headers, timeout=15.0)
+                    contact_response.raise_for_status()
+                    contact_data = contact_response.json()
+                    contact_obj = contact_data.get("contact", contact_data)
+
+                    # Add custom fields as context
+                    custom_fields = contact_obj.get("customFields") or contact_obj.get("customField") or []
+                    if custom_fields:
+                        cf_parts = []
+                        for cf in custom_fields:
+                            fname = cf.get("name") or cf.get("fieldKey") or ""
+                            fval = cf.get("value") or cf.get("fieldValue") or ""
+                            if fname and fval:
+                                cf_parts.append(f"{fname}: {fval}")
+                        if cf_parts:
+                            all_messages.insert(0, {
+                                "direction": "context",
+                                "content": f"CONTACT DETAILS:\n" + "\n".join(cf_parts),
+                                "type": "contact_info",
+                                "sentAt": "",
+                                "createdAt": "",
+                            })
+
+                    # Add tags as context
+                    tags = contact_obj.get("tags") or []
+                    if tags:
+                        tag_names = [t.get("name", str(t)) if isinstance(t, dict) else str(t) for t in tags]
+                        all_messages.insert(0, {
+                            "direction": "context",
+                            "content": f"CONTACT TAGS: {', '.join(tag_names)}",
+                            "type": "contact_tags",
+                            "sentAt": "",
+                            "createdAt": "",
+                        })
+
+                    # Use contact email/name from detailed response if available
+                    if not contact_email:
+                        contact_email = contact_obj.get("email", "")
+                    if not contact_name:
+                        contact_name = f"{contact_obj.get('firstName', '')} {contact_obj.get('lastName', '')}".strip()
+                except Exception as e:
+                    logger.warning(f"Error fetching contact metadata for {contact_id}: {e}")
+
+                # Add meeting notes context (Fireflies or Fathom - live API)
+                from app.services.meeting_notes import get_meeting_notes_service
+                meeting_service = get_meeting_notes_service(self.user)
+                if meeting_service:
+                    try:
+                        meetings = await meeting_service.get_transcripts_for_contact(
+                            contact_email, contact_name
+                        )
+                        for meeting in meetings:
+                            all_messages.insert(0, {
+                                "direction": "context",
+                                "content": meeting.to_prompt_text(),
+                                "type": "meeting_notes",
+                                "sentAt": "",
+                                "createdAt": "",
+                            })
+                        if meetings:
+                            logger.info(f"Added {len(meetings)} meeting transcripts for {contact_email}")
+                    except Exception as e:
+                        logger.warning(f"Error fetching meeting notes for {contact_email}: {e}")
 
                 logger.info(f"Fetched {len(all_messages)} messages for deal {deal_id}")
                 return all_messages[:limit]
@@ -276,51 +340,6 @@ class GHLService:
                 logger.error(f"Error fetching conversations for deal {deal_id}: {str(e)}", exc_info=True)
                 return []
 
-    def _get_fireflies_context(self, contact_email: str, contact_name: str) -> str:
-        """Get Fireflies meeting context for a contact by email match."""
-        import json as _json
-        import os
-
-        cache_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "fireflies_cache.json")
-        try:
-            if not os.path.exists(cache_path):
-                return ""
-
-            with open(cache_path, "r") as f:
-                cache = _json.load(f)
-
-            meetings = cache.get(contact_email, [])
-            if not meetings:
-                # Try partial name match in meeting titles
-                name_parts = contact_name.lower().split() if contact_name else []
-                for email, email_meetings in cache.items():
-                    for m in email_meetings:
-                        title_lower = m.get("title", "").lower()
-                        if any(part in title_lower for part in name_parts if len(part) > 2):
-                            meetings = email_meetings
-                            break
-                    if meetings:
-                        break
-
-            if not meetings:
-                return ""
-
-            # Build context from most recent meeting
-            m = meetings[0]
-            parts = [f"MEETING NOTES ({m.get('date', 'recent')[:10]}): {m.get('title', '')}"]
-            if m.get("summary"):
-                parts.append(f"Summary: {m['summary']}")
-            if m.get("action_items"):
-                parts.append(f"Action Items: {m['action_items']}")
-            if m.get("keywords"):
-                parts.append(f"Key Topics: {', '.join(m['keywords'])}")
-
-            return "\n".join(parts)
-
-        except Exception as e:
-            logger.warning(f"Error loading Fireflies context: {e}")
-            return ""
-    
     async def send_sms(
         self, 
         contact_id: str, 
