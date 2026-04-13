@@ -567,6 +567,29 @@ export async function generateMessage(dealId: string, channel: "sms" | "email" |
   generated_messages?: string[]
   message_sequence?: Array<{ message: string; order: number; delay_seconds: number }>
   email_subject?: string
+  ai_context?: {
+    analysis: {
+      relationship_stage: string
+      communication_style: string
+      key_topics: string[]
+      pain_points: string[]
+      interests: string[]
+      sentiment_trend: string
+      last_interaction_tone: string
+      specific_details: string[]
+    }
+    evidence: Array<{
+      type: string
+      direction: string
+      content: string
+      date: string
+    }>
+    stats: {
+      total_messages: number
+      meeting_notes_count: number
+      date_range: string
+    }
+  }
 }> {
   // Return mock messages based on deal
   if (!hasApiKey()) {
@@ -697,7 +720,8 @@ export async function generateMessage(dealId: string, channel: "sms" | "email" |
         message: msg,
         order: i + 1,
         delay_seconds: i === 0 ? 0 : i === 1 ? 30 : i === 2 ? 120 : 300
-      }))
+      })),
+      ai_context: undefined,
     }
   }
 
@@ -710,6 +734,7 @@ export async function generateMessage(dealId: string, channel: "sms" | "email" |
       generated_messages?: string[]
       message_sequence?: Array<{ message: string; order: number; delay_seconds: number }>
       email_subject?: string
+      ai_context?: any
       status: string
       created_at: string
     }>(`/api/v1/deals/${dealId}/generate-message?channel=${channel}`, {
@@ -771,6 +796,7 @@ export async function generateMessage(dealId: string, channel: "sms" | "email" |
       generated_messages: parsedMessages.length > 1 ? parsedMessages : undefined,
       message_sequence: parsedSequence.length > 0 ? parsedSequence : undefined,
       email_subject: response.email_subject,
+      ai_context: response.ai_context,
     }
   } catch (error) {
     console.error("Error generating message:", error)
@@ -789,7 +815,8 @@ export async function generateMessage(dealId: string, channel: "sms" | "email" |
         message: msg,
         order: i + 1,
         delay_seconds: i === 0 ? 0 : i === 1 ? 30 : 120
-      }))
+      })),
+      ai_context: undefined,
     }
   }
 }

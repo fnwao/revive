@@ -36,6 +36,8 @@ export default function RevivalsPage() {
   const [currentApprovalId, setCurrentApprovalId] = useState<string | null>(null)
   const [messageChannel, setMessageChannel] = useState<"sms" | "email" | "both">("sms")
   const [emailSubject, setEmailSubject] = useState("")
+  const [aiContext, setAiContext] = useState<any>(null)
+  const [showContextPanel, setShowContextPanel] = useState(false)
   const [templates, setTemplates] = useState<MessageTemplate[]>([])
   const [selectedTemplate, setSelectedTemplate] = useState<MessageTemplate | null>(null)
   const [showTemplatePicker, setShowTemplatePicker] = useState(false)
@@ -245,6 +247,8 @@ export default function RevivalsPage() {
       setScheduleEnabled(false)
       setScheduledDateTime("")
       setCurrentApprovalId(result.approval_id)
+      setAiContext(result.ai_context || null)
+      setShowContextPanel(false)
       // Reload approvals to get the new one
       await loadApprovals()
       const messageCount = result.generated_messages?.length || 1
