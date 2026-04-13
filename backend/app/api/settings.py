@@ -1,11 +1,12 @@
 """Settings API endpoints."""
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.core.auth import get_current_user
 from app.models.user import User
 from app.models.user_settings import UserSettings
 from app.schemas.settings import UserSettingsResponse, UserSettingsUpdate, UserSettingsCreate
+from app.services.meeting_notes import FirefliesService, FathomService
 from typing import Optional
 import logging
 
@@ -77,10 +78,12 @@ async def get_settings(
         "ghl_api_key": user.ghl_access_token,  # Get from user model (used by GHL service)
         "ghl_location_id": user.ghl_location_id,  # Get from user model
         "reactivation_rules": reactivation_rules,
+        "fireflies_connected": bool(getattr(user, 'fireflies_api_key', None)),
+        "fathom_connected": bool(getattr(user, 'fathom_api_key', None)),
         "created_at": settings.created_at.isoformat() if settings.created_at else None,
         "updated_at": settings.updated_at.isoformat() if settings.updated_at else None,
     }
-    
+
     return response_data
 
 
@@ -107,11 +110,23 @@ async def update_settings(
     ghl_location_id = update_data.pop("ghl_location_id", None)
     if ghl_location_id is not None:
         user.ghl_location_id = ghl_location_id
-    
+
     # Handle GHL API key - save to user.ghl_access_token for GHL service
     ghl_api_key = update_data.pop("ghl_api_key", None)
     if ghl_api_key is not None:
         user.ghl_access_token = ghl_api_key
+
+    # Handle meeting integration keys (mutually exclusive - on User model)
+    fireflies_key = update_data.pop("fireflies_api_key", None)
+    fathom_key = update_data.pop("fathom_api_key", None)
+    if fireflies_key is not None:
+        user.fireflies_api_key = fireflies_key if fireflies_key else None
+        if fireflies_key:
+            user.fathom_api_key = None  # Mutually exclusive
+    if fathom_key is not None:
+        user.fathom_api_key = fathom_key if fathom_key else None
+        if fathom_key:
+            user.fireflies_api_key = None  # Mutually exclusive
     
     # Automatically update ghl_connected flag based on whether credentials are present
     # Check both the updated values and existing values
@@ -153,10 +168,66 @@ async def update_settings(
         "ghl_api_key": user.ghl_access_token,  # Get from user model (used by GHL service)
         "ghl_location_id": user.ghl_location_id,
         "reactivation_rules": reactivation_rules,
+        "fireflies_connected": bool(getattr(user, 'fireflies_api_key', None)),
+        "fathom_connected": bool(getattr(user, 'fathom_api_key', None)),
         "created_at": settings.created_at.isoformat() if settings.created_at else None,
         "updated_at": settings.updated_at.isoformat() if settings.updated_at else None,
     }
-    
+
     return response_data
+
+
+@router.put("/integrations")
+async def update_integrations(
+    integration_type: str = Query(..., description="fireflies or fathom"),
+    api_key: str = Query("", description="API key (empty to disconnect)"),
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Connect or disconnect a meeting notes integration.
+    Connecting one disconnects the other (mutually exclusive)."""
+    if integration_type not in ("fireflies", "fathom"):
+        raise HTTPException(status_code=400, detail="Invalid integration type. Use 'fireflies' or 'fathom'.")
+
+    if api_key:
+        # Connecting — disconnect the other first
+        if integration_type == "fireflies":
+            user.fireflies_api_key = api_key
+            user.fathom_api_key = None
+        else:
+            user.fathom_api_key = api_key
+            user.fireflies_api_key = None
+    else:
+        # Disconnecting
+        if integration_type == "fireflies":
+            user.fireflies_api_key = None
+        else:
+            user.fathom_api_key = None
+
+    db.commit()
+    db.refresh(user)
+
+    return {
+        "fireflies_connected": bool(user.fireflies_api_key),
+        "fathom_connected": bool(user.fathom_api_key),
+    }
+
+
+@router.post("/integrations/test")
+async def test_integration(
+    integration_type: str = Query(..., description="fireflies or fathom"),
+    api_key: str = Query(..., description="API key to test"),
+    user: User = Depends(get_current_user),
+):
+    """Test a meeting notes integration API key before saving."""
+    if integration_type == "fireflies":
+        service = FirefliesService(api_key)
+    elif integration_type == "fathom":
+        service = FathomService(api_key)
+    else:
+        raise HTTPException(status_code=400, detail="Invalid integration type. Use 'fireflies' or 'fathom'.")
+
+    result = await service.test_connection()
+    return result
 
 

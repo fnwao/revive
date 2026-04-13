@@ -57,15 +57,19 @@ class UserSettingsUpdate(BaseModel):
     ghl_api_key: Optional[str] = None
     ghl_location_id: Optional[str] = None
     reactivation_rules: Optional[List[ReactivationRule]] = None
+    fireflies_api_key: Optional[str] = None
+    fathom_api_key: Optional[str] = None
 
 
 class UserSettingsResponse(UserSettingsBase):
     """Schema for user settings response."""
     id: UUID
     user_id: UUID
+    fireflies_connected: bool = False
+    fathom_connected: bool = False
     created_at: str
     updated_at: Optional[str] = None
-    
+
     class Config:
         from_attributes = True
 
