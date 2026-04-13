@@ -68,6 +68,7 @@ export interface Approval {
   approved_at: string | null
   sent_at: string | null
   scheduled_at: string | null
+  ai_context?: any
 }
 
 export interface DashboardStats {

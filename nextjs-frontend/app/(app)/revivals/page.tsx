@@ -12,6 +12,7 @@ import { Search, RefreshCw, MessageSquare, Clock, DollarSign, Send, Check, X, Al
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { showToast } from "@/lib/toast"
+import { AIContextPanel } from "@/components/ai-context-panel"
 
 export default function RevivalsPage() {
   const [stalledDeals, setStalledDeals] = useState<StalledDeal[]>([])
@@ -570,7 +571,17 @@ export default function RevivalsPage() {
         
         setCurrentApprovalId(approval.id)
         setIsEditing(false)
-        
+
+        // Load AI context from existing approval
+        if (approval.ai_context) {
+          const ctx = typeof approval.ai_context === 'string'
+            ? JSON.parse(approval.ai_context)
+            : approval.ai_context
+          setAiContext(ctx)
+        } else {
+          setAiContext(null)
+        }
+
         // Show scheduled time if available
         if (approval.scheduled_at) {
           setScheduleEnabled(true)
@@ -891,11 +902,15 @@ export default function RevivalsPage() {
                     e.preventDefault()
                     e.stopPropagation()
                     setSelectedDeal(null)
+                    setAiContext(null)
+                    setShowContextPanel(false)
                   }}
                   onTouchStart={(e) => {
                     e.preventDefault()
                     e.stopPropagation()
                     setSelectedDeal(null)
+                    setAiContext(null)
+                    setShowContextPanel(false)
                   }}
                   className="touch-manipulation"
                   style={{ WebkitTapHighlightColor: 'transparent' }}
@@ -1370,7 +1385,7 @@ export default function RevivalsPage() {
                             <Calendar className="h-4 w-4 mr-1.5" />
                             {scheduleEnabled ? "Scheduling" : "Schedule"}
                           </Button>
-                          <Button 
+                          <Button
                             size="sm"
                             variant="outline"
                             onClick={() => setShowFeedback(!showFeedback)}
@@ -1380,6 +1395,15 @@ export default function RevivalsPage() {
                             <MessageCircle className="h-4 w-4 mr-1.5" />
                             {showFeedback ? "Hide Feedback" : "Give Feedback"}
                           </Button>
+                          {aiContext && (
+                            <button
+                              onClick={() => setShowContextPanel(true)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#6C5CE7] bg-[#6C5CE7]/5 border border-[#6C5CE7]/20 rounded-lg hover:bg-[#6C5CE7]/10 transition-colors"
+                            >
+                              <Brain className="h-3 w-3" />
+                              View AI Context
+                            </button>
+                          )}
                         </div>
                       )}
                       
@@ -1612,6 +1636,13 @@ export default function RevivalsPage() {
           )}
         </div>
       </div>
+
+      {showContextPanel && aiContext && (
+        <>
+          <div className="fixed inset-0 bg-black/20 z-40" onClick={() => setShowContextPanel(false)} />
+          <AIContextPanel context={aiContext} onClose={() => setShowContextPanel(false)} />
+        </>
+      )}
     </div>
   )
 }
